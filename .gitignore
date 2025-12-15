@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+.idea
+.kotlin
+repomix-output.xml
+a.md
+TASKS.md
