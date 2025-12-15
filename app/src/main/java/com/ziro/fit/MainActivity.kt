@@ -19,6 +19,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.ziro.fit.ui.calendar.CalendarScreen
+import com.ziro.fit.ui.workout.LiveWorkoutScreen
 import com.ziro.fit.ui.theme.ZirofitTheme
 import com.ziro.fit.viewmodel.AuthState
 import com.ziro.fit.viewmodel.AuthViewModel
@@ -59,6 +60,9 @@ fun MainAppScreen(onLogout: () -> Unit) {
 
     Scaffold(
         bottomBar = {
+            // Only show bottom bar for main tabs, hide it for live workout if desired
+            // For simplicity, we keep it but it won't highlight "calendar" or "profile" correctly while in workout
+            // unless we add logic. For now, it's fine.
             NavigationBar {
                 NavigationBarItem(
                     icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
@@ -105,10 +109,19 @@ fun MainAppScreen(onLogout: () -> Unit) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("calendar") {
-                CalendarScreen()
+                CalendarScreen(
+                    onNavigateToLiveWorkout = {
+                        navController.navigate("live_workout")
+                    }
+                )
             }
             composable("profile") {
                 ProfileScreen(onLogout = onLogout)
+            }
+            composable("live_workout") {
+                LiveWorkoutScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
         }
     }

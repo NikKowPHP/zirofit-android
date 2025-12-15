@@ -2,6 +2,8 @@ package com.ziro.fit.data.remote
 
 import com.ziro.fit.model.ApiResponse
 import com.ziro.fit.model.CalendarResponse
+import com.ziro.fit.model.ServerLiveSessionResponse
+import com.ziro.fit.model.LogSetRequest
 import com.ziro.fit.model.LoginRequest
 import com.ziro.fit.model.LoginResponse
 import com.ziro.fit.model.User
@@ -22,5 +24,14 @@ interface ZiroApi {
         @Query("startDate") startDate: String,
         @Query("endDate") endDate: String
     ): ApiResponse<CalendarResponse>
+
+    @GET("api/workout-sessions/live")
+    suspend fun getActiveSession(): ApiResponse<ServerLiveSessionResponse>
+
+    @POST("api/workout/log")
+    suspend fun logSet(@Body request: LogSetRequest): ApiResponse<Any>
+
+    @POST("api/workout-sessions/finish")
+    suspend fun finishSession(@Body body: Map<String, String>): ApiResponse<Any>
 }
       

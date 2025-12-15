@@ -11,7 +11,9 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
@@ -33,7 +35,8 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CalendarScreen(
-    viewModel: CalendarViewModel = hiltViewModel()
+    viewModel: CalendarViewModel = hiltViewModel(),
+    onNavigateToLiveWorkout: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
     
@@ -121,6 +124,7 @@ fun CalendarScreen(
                 onStartSession = { 
                     viewModel.onStartSession(it)
                     viewModel.onEventDismissed() 
+                    onNavigateToLiveWorkout()
                 },
                 onUpdateSession = { 
                     viewModel.onUpdateSession(it)
