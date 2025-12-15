@@ -17,7 +17,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    // For Android Emulator, localhost is 10.0.2.2
     private const val BASE_URL = "http://localhost:3000/"
 
     @Provides

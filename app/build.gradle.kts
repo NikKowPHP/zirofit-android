@@ -54,6 +54,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
+
     // Secure Storage
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
@@ -75,3 +78,4 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+      

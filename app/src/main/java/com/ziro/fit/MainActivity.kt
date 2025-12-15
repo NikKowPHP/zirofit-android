@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,6 +15,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.ziro.fit.ui.calendar.CalendarScreen
 import com.ziro.fit.ui.theme.ZirofitTheme
 import com.ziro.fit.viewmodel.AuthState
 import com.ziro.fit.viewmodel.AuthViewModel
@@ -38,8 +45,71 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
         when (state) {
             is AuthState.Loading -> LoadingScreen()
             is AuthState.Unauthenticated -> LoginScreen(onLogin = authViewModel::login, error = (state as? AuthState.Error)?.message)
-            is AuthState.Authenticated -> DashboardScreen(onLogout = authViewModel::logout)
+            is AuthState.Authenticated -> MainAppScreen(onLogout = authViewModel::logout)
             is AuthState.Error -> LoginScreen(onLogin = authViewModel::login, error = state.message)
+        }
+    }
+}
+
+@Composable
+fun MainAppScreen(onLogout: () -> Unit) {
+    val navController = rememberNavController()
+    // Simple state to track current screen for bottom bar highlighting
+    var currentRoute by remember { mutableStateOf("calendar") }
+
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                    label = { Text("Calendar") },
+                    selected = currentRoute == "calendar",
+                    onClick = {
+                        currentRoute = "calendar"
+                        navController.navigate("calendar") {
+                            // Pop up to the start destination of the graph to
+                            // avoid building up a large stack of destinations
+                            // on the back stack as users select items
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            // Avoid multiple copies of the same destination when
+                            // reselecting the same item
+                            launchSingleTop = true
+                            // Restore state when reselecting a previously selected item
+                            restoreState = true
+                        }
+                    }
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                    label = { Text("Profile") },
+                    selected = currentRoute == "profile",
+                    onClick = {
+                        currentRoute = "profile"
+                        navController.navigate("profile") {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
+        }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = "calendar",
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            composable("calendar") {
+                CalendarScreen()
+            }
+            composable("profile") {
+                ProfileScreen(onLogout = onLogout)
+            }
         }
     }
 }
@@ -96,7 +166,7 @@ fun LoginScreen(onLogin: (String, String) -> Unit, error: String? = null) {
 }
 
 @Composable
-fun DashboardScreen(
+fun ProfileScreen(
     onLogout: () -> Unit,
     userViewModel: UserViewModel = hiltViewModel()
 ) {
@@ -133,3 +203,4 @@ fun DashboardScreen(
         }
     }
 }
+      
