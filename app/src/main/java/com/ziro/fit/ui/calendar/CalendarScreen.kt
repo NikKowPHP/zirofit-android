@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,45 +22,52 @@ import com.ziro.fit.model.EventType
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        // 1. Header (Month Name)
-        Text(
-            text = state.selectedDate.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(16.dp),
-            color = MaterialTheme.colorScheme.onBackground
-        )
+    PullToRefreshBox(
+        isRefreshing = state.isRefreshing,
+        onRefresh = { viewModel.refresh(isPullToRefresh = true) },
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            // 1. Header (Month Name)
+            Text(
+                text = state.selectedDate.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(16.dp),
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
-        // 2. Custom Week View
-        WeekCalendarView(
-            selectedDate = state.selectedDate,
-            onDateSelected = viewModel::onDateSelected
-        )
+            // 2. Custom Week View
+            WeekCalendarView(
+                selectedDate = state.selectedDate,
+                onDateSelected = viewModel::onDateSelected
+            )
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // 3. Events List
-        if (state.isLoading && state.events.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else if (state.error != null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "Error loading events", color = MaterialTheme.colorScheme.error)
-                    Button(onClick = { viewModel.retry() }) {
-                        Text("Retry")
+            // 3. Events List
+            if (state.isLoading && state.events.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else if (state.error != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "Error loading events", color = MaterialTheme.colorScheme.error)
+                        Button(onClick = { viewModel.retry() }) {
+                            Text("Retry")
+                        }
                     }
                 }
+            } else {
+                EventsList(events = state.selectedDateEvents)
             }
-        } else {
-            EventsList(events = state.selectedDateEvents)
         }
     }
 }

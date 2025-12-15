@@ -15,8 +15,10 @@ import javax.inject.Inject
 
 data class CalendarUiState(
     val selectedDate: LocalDate = LocalDate.now(),
+    val currentWeekOffset: Int = 0, // 0 = current week, -1 = previous week, +1 = next week
     val events: List<CalendarEvent> = emptyList(),
     val isLoading: Boolean = false,
+    val isRefreshing: Boolean = false,
     val error: String? = null
 ) {
     // Derived property: Filter events for the selected date on the UI side
@@ -25,6 +27,14 @@ data class CalendarUiState(
         get() = events.filter { 
             it.startTime.toLocalDate().isEqual(selectedDate) 
         }.sortedBy { it.startTime }
+    
+    // Get the start of the current week being displayed
+    val currentWeekStart: LocalDate
+        get() {
+            val today = LocalDate.now()
+            val startOfThisWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
+            return startOfThisWeek.plusWeeks(currentWeekOffset.toLong())
+        }
 }
 
 @HiltViewModel
@@ -46,23 +56,47 @@ class CalendarViewModel @Inject constructor(
         // to only fetch if close to the edge of the buffer
         fetchEvents() 
     }
-
-    fun retry() {
+    
+    fun onWeekChanged(weekOffset: Int) {
+        _uiState.update { it.copy(currentWeekOffset = weekOffset) }
+        // Optionally fetch events for the new week range
+        fetchEvents()
+    }
+    
+    fun navigateToNextWeek() {
+        _uiState.update { it.copy(currentWeekOffset = it.currentWeekOffset + 1) }
+        fetchEvents()
+    }
+    
+    fun navigateToPreviousWeek() {
+        _uiState.update { it.copy(currentWeekOffset = it.currentWeekOffset - 1) }
         fetchEvents()
     }
 
-    private fun fetchEvents() {
+    fun retry() {
+        refresh()
+    }
+
+    fun refresh(isPullToRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            if (isPullToRefresh) {
+                _uiState.update { it.copy(isRefreshing = true, error = null) }
+            } else {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+            }
             
             repository.getEvents(_uiState.value.selectedDate)
                 .onSuccess { fetchedEvents ->
-                    _uiState.update { it.copy(events = fetchedEvents, isLoading = false) }
+                    _uiState.update { it.copy(events = fetchedEvents, isLoading = false, isRefreshing = false) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(error = error.message, isLoading = false) }
+                    _uiState.update { it.copy(error = error.message, isLoading = false, isRefreshing = false) }
                 }
         }
+    }
+
+    private fun fetchEvents() {
+        refresh()
     }
 }
       
