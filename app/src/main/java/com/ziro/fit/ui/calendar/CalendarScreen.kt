@@ -3,12 +3,15 @@ package com.ziro.fit.ui.calendar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,12 +25,26 @@ import com.ziro.fit.model.EventType
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    
+    // Create a pager state with a very large page count to simulate infinite scrolling
+    // Start at the middle to allow backward and forward navigation
+    val initialPage = Int.MAX_VALUE / 2
+    val pagerState = rememberPagerState(
+        initialPage = initialPage,
+        pageCount = { Int.MAX_VALUE }
+    )
+    
+    // Sync pager changes with view model
+    LaunchedEffect(pagerState.currentPage) {
+        val offset = pagerState.currentPage - initialPage
+        viewModel.onWeekChanged(offset)
+    }
 
     PullToRefreshBox(
         isRefreshing = state.isRefreshing,
@@ -37,17 +54,28 @@ fun CalendarScreen(
         Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             // 1. Header (Month Name)
             Text(
-                text = state.selectedDate.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                text = state.currentWeekStart.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(16.dp),
                 color = MaterialTheme.colorScheme.onBackground
             )
 
-            // 2. Custom Week View
-            WeekCalendarView(
-                selectedDate = state.selectedDate,
-                onDateSelected = viewModel::onDateSelected
-            )
+            // 2. Horizontal Pager for Week View
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxWidth()
+            ) { page ->
+                val weekOffset = page - initialPage
+                val today = LocalDate.now()
+                val startOfThisWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
+                val weekStartDate = startOfThisWeek.plusWeeks(weekOffset.toLong())
+                
+                WeekCalendarView(
+                    weekStartDate = weekStartDate,
+                    selectedDate = state.selectedDate,
+                    onDateSelected = viewModel::onDateSelected
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -74,12 +102,11 @@ fun CalendarScreen(
 
 @Composable
 fun WeekCalendarView(
+    weekStartDate: LocalDate,
     selectedDate: LocalDate,
     onDateSelected: (LocalDate) -> Unit
 ) {
-    // Simple logic to show 7 days centered roughly around selected date
-    val startOfWeek = selectedDate.minusDays(selectedDate.dayOfWeek.value.toLong() - 1)
-    val days = (0..6).map { startOfWeek.plusDays(it.toLong()) }
+    val days = (0..6).map { weekStartDate.plusDays(it.toLong()) }
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
