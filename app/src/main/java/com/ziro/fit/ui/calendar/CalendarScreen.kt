@@ -1,17 +1,22 @@
 package com.ziro.fit.ui.calendar
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +36,9 @@ fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    
+    // Sheet state
+    val sheetState = rememberModalBottomSheetState()
     
     // Create a pager state with a very large page count to simulate infinite scrolling
     // Start at the middle to allow backward and forward navigation
@@ -94,8 +102,31 @@ fun CalendarScreen(
                     }
                 }
             } else {
-                EventsList(events = state.selectedDateEvents)
+                EventsList(
+                    events = state.selectedDateEvents,
+                    onEventClick = viewModel::onEventSelected
+                )
             }
+        }
+    }
+
+    // Bottom Sheet Implementation
+    if (state.selectedEvent != null) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.onEventDismissed() },
+            sheetState = sheetState
+        ) {
+            EventDetailsSheetContent(
+                event = state.selectedEvent!!,
+                onStartSession = { 
+                    viewModel.onStartSession(it)
+                    viewModel.onEventDismissed() 
+                },
+                onUpdateSession = { 
+                    viewModel.onUpdateSession(it)
+                    // Optional: keep sheet open or close
+                }
+            )
         }
     }
 }
@@ -142,7 +173,10 @@ fun WeekCalendarView(
 }
 
 @Composable
-fun EventsList(events: List<CalendarEvent>) {
+fun EventsList(
+    events: List<CalendarEvent>,
+    onEventClick: (CalendarEvent) -> Unit
+) {
     if (events.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             Text(
@@ -159,13 +193,16 @@ fun EventsList(events: List<CalendarEvent>) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(events) { event ->
-            EventItem(event)
+            EventItem(event, onClick = { onEventClick(event) })
         }
     }
 }
 
 @Composable
-fun EventItem(event: CalendarEvent) {
+fun EventItem(
+    event: CalendarEvent,
+    onClick: () -> Unit
+) {
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     
     // Status color mapping
@@ -179,7 +216,8 @@ fun EventItem(event: CalendarEvent) {
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.clickable { onClick() }
     ) {
         Row(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
             // Time Column
@@ -222,6 +260,122 @@ fun EventItem(event: CalendarEvent) {
                         color = Color.Gray
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun EventDetailsSheetContent(
+    event: CalendarEvent,
+    onStartSession: (CalendarEvent) -> Unit,
+    onUpdateSession: (CalendarEvent) -> Unit
+) {
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val dateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")
+
+    Column(
+        modifier = Modifier
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 48.dp) // Extra padding for navigation bar
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = event.startTime.format(dateFormatter),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = event.title,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Time Info
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.DateRange, 
+                contentDescription = null,
+                tint = Color.Gray,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "${event.startTime.format(timeFormatter)} - ${event.endTime.format(timeFormatter)}",
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Client Info
+        if (event.clientName != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = event.clientName,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        // Notes
+        if (!event.notes.isNullOrEmpty()) {
+            Text(
+                text = "Notes",
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.Gray
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = event.notes,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        } else {
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // Actions
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(
+                onClick = { onUpdateSession(event) },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Edit")
+            }
+            
+            Button(
+                onClick = { onStartSession(event) },
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Start")
             }
         }
     }

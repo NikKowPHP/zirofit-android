@@ -19,7 +19,8 @@ data class CalendarUiState(
     val events: List<CalendarEvent> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val selectedEvent: CalendarEvent? = null
 ) {
     // Derived property: Filter events for the selected date on the UI side
     // This makes the UI snappy as switching days doesn't always need a network call
@@ -71,6 +72,24 @@ class CalendarViewModel @Inject constructor(
     fun navigateToPreviousWeek() {
         _uiState.update { it.copy(currentWeekOffset = it.currentWeekOffset - 1) }
         fetchEvents()
+    }
+
+    fun onEventSelected(event: CalendarEvent) {
+        _uiState.update { it.copy(selectedEvent = event) }
+    }
+
+    fun onEventDismissed() {
+        _uiState.update { it.copy(selectedEvent = null) }
+    }
+    
+    fun onStartSession(event: CalendarEvent) {
+        // TODO: Navigate to live workout screen with event.id
+        println("Starting session for ${event.title}")
+    }
+
+    fun onUpdateSession(event: CalendarEvent) {
+        // TODO: Open edit dialog
+        println("Updating session ${event.id}")
     }
 
     fun retry() {
