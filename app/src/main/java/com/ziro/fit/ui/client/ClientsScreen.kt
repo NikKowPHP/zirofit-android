@@ -25,7 +25,8 @@ import com.ziro.fit.viewmodel.ClientsViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClientsScreen(
-    viewModel: ClientsViewModel = hiltViewModel()
+    viewModel: ClientsViewModel = hiltViewModel(),
+    onClientClick: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -105,7 +106,10 @@ fun ClientsScreen(
                             },
                             content = {
                                 Card(
-                                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp),
+                                    onClick = { onClientClick(client.id) }
                                 ) {
                                     ListItem(
                                         headlineContent = { Text(client.name) },

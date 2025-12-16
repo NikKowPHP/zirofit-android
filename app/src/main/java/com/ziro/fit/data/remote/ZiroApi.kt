@@ -4,6 +4,11 @@ import com.ziro.fit.model.ApiResponse
 import com.ziro.fit.model.CalendarResponse
 import com.ziro.fit.model.GetExercisesResponse
 import com.ziro.fit.model.GetClientsResponse
+import com.ziro.fit.model.GetClientDetailsResponse
+import com.ziro.fit.model.GetMeasurementsResponse
+import com.ziro.fit.model.GetAssessmentsResponse
+import com.ziro.fit.model.GetPhotosResponse
+import com.ziro.fit.model.GetClientSessionsResponse
 import com.ziro.fit.model.LogSetRequest
 import com.ziro.fit.model.LoginRequest
 import com.ziro.fit.model.LoginResponse
@@ -50,6 +55,21 @@ interface ZiroApi {
 
     @GET("api/clients")
     suspend fun getClients(): ApiResponse<GetClientsResponse>
+
+    @GET("api/clients/{id}")
+    suspend fun getClientDetails(@retrofit2.http.Path("id") id: String): ApiResponse<GetClientDetailsResponse>
+
+    @GET("api/clients/{id}/measurements")
+    suspend fun getClientMeasurements(@retrofit2.http.Path("id") id: String): ApiResponse<GetMeasurementsResponse>
+
+    @GET("api/clients/{id}/assessments")
+    suspend fun getClientAssessments(@retrofit2.http.Path("id") id: String): ApiResponse<GetAssessmentsResponse>
+
+    @GET("api/clients/{id}/photos")
+    suspend fun getClientPhotos(@retrofit2.http.Path("id") id: String): ApiResponse<GetPhotosResponse>
+
+    @GET("api/clients/{id}/sessions")
+    suspend fun getClientSessions(@retrofit2.http.Path("id") id: String): ApiResponse<GetClientSessionsResponse>
 
     @retrofit2.http.DELETE("api/trainer/clients/{id}")
     suspend fun deleteClient(@retrofit2.http.Path("id") id: String): ApiResponse<Any>

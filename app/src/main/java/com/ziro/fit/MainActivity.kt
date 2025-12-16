@@ -23,6 +23,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.ziro.fit.ui.calendar.CalendarScreen
 import com.ziro.fit.ui.workout.LiveWorkoutScreen
 import com.ziro.fit.ui.workout.LiveWorkoutMiniPlayer
@@ -148,7 +150,65 @@ fun MainAppScreen(onLogout: () -> Unit) {
                     )
                 }
                 composable("clients") {
-                    com.ziro.fit.ui.client.ClientsScreen()
+                    com.ziro.fit.ui.client.ClientsScreen(
+                        onClientClick = { clientId ->
+                            navController.navigate("client_details/$clientId")
+                        }
+                    )
+                }
+                composable(
+                    route = "client_details/{clientId}",
+                    arguments = listOf(navArgument("clientId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val clientId = backStackEntry.arguments?.getString("clientId") ?: ""
+                    com.ziro.fit.ui.client.ClientDetailsScreen(
+                        clientId = clientId,
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToMeasurements = { id -> navController.navigate("client_details/$id/measurements") },
+                        onNavigateToAssessments = { id -> navController.navigate("client_details/$id/assessments") },
+                        onNavigateToPhotos = { id -> navController.navigate("client_details/$id/photos") },
+                        onNavigateToSessions = { id -> navController.navigate("client_details/$id/sessions") }
+                    )
+                }
+                composable(
+                    route = "client_details/{clientId}/measurements",
+                    arguments = listOf(navArgument("clientId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val clientId = backStackEntry.arguments?.getString("clientId") ?: ""
+                    com.ziro.fit.ui.client.ClientMeasurementsScreen(
+                        clientId = clientId,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = "client_details/{clientId}/assessments",
+                    arguments = listOf(navArgument("clientId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val clientId = backStackEntry.arguments?.getString("clientId") ?: ""
+                    com.ziro.fit.ui.client.ClientAssessmentsScreen(
+                        clientId = clientId,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = "client_details/{clientId}/photos",
+                    arguments = listOf(navArgument("clientId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val clientId = backStackEntry.arguments?.getString("clientId") ?: ""
+                    com.ziro.fit.ui.client.ClientPhotosScreen(
+                        clientId = clientId,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = "client_details/{clientId}/sessions",
+                    arguments = listOf(navArgument("clientId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val clientId = backStackEntry.arguments?.getString("clientId") ?: ""
+                    com.ziro.fit.ui.client.ClientSessionsScreen(
+                        clientId = clientId,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
                 }
                 composable("profile") {
                     ProfileScreen(onLogout = onLogout)
