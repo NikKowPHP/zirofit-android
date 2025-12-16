@@ -3,6 +3,9 @@ package com.ziro.fit.data.repository
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.*
 import kotlinx.coroutines.async
+import com.ziro.fit.model.UpdateClientRequest
+import com.ziro.fit.model.CreateMeasurementRequest
+import com.ziro.fit.model.CreateAssessmentRequest
 import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -98,10 +101,57 @@ class ClientRepository @Inject constructor(
         }
     }
 
+    suspend fun createAssessment(clientId: String, assessmentId: String, date: String, value: Double, notes: String?): Result<AssessmentResult> {
+        return try {
+            val response = api.createAssessment(
+                clientId,
+                CreateAssessmentRequest(assessmentId, date, value, notes)
+            )
+            Result.success(response.data.assessmentResult)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteAssessment(clientId: String, resultId: String): Result<Unit> {
+        return try {
+            api.deleteAssessment(clientId, resultId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getClientPhotos(clientId: String): Result<List<TransformationPhoto>> {
         return try {
             val response = api.getClientPhotos(clientId)
             Result.success(response.data.photos ?: emptyList())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createMeasurement(clientId: String, date: String, weight: Double?, bodyFat: Double?, notes: String?): Result<Measurement> {
+        return try {
+            val response = api.createMeasurement(
+                clientId,
+                CreateMeasurementRequest(
+                    measurementDate = date,
+                    weightKg = weight,
+                    bodyFatPercentage = bodyFat,
+                    notes = notes
+                )
+            )
+            Result.success(response.data.measurement)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteMeasurement(clientId: String, measurementId: String): Result<Unit> {
+        return try {
+            api.deleteMeasurement(clientId, measurementId)
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

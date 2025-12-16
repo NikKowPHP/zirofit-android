@@ -20,6 +20,10 @@ import com.ziro.fit.model.User
 import com.ziro.fit.model.CreateClientRequest
 import com.ziro.fit.model.CreateClientResponse
 import com.ziro.fit.model.UpdateClientRequest
+import com.ziro.fit.model.CreateMeasurementRequest
+import com.ziro.fit.model.CreateMeasurementResponse
+import com.ziro.fit.model.CreateAssessmentRequest
+import com.ziro.fit.model.CreateAssessmentResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -72,8 +76,20 @@ interface ZiroApi {
     @GET("api/clients/{id}/measurements")
     suspend fun getClientMeasurements(@retrofit2.http.Path("id") id: String): ApiResponse<GetMeasurementsResponse>
 
+    @POST("api/clients/{id}/measurements")
+    suspend fun createMeasurement(@retrofit2.http.Path("id") id: String, @Body request: CreateMeasurementRequest): ApiResponse<CreateMeasurementResponse>
+
+    @retrofit2.http.DELETE("api/clients/{id}/measurements/{measurementId}")
+    suspend fun deleteMeasurement(@retrofit2.http.Path("id") id: String, @retrofit2.http.Path("measurementId") measurementId: String): ApiResponse<Any>
+
     @GET("api/clients/{id}/assessments")
     suspend fun getClientAssessments(@retrofit2.http.Path("id") id: String): ApiResponse<GetAssessmentsResponse>
+
+    @POST("api/clients/{id}/assessments")
+    suspend fun createAssessment(@retrofit2.http.Path("id") id: String, @Body request: CreateAssessmentRequest): ApiResponse<CreateAssessmentResponse>
+
+    @retrofit2.http.DELETE("api/clients/{id}/assessments/{resultId}")
+    suspend fun deleteAssessment(@retrofit2.http.Path("id") id: String, @retrofit2.http.Path("resultId") resultId: String): ApiResponse<Any>
 
     @GET("api/clients/{id}/photos")
     suspend fun getClientPhotos(@retrofit2.http.Path("id") id: String): ApiResponse<GetPhotosResponse>

@@ -44,4 +44,33 @@ class ClientMeasurementsViewModel @Inject constructor(
                 }
         }
     }
+    fun createMeasurement(clientId: String, date: String, weight: Double?, bodyFat: Double?, notes: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.createMeasurement(clientId, date, weight, bodyFat, notes)
+            result.onSuccess {
+                loadMeasurements(clientId)
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to create measurement"
+                )
+            }
+        }
+    }
+
+    fun deleteMeasurement(clientId: String, measurementId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.deleteMeasurement(clientId, measurementId)
+            result.onSuccess {
+                loadMeasurements(clientId)
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to delete measurement"
+                )
+            }
+        }
+    }
 }

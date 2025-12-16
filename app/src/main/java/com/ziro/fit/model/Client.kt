@@ -49,8 +49,31 @@ data class Measurement(
     val customMetrics: Map<String, Any>?
 )
 
+data class CreateMeasurementRequest(
+    val measurementDate: String,
+    val weightKg: Double?,
+    val bodyFatPercentage: Double?,
+    val notes: String?,
+    val customMetrics: Map<String, Any>? = null
+)
+
+data class CreateMeasurementResponse(
+    val measurement: Measurement
+)
+
 data class GetMeasurementsResponse(
     val measurements: List<Measurement>?
+)
+
+data class CreateAssessmentRequest(
+    val assessmentId: String,
+    val date: String,
+    val value: Double,
+    val notes: String?
+)
+
+data class CreateAssessmentResponse(
+    val assessmentResult: AssessmentResult
 )
 
 data class AssessmentResult(
