@@ -3,6 +3,7 @@ package com.ziro.fit.data.repository
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.CalendarEvent
 import com.ziro.fit.model.CreateSessionRequest
+import com.ziro.fit.util.ApiErrorParser
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -29,7 +30,8 @@ class CalendarRepository @Inject constructor(
             
             Result.success(response.data.events)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -38,7 +40,8 @@ class CalendarRepository @Inject constructor(
             val response = api.createCalendarSession(request)
             Result.success(response.data.message)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 }

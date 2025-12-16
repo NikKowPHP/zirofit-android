@@ -1,5 +1,6 @@
 package com.ziro.fit.di
 
+import android.util.Log
 import com.ziro.fit.data.local.TokenManager
 import com.ziro.fit.data.remote.ZiroApi
 import dagger.Module
@@ -18,6 +19,7 @@ import javax.inject.Singleton
 object AppModule {
 
     private const val BASE_URL = "http://localhost:3000/"
+    private const val TAG = "ZiroAPI"
 
     @Provides
     @Singleton
@@ -37,7 +39,12 @@ object AppModule {
     @Provides
     @Singleton
     fun provideZiroApi(authInterceptor: Interceptor): ZiroApi {
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
+        // Custom logger for better formatting
+        val logger = HttpLoggingInterceptor.Logger { message ->
+            Log.d(TAG, message)
+        }
+        
+        val loggingInterceptor = HttpLoggingInterceptor(logger).apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
 

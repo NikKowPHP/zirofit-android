@@ -2,6 +2,7 @@ package com.ziro.fit.data.repository
 
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.*
+import com.ziro.fit.util.ApiErrorParser
 import kotlinx.coroutines.async
 import com.ziro.fit.model.UpdateClientRequest
 import com.ziro.fit.model.CreateMeasurementRequest
@@ -32,7 +33,8 @@ class ClientRepository @Inject constructor(
             val response = api.getClients()
             Result.success(response.data.clients)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -42,7 +44,8 @@ class ClientRepository @Inject constructor(
             val response = api.createClient(request)
             Result.success(response.data.client)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -52,7 +55,8 @@ class ClientRepository @Inject constructor(
             api.updateClient(clientId, request)
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -84,7 +88,8 @@ class ClientRepository @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -93,7 +98,8 @@ class ClientRepository @Inject constructor(
             val response = api.getClientMeasurements(clientId)
             Result.success(response.data.measurements ?: emptyList())
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -102,7 +108,8 @@ class ClientRepository @Inject constructor(
             val response = api.getClientAssessments(clientId)
             Result.success(response.data.results ?: emptyList())
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -114,7 +121,8 @@ class ClientRepository @Inject constructor(
             )
             Result.success(response.data.assessmentResult)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -123,7 +131,8 @@ class ClientRepository @Inject constructor(
             api.deleteAssessment(clientId, resultId)
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -132,7 +141,8 @@ class ClientRepository @Inject constructor(
             val response = api.getClientPhotos(clientId)
             Result.success(response.data.photos ?: emptyList())
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -149,7 +159,8 @@ class ClientRepository @Inject constructor(
             val response = api.uploadPhoto(clientId, body, dateBody, captionBody)
             Result.success(response.data.progressPhoto)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -158,7 +169,8 @@ class ClientRepository @Inject constructor(
             api.deletePhoto(clientId, photoId)
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -175,7 +187,8 @@ class ClientRepository @Inject constructor(
             )
             Result.success(response.data.measurement)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -184,7 +197,8 @@ class ClientRepository @Inject constructor(
             api.deleteMeasurement(clientId, measurementId)
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -193,7 +207,8 @@ class ClientRepository @Inject constructor(
             val response = api.getClientSessions(clientId)
             Result.success(response.data.sessions ?: emptyList())
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -202,7 +217,8 @@ class ClientRepository @Inject constructor(
             val response = api.updateSession(clientId, sessionId, UpdateSessionRequest(notes, status))
             Result.success(response.data)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -211,7 +227,8 @@ class ClientRepository @Inject constructor(
             api.deleteSession(clientId, sessionId)
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -220,7 +237,8 @@ class ClientRepository @Inject constructor(
             api.deleteClient(clientId)
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 }

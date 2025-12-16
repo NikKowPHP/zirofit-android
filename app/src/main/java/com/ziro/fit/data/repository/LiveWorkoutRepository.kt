@@ -8,6 +8,7 @@ import com.ziro.fit.model.ServerLiveSessionResponse
 import com.ziro.fit.model.StartWorkoutRequest
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
+import com.ziro.fit.util.ApiErrorParser
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.max
@@ -27,7 +28,8 @@ class LiveWorkoutRepository @Inject constructor(
                 Result.success(LiveWorkoutUiModel(id = "", title = "", startTime = "", exercises = emptyList()))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -36,7 +38,8 @@ class LiveWorkoutRepository @Inject constructor(
             val response = api.startWorkout(StartWorkoutRequest(clientId, templateId, plannedSessionId))
             Result.success(mapResponseToUiModel(response.data.session))
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -45,7 +48,8 @@ class LiveWorkoutRepository @Inject constructor(
             api.logSet(LogSetRequest(sessionId, exerciseId, reps, weight, order))
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 
@@ -54,7 +58,8 @@ class LiveWorkoutRepository @Inject constructor(
             api.finishSession(mapOf("workoutSessionId" to sessionId, "notes" to (notes ?: "")))
             Result.success(Unit)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
     
@@ -63,7 +68,8 @@ class LiveWorkoutRepository @Inject constructor(
             val response = api.getExercises(search = query)
             Result.success(response.data.exercises)
         } catch (e: Exception) {
-            Result.failure(e)
+            val apiError = ApiErrorParser.parseError(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
 

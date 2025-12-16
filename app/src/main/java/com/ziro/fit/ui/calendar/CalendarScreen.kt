@@ -131,7 +131,6 @@ fun CalendarScreen(
             }
         }
     }
-    }
 
     // Bottom Sheet Implementation
     if (state.selectedEvent != null) {
@@ -155,6 +154,7 @@ fun CalendarScreen(
                 }
             )
         }
+    }
     }
 }
 

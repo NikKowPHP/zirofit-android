@@ -135,10 +135,17 @@ class CreateSessionViewModel @Inject constructor(
             // Combine date and time to create ISO 8601 string
             val startDateTime = state.selectedDate.atTime(state.startTime)
             val endDateTime = state.selectedDate.atTime(state.endTime)
-            val formatter = DateTimeFormatter.ISO_DATE_TIME
+            
+            // Use ISO_OFFSET_DATE_TIME for better JavaScript compatibility
+            val formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+            val zonedStartTime = startDateTime.atZone(ZoneId.systemDefault())
+            val zonedEndTime = endDateTime.atZone(ZoneId.systemDefault())
 
-            val startTimeStr = startDateTime.atZone(ZoneId.systemDefault()).format(formatter)
-            val endTimeStr = endDateTime.atZone(ZoneId.systemDefault()).format(formatter)
+            val startTimeStr = zonedStartTime.format(formatter)
+            val endTimeStr = zonedEndTime.format(formatter)
+            
+            android.util.Log.d("CreateSession", "Start DateTime: $startTimeStr")
+            android.util.Log.d("CreateSession", "End DateTime: $endTimeStr")
 
             val request = CreateSessionRequest(
                 clientId = state.selectedClient.id,
@@ -149,9 +156,17 @@ class CreateSessionViewModel @Inject constructor(
                 repeats = state.isRecurring,
                 repeatWeeks = if (state.isRecurring) state.repeatWeeks else null,
                 repeatDays = if (state.isRecurring && state.selectedDays.isNotEmpty()) {
-                    state.selectedDays.sorted().joinToString(",")
+                    // Convert from 1-7 (Mon-Sun) to 0-6 (Sun-Sat) API format
+                    // 1=Mon -> 1, 2=Tue -> 2, ..., 7=Sun -> 0
+                    val apiDays = state.selectedDays.map { day ->
+                        if (day == 7) 0 else day
+                    }.sorted()
+                    // Format as JSON array string: "[1,3,5]"
+                    "[${apiDays.joinToString(",")}]"
                 } else null
             )
+            
+            android.util.Log.d("CreateSession", "Request: $request")
 
             calendarRepository.createSession(request)
                 .onSuccess {
