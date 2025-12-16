@@ -2,6 +2,7 @@ package com.ziro.fit.ui.calendar
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ziro.fit.model.CalendarEvent
 import com.ziro.fit.model.EventType
@@ -103,6 +105,7 @@ fun CalendarScreen(
                 WeekCalendarView(
                     weekStartDate = weekStartDate,
                     selectedDate = state.selectedDate,
+                    events = state.events,
                     onDateSelected = viewModel::onDateSelected
                 )
             }
@@ -162,6 +165,7 @@ fun CalendarScreen(
 fun WeekCalendarView(
     weekStartDate: LocalDate,
     selectedDate: LocalDate,
+    events: List<CalendarEvent>,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val days = (0..6).map { weekStartDate.plusDays(it.toLong()) }
@@ -174,13 +178,20 @@ fun WeekCalendarView(
             val isSelected = date.isEqual(selectedDate)
             val isToday = date.isEqual(LocalDate.now())
             
+            // Filter distinct clients for this day
+            val dayClients = events
+                .filter { it.startTime.toLocalDate().isEqual(date) && !it.clientName.isNullOrBlank() }
+                .mapNotNull { it.clientName }
+                .distinct()
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
                     .clickable { onDateSelected(date) }
                     .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                    .padding(vertical = 8.dp, horizontal = 12.dp)
+                    .padding(vertical = 8.dp, horizontal = 4.dp) // Reduced horizontal padding to fit circles
+                    .width(42.dp) // Fixed width for consistent alignment
             ) {
                 Text(
                     text = date.format(DateTimeFormatter.ofPattern("EEE")),
@@ -194,6 +205,83 @@ fun WeekCalendarView(
                     fontWeight = FontWeight.Bold,
                     color = if (isSelected) Color.White else if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
                 )
+                
+                // Client Circles
+                if (dayClients.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    ClientCircles(clients = dayClients)
+                } else {
+                    // Placeholder to keep height consistent (optional, or just Spacer)
+                    Spacer(modifier = Modifier.height(16.dp)) 
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ClientCircles(clients: List<String>) {
+    val maxCircles = 3
+    val displayCount = if (clients.size > maxCircles) 2 else clients.size
+    val showEllipsis = clients.size > maxCircles
+    val circleSize = 16.dp
+    val overlap = 6.dp
+
+    Box(contentAlignment = Alignment.Center) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // We use a Box to stack them with offset, but for simplicity in a Row with negative padding:
+            // However, Row negative padding isn't directly supported for overlap easily without custom layout or Box.
+            // Let's use a Box loop for perfect overlapping control.
+        }
+        
+        // Using a Box to absolute position items for overlap effect
+        val totalWidth = (circleSize * (displayCount + if (showEllipsis) 1 else 0)) - (overlap * (displayCount + (if (showEllipsis) 1 else 0) - 1))
+        
+        Box(modifier = Modifier.width(totalWidth.coerceAtLeast(circleSize)).height(circleSize)) {
+            for (i in 0 until displayCount) {
+                val clientName = clients[i]
+                val firstChar = clientName.firstOrNull()?.uppercase() ?: "?"
+                val offset = (circleSize - overlap) * i
+                
+                Box(
+                    modifier = Modifier
+                        .padding(start = offset)
+                        .size(circleSize)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.tertiaryContainer)
+                        .border(1.dp, MaterialTheme.colorScheme.background, CircleShape), // Border for separation
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = firstChar,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                }
+            }
+            
+            if (showEllipsis) {
+                val offset = (circleSize - overlap) * displayCount
+                Box(
+                    modifier = Modifier
+                        .padding(start = offset)
+                        .size(circleSize)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondary)
+                        .border(1.dp, MaterialTheme.colorScheme.background, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "+${clients.size - displayCount}",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontSize = 7.sp,
+                        color = MaterialTheme.colorScheme.onSecondary
+                    )
+                }
             }
         }
     }
