@@ -22,7 +22,10 @@ data class CalendarUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null,
-    val selectedEvent: CalendarEvent? = null // New: Track selected event for bottom sheet
+    val selectedEvent: CalendarEvent? = null, // Track selected event for bottom sheet
+    val isCreatingSession: Boolean = false,
+    val createSessionSuccess: Boolean = false,
+    val createSessionError: String? = null
 ) {
     // Derived property: Filter events for the selected date on the UI side
     // This makes the UI snappy as switching days doesn't always need a network call
@@ -127,6 +130,38 @@ class CalendarViewModel @Inject constructor(
 
     private fun fetchEvents() {
         refresh()
+    }
+
+    suspend fun createSession(request: com.ziro.fit.model.CreateSessionRequest): Result<String> {
+        _uiState.update { it.copy(isCreatingSession = true, createSessionError = null, createSessionSuccess = false) }
+        
+        val result = repository.createSession(request)
+        
+        result.onSuccess { message ->
+            _uiState.update { 
+                it.copy(
+                    isCreatingSession = false, 
+                    createSessionSuccess = true,
+                    createSessionError = null
+                ) 
+            }
+            // Refresh calendar events after successful creation
+            refresh()
+        }.onFailure { error ->
+            _uiState.update { 
+                it.copy(
+                    isCreatingSession = false, 
+                    createSessionSuccess = false,
+                    createSessionError = error.message ?: "Failed to create session"
+                ) 
+            }
+        }
+        
+        return result
+    }
+
+    fun dismissCreateSuccess() {
+        _uiState.update { it.copy(createSessionSuccess = false, createSessionError = null) }
     }
 }
       

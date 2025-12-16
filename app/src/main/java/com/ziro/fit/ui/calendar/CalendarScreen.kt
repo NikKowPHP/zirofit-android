@@ -11,6 +11,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -39,7 +40,8 @@ import com.ziro.fit.viewmodel.WorkoutViewModel
 fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel(),
     workoutViewModel: WorkoutViewModel = hiltViewModel(),
-    onNavigateToLiveWorkout: () -> Unit = {}
+    onNavigateToLiveWorkout: () -> Unit = {},
+    onNavigateToCreateSession: (String) -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
     
@@ -60,12 +62,26 @@ fun CalendarScreen(
         viewModel.onWeekChanged(offset)
     }
 
-    PullToRefreshBox(
-        isRefreshing = state.isRefreshing,
-        onRefresh = { viewModel.refresh(isPullToRefresh = true) },
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { 
+                    onNavigateToCreateSession(state.selectedDate.toString())
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Create Session"
+                )
+            }
+        }
+    ) { innerPadding ->
+            PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = { viewModel.refresh(isPullToRefresh = true) },
+            modifier = Modifier.fillMaxSize().padding(innerPadding)
+        ) {
+            Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             // 1. Header (Month Name)
             Text(
                 text = state.currentWeekStart.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
@@ -114,6 +130,7 @@ fun CalendarScreen(
                 )
             }
         }
+    }
     }
 
     // Bottom Sheet Implementation

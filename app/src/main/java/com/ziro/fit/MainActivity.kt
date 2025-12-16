@@ -146,6 +146,9 @@ fun MainAppScreen(onLogout: () -> Unit) {
                         workoutViewModel = workoutViewModel,
                         onNavigateToLiveWorkout = {
                             navController.navigate("live_workout")
+                        },
+                        onNavigateToCreateSession = { date ->
+                            navController.navigate("create_session?date=$date")
                         }
                     )
                 }
@@ -216,6 +219,27 @@ fun MainAppScreen(onLogout: () -> Unit) {
                 composable("live_workout") {
                     LiveWorkoutScreen(
                         viewModel = workoutViewModel, // Pass the shared instance
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = "create_session?date={date}",
+                    arguments = listOf(navArgument("date") { 
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    })
+                ) { backStackEntry ->
+                    val dateString = backStackEntry.arguments?.getString("date")
+                    val initialDate = dateString?.let { 
+                        try {
+                            java.time.LocalDate.parse(it)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    com.ziro.fit.ui.calendar.CreateSessionScreen(
+                        initialDate = initialDate,
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }

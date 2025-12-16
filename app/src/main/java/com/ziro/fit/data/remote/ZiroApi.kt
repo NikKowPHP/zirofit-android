@@ -27,6 +27,8 @@ import com.ziro.fit.model.CreateAssessmentResponse
 import com.ziro.fit.model.UploadPhotoResponse
 import com.ziro.fit.model.UpdateSessionRequest
 import com.ziro.fit.model.ClientSession
+import com.ziro.fit.model.CreateSessionRequest
+import com.ziro.fit.model.CreateSessionResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -44,6 +46,9 @@ interface ZiroApi {
         @Query("startDate") startDate: String,
         @Query("endDate") endDate: String
     ): ApiResponse<CalendarResponse>
+
+    @POST("api/trainer/calendar")
+    suspend fun createCalendarSession(@Body request: CreateSessionRequest): ApiResponse<CreateSessionResponse>
 
     @GET("api/workout-sessions/live")
     suspend fun getActiveSession(): ApiResponse<GetActiveSessionResponse>

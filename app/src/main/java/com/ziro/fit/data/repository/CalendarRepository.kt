@@ -2,6 +2,7 @@ package com.ziro.fit.data.repository
 
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.CalendarEvent
+import com.ziro.fit.model.CreateSessionRequest
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -27,6 +28,15 @@ class CalendarRepository @Inject constructor(
             )
             
             Result.success(response.data.events)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createSession(request: CreateSessionRequest): Result<String> {
+        return try {
+            val response = api.createCalendarSession(request)
+            Result.success(response.data.message)
         } catch (e: Exception) {
             Result.failure(e)
         }
