@@ -78,4 +78,10 @@ data class LogSetRequest(
     val weight: Double,
     @SerializedName("order") val order: Int
 )
+
+data class StartWorkoutRequest(
+    val clientId: String?,
+    val templateId: String?,
+    val plannedSessionId: String?
+)
       

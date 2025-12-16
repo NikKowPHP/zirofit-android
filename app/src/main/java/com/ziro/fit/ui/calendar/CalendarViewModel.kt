@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.ziro.fit.data.repository.CalendarRepository
 import com.ziro.fit.model.CalendarEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -20,7 +22,7 @@ data class CalendarUiState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
     val error: String? = null,
-    val selectedEvent: CalendarEvent? = null
+    val selectedEvent: CalendarEvent? = null // New: Track selected event for bottom sheet
 ) {
     // Derived property: Filter events for the selected date on the UI side
     // This makes the UI snappy as switching days doesn't always need a network call
@@ -45,6 +47,8 @@ class CalendarViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
+
+    private var fetchJob: Job? = null
 
     init {
         fetchEvents()
@@ -97,11 +101,16 @@ class CalendarViewModel @Inject constructor(
     }
 
     fun refresh(isPullToRefresh: Boolean = false) {
-        viewModelScope.launch {
+        fetchJob?.cancel()
+
+        fetchJob = viewModelScope.launch {
             if (isPullToRefresh) {
                 _uiState.update { it.copy(isRefreshing = true, error = null) }
             } else {
-                _uiState.update { it.copy(isLoading = true, error = null) }
+                // Do NOT set isLoading = true if we already have events (prevents flickering)
+                if (_uiState.value.events.isEmpty()) {
+                    _uiState.update { it.copy(isLoading = true, error = null) }
+                }
             }
             
             repository.getEvents(_uiState.value.selectedDate)
@@ -109,7 +118,9 @@ class CalendarViewModel @Inject constructor(
                     _uiState.update { it.copy(events = fetchedEvents, isLoading = false, isRefreshing = false) }
                 }
                 .onFailure { error ->
-                    _uiState.update { it.copy(error = error.message, isLoading = false, isRefreshing = false) }
+                    if (isActive) {
+                        _uiState.update { it.copy(error = error.message, isLoading = false, isRefreshing = false) }
+                    }
                 }
         }
     }

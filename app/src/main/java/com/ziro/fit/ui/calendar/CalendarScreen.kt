@@ -32,10 +32,13 @@ import com.ziro.fit.model.EventType
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+import com.ziro.fit.viewmodel.WorkoutViewModel
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun CalendarScreen(
     viewModel: CalendarViewModel = hiltViewModel(),
+    workoutViewModel: WorkoutViewModel = hiltViewModel(),
     onNavigateToLiveWorkout: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -121,8 +124,11 @@ fun CalendarScreen(
         ) {
             EventDetailsSheetContent(
                 event = state.selectedEvent!!,
-                onStartSession = { 
-                    viewModel.onStartSession(it)
+                onStartSession = { event -> 
+                    // Use event.id as the plannedSessionId. 
+                    // We don't have clientId/templateId on the event object yet, relying on backend to resolve from session ID if needed, 
+                    // or assuming this ID is enough to 'start' the planned session.
+                    workoutViewModel.startWorkout(null, null, event.id)
                     viewModel.onEventDismissed() 
                     onNavigateToLiveWorkout()
                 },

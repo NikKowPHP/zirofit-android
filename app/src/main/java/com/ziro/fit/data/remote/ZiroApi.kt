@@ -6,6 +6,8 @@ import com.ziro.fit.model.ServerLiveSessionResponse
 import com.ziro.fit.model.LogSetRequest
 import com.ziro.fit.model.LoginRequest
 import com.ziro.fit.model.LoginResponse
+import com.ziro.fit.model.StartWorkoutRequest
+import com.ziro.fit.model.StartWorkoutResponse
 import com.ziro.fit.model.User
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -27,6 +29,9 @@ interface ZiroApi {
 
     @GET("api/workout-sessions/live")
     suspend fun getActiveSession(): ApiResponse<ServerLiveSessionResponse>
+
+    @POST("api/workout-sessions/start")
+    suspend fun startWorkout(@Body request: StartWorkoutRequest): ApiResponse<StartWorkoutResponse>
 
     @POST("api/workout/log")
     suspend fun logSet(@Body request: LogSetRequest): ApiResponse<Any>

@@ -1,6 +1,8 @@
 package com.ziro.fit.model
 
+import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 
 data class CalendarEvent(
     val id: String,
@@ -12,8 +14,22 @@ data class CalendarEvent(
     val notes: String?
 ) {
     // Helper for UI logic
-    val startTime: LocalDateTime get() = LocalDateTime.parse(start.removeSuffix("Z"))
-    val endTime: LocalDateTime get() = LocalDateTime.parse(end.removeSuffix("Z"))
+    val startTime: LocalDateTime get() = try {
+        Instant.parse(start)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDateTime()
+    } catch (e: Exception) {
+        // Fallback for non-standard formats
+        LocalDateTime.parse(start.removeSuffix("Z"))
+    }
+
+    val endTime: LocalDateTime get() = try {
+        Instant.parse(end)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDateTime()
+    } catch (e: Exception) {
+        LocalDateTime.parse(end.removeSuffix("Z"))
+    }
 }
 
 data class CalendarResponse(
