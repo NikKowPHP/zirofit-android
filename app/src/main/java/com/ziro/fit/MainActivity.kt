@@ -81,7 +81,7 @@ fun MainAppScreen(onLogout: () -> Unit) {
         if (workoutState.isSessionCompleted) {
             // If completed, ensure we aren't stuck on the live workout screen
             if (currentRoute == "live_workout") {
-                navController.popBackStack("calendar", inclusive = false)
+                navController.popBackStack()
             }
             workoutViewModel.onSessionCompletedNavigated()
         }
