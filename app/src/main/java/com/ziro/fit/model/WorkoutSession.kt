@@ -13,6 +13,10 @@ data class ServerLiveSessionResponse(
     val exerciseLogs: List<ServerExerciseLog> // The Progress
 )
 
+data class GetActiveSessionResponse(
+    val session: ServerLiveSessionResponse?
+)
+
 data class ServerTemplate(
     val id: String,
     val name: String,
@@ -25,16 +29,17 @@ data class ServerTemplateExercise(
     val order: Int,
     val targetSets: Int, // Important: How many sets are planned?
     val targetReps: String?,
+    val restSeconds: Int?,
     val exercise: ServerExerciseInfo
 )
 
 data class ServerExerciseLog(
     val id: String,
-    val exerciseId: String,
+
     val reps: Int,
     val weight: Double?,
     val order: Int,
-    val isCompleted: Boolean,
+    val isCompleted: Boolean?,
     val exercise: ServerExerciseInfo
 )
 
@@ -57,6 +62,7 @@ data class WorkoutExerciseUi(
     val exerciseId: String,
     val exerciseName: String,
     val targetReps: String?, // Visual guide: "8-12"
+    val restSeconds: Int?,
     val sets: List<WorkoutSetUi>
 )
 

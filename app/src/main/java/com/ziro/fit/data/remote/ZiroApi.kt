@@ -3,12 +3,14 @@ package com.ziro.fit.data.remote
 import com.ziro.fit.model.ApiResponse
 import com.ziro.fit.model.CalendarResponse
 import com.ziro.fit.model.GetExercisesResponse
+import com.ziro.fit.model.GetClientsResponse
 import com.ziro.fit.model.LogSetRequest
 import com.ziro.fit.model.LoginRequest
 import com.ziro.fit.model.LoginResponse
 import com.ziro.fit.model.ServerLiveSessionResponse
 import com.ziro.fit.model.StartWorkoutRequest
 import com.ziro.fit.model.StartWorkoutResponse
+import com.ziro.fit.model.GetActiveSessionResponse
 import com.ziro.fit.model.User
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -29,7 +31,7 @@ interface ZiroApi {
     ): ApiResponse<CalendarResponse>
 
     @GET("api/workout-sessions/live")
-    suspend fun getActiveSession(): ApiResponse<ServerLiveSessionResponse>
+    suspend fun getActiveSession(): ApiResponse<GetActiveSessionResponse>
 
     @POST("api/workout-sessions/start")
     suspend fun startWorkout(@Body request: StartWorkoutRequest): ApiResponse<StartWorkoutResponse>
@@ -45,4 +47,10 @@ interface ZiroApi {
         @Query("search") search: String? = null,
         @Query("limit") limit: Int = 50
     ): ApiResponse<GetExercisesResponse>
+
+    @GET("api/clients")
+    suspend fun getClients(): ApiResponse<GetClientsResponse>
+
+    @retrofit2.http.DELETE("api/trainer/clients/{id}")
+    suspend fun deleteClient(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
 }

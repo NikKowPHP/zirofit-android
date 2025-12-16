@@ -29,7 +29,11 @@ data class WorkoutUiState(
     val isSessionCompleted: Boolean = false,
     // Exercise Library State
     val availableExercises: List<Exercise> = emptyList(),
-    val isExercisesLoading: Boolean = false
+    val isExercisesLoading: Boolean = false,
+    // Rest Timer State
+    val isRestActive: Boolean = false,
+    val restSecondsRemaining: Int = 0,
+    val restTotalSeconds: Int = 60
 )
 
 @HiltViewModel
@@ -41,12 +45,13 @@ class WorkoutViewModel @Inject constructor(
     val uiState: StateFlow<WorkoutUiState> = _uiState.asStateFlow()
 
     private var timerJob: Job? = null
+    private var restTimerJob: Job? = null
 
     init {
-        checkForActiveSession()
+        refreshActiveSession()
     }
 
-    private fun checkForActiveSession() {
+    fun refreshActiveSession() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             repository.getActiveSession()
@@ -99,6 +104,7 @@ class WorkoutViewModel @Inject constructor(
             exerciseId = exercise.id,
             exerciseName = exercise.name,
             targetReps = null,
+            restSeconds = null,
             sets = listOf(
                 WorkoutSetUi(
                     logId = null,
@@ -190,6 +196,11 @@ class WorkoutViewModel @Inject constructor(
             } else ex
         }
         _uiState.update { it.copy(activeSession = session.copy(exercises = updatedExercises)) }
+        
+        // Trigger Rest Timer
+        val exercise = session.exercises.find { it.exerciseId == exerciseId }
+        val restTime = exercise?.restSeconds ?: 60 // Default 60s if not specified (e.g. freestyle)
+        startRestTimer(restTime)
 
         // 2. API Call
         viewModelScope.launch {
@@ -202,6 +213,43 @@ class WorkoutViewModel @Inject constructor(
                 .onFailure {
                     _uiState.update { it.copy(error = "Failed to save set") }
                 }
+        }
+    }
+    
+    fun startRestTimer(seconds: Int) {
+        restTimerJob?.cancel()
+        _uiState.update { 
+            it.copy(
+                isRestActive = true,
+                restTotalSeconds = seconds,
+                restSecondsRemaining = seconds
+            ) 
+        }
+        
+        restTimerJob = viewModelScope.launch {
+            var remaining = seconds
+            while (remaining > 0 && isActive) {
+                delay(1000)
+                remaining--
+                _uiState.update { it.copy(restSecondsRemaining = remaining) }
+            }
+            stopRestTimer()
+        }
+    }
+    
+    fun stopRestTimer() {
+        restTimerJob?.cancel()
+        _uiState.update { it.copy(isRestActive = false) }
+    }
+    
+    fun adjustRestTime(secondsToAdd: Int) {
+        _uiState.update { 
+            val newTotal = it.restTotalSeconds + secondsToAdd
+            val newRemaining = it.restSecondsRemaining + secondsToAdd
+            it.copy(
+                restTotalSeconds = maxOf(0, newTotal), 
+                restSecondsRemaining = maxOf(0, newRemaining)
+            )
         }
     }
 

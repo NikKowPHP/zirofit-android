@@ -20,7 +20,12 @@ class LiveWorkoutRepository @Inject constructor(
         return try {
             val response = api.getActiveSession()
             val data = response.data
-            Result.success(mapResponseToUiModel(data))
+            if (data.session != null) {
+                Result.success(mapResponseToUiModel(data.session))
+            } else {
+                // Return empty/null session representation
+                Result.success(LiveWorkoutUiModel(id = "", title = "", startTime = "", exercises = emptyList()))
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -64,7 +69,7 @@ class LiveWorkoutRepository @Inject constructor(
 
     private fun mapResponseToUiModel(data: ServerLiveSessionResponse): LiveWorkoutUiModel {
         // 1. Group actual logs by Exercise ID
-        val logsByExercise = data.exerciseLogs.groupBy { it.exerciseId }
+        val logsByExercise = data.exerciseLogs.groupBy { it.exercise.id }
 
         // 2. Build list from Template (The "Planned" Exercises)
         val uiExercises = mutableListOf<WorkoutExerciseUi>()
@@ -121,6 +126,7 @@ class LiveWorkoutRepository @Inject constructor(
                     exerciseId = templateStep.exerciseId,
                     exerciseName = templateStep.exercise.name,
                     targetReps = templateStep.targetReps,
+                    restSeconds = templateStep.restSeconds,
                     sets = setsUi
                 )
             )
@@ -147,6 +153,7 @@ class LiveWorkoutRepository @Inject constructor(
                         exerciseId = exerciseId,
                         exerciseName = firstLog.exercise.name,
                         targetReps = null, // No target for ad-hoc
+                        restSeconds = null, // No rest target for ad-hoc by default, effectively freestyle
                         sets = setsUi
                     )
                 )

@@ -2,6 +2,7 @@ package com.ziro.fit.ui.workout
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,6 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.input.pointer.pointerInput
 import com.ziro.fit.model.Exercise
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
@@ -52,11 +56,25 @@ fun LiveWorkoutScreen(
                 templateName = state.activeSession?.title ?: "Workout",
                 elapsedSeconds = state.elapsedSeconds,
                 onFinish = { viewModel.finishWorkout() },
+                onMinimize = onNavigateBack,
                 isFinishing = state.isFinishing
             )
         }
     ) { padding ->
-        if (state.isLoading) {
+        // Swipe to dismiss/minimize gesture
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures { _, dragAmount ->
+                        if (dragAmount > 50) { // Threshold for swipe down
+                            onNavigateBack()
+                        }
+                    }
+                }
+        ) {
+            if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
@@ -95,6 +113,7 @@ fun LiveWorkoutScreen(
             }
         }
         
+        // Exercise Browser Sheet
         if (showExerciseSheet) {
             ModalBottomSheet(onDismissRequest = { showExerciseSheet = false }) {
                 ExerciseBrowserContent(
@@ -106,6 +125,79 @@ fun LiveWorkoutScreen(
                         showExerciseSheet = false
                     }
                 )
+            }
+        }
+        
+        // Rest Timer Overlay
+        if (state.isRestActive) {
+            RestTimerOverlay(
+                remainingSeconds = state.restSecondsRemaining,
+                totalSeconds = state.restTotalSeconds,
+                onAdd30 = { viewModel.adjustRestTime(30) },
+                onSkip = { viewModel.stopRestTimer() }
+            )
+        }
+    }
+}
+}
+
+@Composable
+fun RestTimerOverlay(
+    remainingSeconds: Int,
+    totalSeconds: Int,
+    onAdd30: () -> Unit,
+    onSkip: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.85f))
+            .clickable(enabled = false) {}, // Intercept clicks
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Rest",
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White
+            )
+            
+            Spacer(Modifier.height(16.dp))
+            
+            Box(contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(
+                    progress = { if (totalSeconds > 0) remainingSeconds.toFloat() / totalSeconds else 0f },
+                    modifier = Modifier.size(200.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    strokeWidth = 12.dp,
+                )
+                Text(
+                    text = "$remainingSeconds",
+                    style = MaterialTheme.typography.displayLarge,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Spacer(Modifier.height(32.dp))
+            
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Button(
+                    onClick = onAdd30,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                ) {
+                    Text("+30s")
+                }
+                
+                Button(
+                    onClick = onSkip,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Skip")
+                }
             }
         }
     }
@@ -164,6 +256,7 @@ fun LiveWorkoutHeader(
     templateName: String,
     elapsedSeconds: Long,
     onFinish: () -> Unit,
+    onMinimize: () -> Unit,
     isFinishing: Boolean
 ) {
     // Format seconds to MM:SS
@@ -174,10 +267,18 @@ fun LiveWorkoutHeader(
             .fillMaxWidth()
             .padding(16.dp)
             .height(56.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
+        IconButton(onClick = onMinimize) {
+             Icon(
+                 imageVector = androidx.compose.material.icons.Icons.Default.KeyboardArrowDown,
+                 contentDescription = "Minimize"
+             )
+        }
+        
+        Spacer(Modifier.width(8.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
             Text(text = templateName, style = MaterialTheme.typography.titleMedium)
             Text(
                 text = timeString,

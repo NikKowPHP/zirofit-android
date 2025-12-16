@@ -3,7 +3,11 @@ package com.ziro.fit
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
@@ -62,6 +66,11 @@ fun MainAppScreen(onLogout: () -> Unit) {
     val workoutViewModel: WorkoutViewModel = hiltViewModel()
     val workoutState by workoutViewModel.uiState.collectAsState()
     
+    // Refresh active session when the main app screen is loaded (e.g. after login or app restart)
+    LaunchedEffect(Unit) {
+        workoutViewModel.refreshActiveSession()
+    }
+    
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -76,24 +85,12 @@ fun MainAppScreen(onLogout: () -> Unit) {
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            Column {
-                // Floating Mini Player (Always alive if session exists and not on the workout screen)
-                // We pass `isVisible` instead of conditional rendering to allow animations
-                val isMiniPlayerVisible = workoutState.activeSession != null && currentRoute != "live_workout"
-                
-                LiveWorkoutMiniPlayer(
-                    isVisible = isMiniPlayerVisible,
-                    sessionTitle = workoutState.activeSession?.title ?: "Active Workout",
-                    elapsedSeconds = workoutState.elapsedSeconds,
-                    onExpand = {
-                        navController.navigate("live_workout") {
-                            launchSingleTop = true
-                        }
-                    }
-                )
+    var offsetX by remember { mutableStateOf(0f) }
+    var offsetY by remember { mutableStateOf(0f) }
 
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            bottomBar = {
                 // Only show bottom bar for main tabs
                 if (currentRoute != "live_workout") {
                     NavigationBar {
@@ -103,6 +100,18 @@ fun MainAppScreen(onLogout: () -> Unit) {
                             selected = currentRoute == "calendar",
                             onClick = {
                                 navController.navigate("calendar") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                            label = { Text("Clients") },
+                            selected = currentRoute == "clients",
+                            onClick = {
+                                navController.navigate("clients") {
                                     popUpTo(navController.graph.startDestinationId) { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
@@ -124,28 +133,60 @@ fun MainAppScreen(onLogout: () -> Unit) {
                     }
                 }
             }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = "calendar",
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable("calendar") {
+                    CalendarScreen(
+                        workoutViewModel = workoutViewModel,
+                        onNavigateToLiveWorkout = {
+                            navController.navigate("live_workout")
+                        }
+                    )
+                }
+                composable("clients") {
+                    com.ziro.fit.ui.client.ClientsScreen()
+                }
+                composable("profile") {
+                    ProfileScreen(onLogout = onLogout)
+                }
+                composable("live_workout") {
+                    LiveWorkoutScreen(
+                        viewModel = workoutViewModel, // Pass the shared instance
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
         }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = "calendar",
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable("calendar") {
-                CalendarScreen(
-                    workoutViewModel = workoutViewModel,
-                    onNavigateToLiveWorkout = {
-                        navController.navigate("live_workout")
+
+        // Floating Mini Player (Always alive if session exists and not on the workout screen)
+        val isMiniPlayerVisible = workoutState.activeSession != null && currentRoute != "live_workout"
+        if (isMiniPlayerVisible) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp) // Initial position above nav bar
+                    .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            offsetX += dragAmount.x
+                            offsetY += dragAmount.y
+                        }
                     }
-                )
-            }
-            composable("profile") {
-                ProfileScreen(onLogout = onLogout)
-            }
-            composable("live_workout") {
-                LiveWorkoutScreen(
-                    viewModel = workoutViewModel, // Pass the shared instance
-                    onNavigateBack = { navController.popBackStack() }
+            ) {
+                LiveWorkoutMiniPlayer(
+                    isVisible = true,
+                    sessionTitle = workoutState.activeSession?.title ?: "Active Workout",
+                    elapsedSeconds = workoutState.elapsedSeconds,
+                    onExpand = {
+                        navController.navigate("live_workout") {
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
         }
