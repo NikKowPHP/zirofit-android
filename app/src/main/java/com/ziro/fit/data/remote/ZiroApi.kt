@@ -33,10 +33,14 @@ import com.ziro.fit.model.CreateSessionResponse
 import com.ziro.fit.model.CreateExerciseRequest
 import com.ziro.fit.model.CreateExerciseResponse
 import com.ziro.fit.model.*
+import com.ziro.fit.data.model.CheckInContext
+import com.ziro.fit.data.model.CheckInPendingItem
+import com.ziro.fit.data.model.ReviewCheckInRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
+import retrofit2.http.*
 
 interface ZiroApi {
     @POST("api/auth/login")
@@ -217,4 +221,17 @@ interface ZiroApi {
 
     @retrofit2.http.DELETE("api/bookings/{id}")
     suspend fun deleteBooking(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
+
+    // Check-Ins
+    @GET("api/trainer/check-ins/pending")
+    suspend fun getPendingCheckIns(): List<CheckInPendingItem>
+
+    @GET("api/trainer/check-ins/{id}")
+    suspend fun getCheckInDetails(@retrofit2.http.Path("id") id: String): ApiResponse<CheckInContext>
+
+    @retrofit2.http.PATCH("api/trainer/check-ins/{id}/review")
+    suspend fun reviewCheckIn(
+        @retrofit2.http.Path("id") id: String,
+        @Body request: ReviewCheckInRequest
+    ): ApiResponse<Any>
 }

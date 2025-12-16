@@ -49,9 +49,17 @@ class ClientRepository @Inject constructor(
         }
     }
 
-    suspend fun updateClient(clientId: String, name: String?, email: String?, phone: String?, status: String?): Result<Unit> {
+    suspend fun updateClient(
+        clientId: String,
+        name: String?,
+        email: String?,
+        phone: String?,
+        status: String?,
+        checkInDay: Int? = null,
+        checkInHour: Int? = null
+    ): Result<Unit> {
         return try {
-            val request = UpdateClientRequest(name, email, phone, status)
+            val request = UpdateClientRequest(name, email, phone, status, checkInDay, checkInHour)
             api.updateClient(clientId, request)
             Result.success(Unit)
         } catch (e: Exception) {

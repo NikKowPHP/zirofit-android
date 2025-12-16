@@ -26,7 +26,9 @@ data class UpdateClientRequest(
     val name: String? = null,
     val email: String? = null,
     val phone: String? = null,
-    val status: String? = null
+    val status: String? = null,
+    val checkInDay: Int? = null,
+    val checkInHour: Int? = null
 )
 
 data class CreateClientResponse(

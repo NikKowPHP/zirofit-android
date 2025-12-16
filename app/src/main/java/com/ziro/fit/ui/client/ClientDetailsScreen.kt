@@ -121,8 +121,8 @@ fun ClientDetailsScreen(
             ClientFormDialog(
                 client = uiState.client,
                 onDismiss = { showEditDialog = false },
-                onConfirm = { name, email, phone, status ->
-                    viewModel.updateClient(clientId, name, email, phone, status)
+                onConfirm = { name, email, phone, status, checkInDay, checkInHour ->
+                    viewModel.updateClient(clientId, name, email, phone, status, checkInDay, checkInHour)
                     showEditDialog = false
                 }
             )

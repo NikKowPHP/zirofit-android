@@ -18,7 +18,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun MoreScreen(
     onNavigateToAssessments: () -> Unit,
-    onNavigateToBookings: () -> Unit
+    onNavigateToBookings: () -> Unit,
+    onNavigateToCheckIns: () -> Unit
 ) {
     Scaffold(
         topBar = {

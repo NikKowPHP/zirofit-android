@@ -181,7 +181,7 @@ fun ClientsScreen(
             if (showCreateDialog) {
                 ClientFormDialog(
                     onDismiss = { showCreateDialog = false },
-                    onConfirm = { name, email, phone, status ->
+                    onConfirm = { name, email, phone, status, _, _ ->
                         viewModel.createClient(name, email, phone, status)
                         showCreateDialog = false
                     }

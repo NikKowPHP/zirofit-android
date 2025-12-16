@@ -58,10 +58,18 @@ class ClientDetailsViewModel @Inject constructor(
         loadClientProfile(clientId)
     }
 
-    fun updateClient(clientId: String, name: String, email: String, phone: String?, status: String) {
+    fun updateClient(
+        clientId: String,
+        name: String,
+        email: String,
+        phone: String?,
+        status: String,
+        checkInDay: Int?,
+        checkInHour: Int?
+    ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            val result = clientRepository.updateClient(clientId, name, email, phone, status)
+            val result = clientRepository.updateClient(clientId, name, email, phone, status, checkInDay, checkInHour)
             result.onSuccess {
                 loadClientProfile(clientId) // Refresh profile
             }.onFailure { e ->

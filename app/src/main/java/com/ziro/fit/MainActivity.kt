@@ -30,6 +30,8 @@ import com.ziro.fit.ui.calendar.CalendarScreen
 import com.ziro.fit.ui.workout.LiveWorkoutScreen
 import com.ziro.fit.ui.workout.LiveWorkoutMiniPlayer
 import com.ziro.fit.ui.theme.ZirofitTheme
+import com.ziro.fit.ui.checkins.CheckInListScreen
+import com.ziro.fit.ui.checkins.CheckInDetailScreen
 import com.ziro.fit.viewmodel.AuthState
 import com.ziro.fit.viewmodel.AuthViewModel
 import com.ziro.fit.viewmodel.UserViewModel
@@ -311,7 +313,8 @@ fun MainAppScreen(onLogout: () -> Unit) {
                 composable("more") {
                     com.ziro.fit.ui.more.MoreScreen(
                         onNavigateToAssessments = { navController.navigate("assessments_library") },
-                        onNavigateToBookings = { navController.navigate("bookings_list") }
+                        onNavigateToBookings = { navController.navigate("bookings_list") },
+                        onNavigateToCheckIns = { navController.navigate("checkins_list") }
                     )
                 }
                 composable("assessments_library") {
@@ -356,6 +359,22 @@ fun MainAppScreen(onLogout: () -> Unit) {
                     com.ziro.fit.ui.bookings.CreateEditBookingScreen(
                         onNavigateBack = { navController.popBackStack() },
                         bookingId = bookingId
+                    )
+                }
+                composable("checkins_list") {
+                    CheckInListScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToDetail = { id -> navController.navigate("checkins_detail/$id") }
+                    )
+                }
+                composable(
+                    route = "checkins_detail/{checkInId}",
+                    arguments = listOf(navArgument("checkInId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val checkInId = backStackEntry.arguments?.getString("checkInId") ?: ""
+                    CheckInDetailScreen(
+                        checkInId = checkInId,
+                        onNavigateBack = { navController.popBackStack() }
                     )
                 }
             }
