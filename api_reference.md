@@ -318,65 +318,6 @@
         }
       }
     },
-    "/api/contact": {
-      "post": {
-        "summary": "POST /api/contact",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "contact"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "message": {
-                    "type": "string",
-                    "minLength": 10
-                  },
-                  "trainerEmail": {
-                    "type": "string",
-                    "format": "email"
-                  },
-                  "trainerName": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "name",
-                  "email",
-                  "message",
-                  "trainerEmail",
-                  "trainerName"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200 response."
-          },
-          "400": {
-            "description": "400 response."
-          },
-          "500": {
-            "description": "500 response."
-          }
-        }
-      }
-    },
     "/api/dashboard": {
       "get": {
         "summary": "GET /api/dashboard",
@@ -446,6 +387,65 @@
           },
           "403": {
             "description": "Forbidden."
+          }
+        }
+      }
+    },
+    "/api/contact": {
+      "post": {
+        "summary": "POST /api/contact",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "contact"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "trainerEmail": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "trainerName": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "name",
+                  "email",
+                  "message",
+                  "trainerEmail",
+                  "trainerName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 response."
+          },
+          "400": {
+            "description": "400 response."
+          },
+          "500": {
+            "description": "500 response."
           }
         }
       }
@@ -920,6 +920,111 @@
         }
       }
     },
+    "/api/workout-sessions/live": {
+      "get": {
+        "summary": "GET /api/workout-sessions/live",
+        "description": "Get the currently active workout session.",
+        "tags": [
+          "workout-sessions"
+        ],
+        "responses": {
+          "200": {
+            "description": "Active session retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "session"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/workout-sessions/live",
+        "description": "Log an exercise set for a live session (create or update).",
+        "tags": [
+          "workout-sessions"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "logId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "workoutSessionId": {
+                    "type": "string"
+                  },
+                  "exerciseId": {
+                    "type": "string"
+                  },
+                  "reps": {
+                    "type": "number",
+                    "example": 0
+                  },
+                  "weight": {
+                    "type": "number",
+                    "example": 0,
+                    "nullable": true
+                  },
+                  "order": {
+                    "type": "number",
+                    "example": 0
+                  },
+                  "supersetKey": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "orderInSuperset": {
+                    "type": "number",
+                    "example": 0,
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "workoutSessionId",
+                  "exerciseId",
+                  "reps"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful update."
+          },
+          "201": {
+            "description": "Created log."
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "403": {
+            "description": "Forbidden."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        }
+      }
+    },
     "/api/workout-sessions/history": {
       "get": {
         "summary": "GET /api/workout-sessions/history",
@@ -1027,111 +1132,6 @@
           },
           "400": {
             "description": "Client ID is required for trainers."
-          }
-        }
-      }
-    },
-    "/api/workout-sessions/live": {
-      "get": {
-        "summary": "GET /api/workout-sessions/live",
-        "description": "Get the currently active workout session.",
-        "tags": [
-          "workout-sessions"
-        ],
-        "responses": {
-          "200": {
-            "description": "Active session retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "session": {
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "session"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "POST /api/workout-sessions/live",
-        "description": "Log an exercise set for a live session (create or update).",
-        "tags": [
-          "workout-sessions"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "logId": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "workoutSessionId": {
-                    "type": "string"
-                  },
-                  "exerciseId": {
-                    "type": "string"
-                  },
-                  "reps": {
-                    "type": "number",
-                    "example": 0
-                  },
-                  "weight": {
-                    "type": "number",
-                    "example": 0,
-                    "nullable": true
-                  },
-                  "order": {
-                    "type": "number",
-                    "example": 0
-                  },
-                  "supersetKey": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "orderInSuperset": {
-                    "type": "number",
-                    "example": 0,
-                    "nullable": true
-                  }
-                },
-                "required": [
-                  "workoutSessionId",
-                  "exerciseId",
-                  "reps"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful update."
-          },
-          "201": {
-            "description": "Created log."
-          },
-          "400": {
-            "description": "Invalid request."
-          },
-          "401": {
-            "description": "Unauthorized."
-          },
-          "403": {
-            "description": "Forbidden."
-          },
-          "500": {
-            "description": "Server error."
           }
         }
       }
@@ -2554,34 +2554,6 @@
         }
       }
     },
-    "/api/cron/trial-reminders": {
-      "get": {
-        "summary": "GET /api/cron/trial-reminders",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "cron"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response."
-          }
-        }
-      }
-    },
-    "/api/cron/check-in-reminder": {
-      "get": {
-        "summary": "GET /api/cron/check-in-reminder",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "cron"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response."
-          }
-        }
-      }
-    },
     "/api/dashboard/summary": {
       "get": {
         "summary": "GET /api/dashboard/summary",
@@ -2911,6 +2883,34 @@
         }
       }
     },
+    "/api/cron/trial-reminders": {
+      "get": {
+        "summary": "GET /api/cron/trial-reminders",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "cron"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response."
+          }
+        }
+      }
+    },
+    "/api/cron/check-in-reminder": {
+      "get": {
+        "summary": "GET /api/cron/check-in-reminder",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "cron"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response."
+          }
+        }
+      }
+    },
     "/api/clients/request-link": {
       "post": {
         "summary": "POST /api/clients/request-link",
@@ -3236,44 +3236,6 @@
           },
           "400": {
             "description": "Client ID is required."
-          }
-        }
-      }
-    },
-    "/api/checkout/session": {
-      "post": {
-        "summary": "POST /api/checkout/session",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "checkout"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "packageId": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "packageId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200 response."
-          },
-          "400": {
-            "description": "400 response."
-          },
-          "422": {
-            "description": "422 response."
           }
         }
       }
@@ -3643,6 +3605,44 @@
           },
           "404": {
             "description": "Client profile not found."
+          }
+        }
+      }
+    },
+    "/api/checkout/session": {
+      "post": {
+        "summary": "POST /api/checkout/session",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "checkout"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "packageId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "packageId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 response."
+          },
+          "400": {
+            "description": "400 response."
+          },
+          "422": {
+            "description": "422 response."
           }
         }
       }
@@ -4184,6 +4184,70 @@
         }
       }
     },
+    "/api/workout-sessions/{id}/save-as-template": {
+      "post": {
+        "summary": "POST /api/workout-sessions/{id}/save-as-template",
+        "description": "Save a completed workout session as a new program template.",
+        "tags": [
+          "workout-sessions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "templateName": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "templateName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input."
+          },
+          "403": {
+            "description": "Unauthorized."
+          }
+        }
+      }
+    },
     "/api/workout-sessions/{id}/summary": {
       "get": {
         "summary": "GET /api/workout-sessions/{id}/summary",
@@ -4258,70 +4322,6 @@
           },
           "404": {
             "description": "Session not found."
-          }
-        }
-      }
-    },
-    "/api/workout-sessions/{id}/save-as-template": {
-      "post": {
-        "summary": "POST /api/workout-sessions/{id}/save-as-template",
-        "description": "Save a completed workout session as a new program template.",
-        "tags": [
-          "workout-sessions"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "templateName": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "templateName"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Template created successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input."
-          },
-          "403": {
-            "description": "Unauthorized."
           }
         }
       }
@@ -4563,6 +4563,67 @@
         }
       }
     },
+    "/api/trainers/{username}/schedule": {
+      "get": {
+        "summary": "GET /api/trainers/{username}/schedule",
+        "description": "Get public schedule for a trainer.",
+        "tags": [
+          "trainers"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schedule retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "availability": {
+
+                    },
+                    "bookings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "startTime": {
+                            "type": "string"
+                          },
+                          "endTime": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "startTime",
+                          "endTime"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "availability",
+                    "bookings"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Trainer not found."
+          }
+        }
+      }
+    },
     "/api/trainers/{username}/packages": {
       "get": {
         "summary": "GET /api/trainers/{username}/packages",
@@ -4630,67 +4691,6 @@
           },
           "400": {
             "description": "Username required."
-          }
-        }
-      }
-    },
-    "/api/trainers/{username}/schedule": {
-      "get": {
-        "summary": "GET /api/trainers/{username}/schedule",
-        "description": "Get public schedule for a trainer.",
-        "tags": [
-          "trainers"
-        ],
-        "parameters": [
-          {
-            "name": "username",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Schedule retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "availability": {
-
-                    },
-                    "bookings": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "startTime": {
-                            "type": "string"
-                          },
-                          "endTime": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "startTime",
-                          "endTime"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "availability",
-                    "bookings"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Trainer not found."
           }
         }
       }
@@ -5187,6 +5187,96 @@
         }
       }
     },
+    "/api/trainer/calendar/clients-summary": {
+      "get": {
+        "summary": "Get calendar clients summary",
+        "description": "Lightweight endpoint for populating Calendar Week/Month views. Returns ONLY the minimum client identity data needed for rendering \"WhatsApp-style\" overlapping client circles on calendar grid cells. This endpoint is highly optimized and does NOT return full session details (notes, status, templates, workout logs). For complete session information, use the '/api/trainer/calendar' endpoint when the user taps on a specific day.",
+        "tags": [
+          "Calendar",
+          "Trainer"
+        ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved client summary for the date range",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "summary": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "date": {
+                                "type": "string"
+                              },
+                              "clientId": {
+                                "type": "string"
+                              },
+                              "clientFirstName": {
+                                "type": "string"
+                              },
+                              "clientLastName": {
+                                "type": "string"
+                              },
+                              "clientAvatarUrl": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "date",
+                              "clientId",
+                              "clientFirstName",
+                              "clientLastName",
+                              "clientAvatarUrl"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "summary"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing or invalid date parameters"
+          },
+          "401": {
+            "description": "Unauthorized - valid trainer authentication required"
+          }
+        }
+      }
+    },
     "/api/trainer/calendar/{sessionId}": {
       "put": {
         "summary": "PUT /api/trainer/calendar/{sessionId}",
@@ -5629,6 +5719,70 @@
         }
       }
     },
+    "/api/profile/me/social-links": {
+      "get": {
+        "summary": "GET /api/profile/me/social-links",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "profile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response."
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/profile/me/social-links",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "profile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "platform": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "username": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "profileUrl": {
+                    "type": "string",
+                    "format": "url"
+                  }
+                },
+                "required": [
+                  "platform",
+                  "username",
+                  "profileUrl"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 response."
+          },
+          "201": {
+            "description": "201 response."
+          },
+          "404": {
+            "description": "404 response."
+          },
+          "422": {
+            "description": "422 response."
+          }
+        }
+      }
+    },
     "/api/profile/me/services": {
       "get": {
         "summary": "GET /api/profile/me/services",
@@ -5699,70 +5853,6 @@
         }
       }
     },
-    "/api/profile/me/social-links": {
-      "get": {
-        "summary": "GET /api/profile/me/social-links",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "profile"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response."
-          }
-        }
-      },
-      "post": {
-        "summary": "POST /api/profile/me/social-links",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "profile"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "platform": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "username": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "profileUrl": {
-                    "type": "string",
-                    "format": "url"
-                  }
-                },
-                "required": [
-                  "platform",
-                  "username",
-                  "profileUrl"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200 response."
-          },
-          "201": {
-            "description": "201 response."
-          },
-          "404": {
-            "description": "404 response."
-          },
-          "422": {
-            "description": "422 response."
-          }
-        }
-      }
-    },
     "/api/profile/me/push-token": {
       "post": {
         "summary": "POST /api/profile/me/push-token",
@@ -5813,6 +5903,65 @@
           },
           "422": {
             "description": "Validation failed."
+          }
+        }
+      }
+    },
+    "/api/profile/me/external-links": {
+      "get": {
+        "summary": "GET /api/profile/me/external-links",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "profile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response."
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/profile/me/external-links",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "profile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "linkUrl": {
+                    "type": "string",
+                    "format": "url"
+                  }
+                },
+                "required": [
+                  "label",
+                  "linkUrl"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 response."
+          },
+          "201": {
+            "description": "201 response."
+          },
+          "404": {
+            "description": "404 response."
+          },
+          "422": {
+            "description": "422 response."
           }
         }
       }
@@ -5878,65 +6027,6 @@
           },
           "400": {
             "description": "400 response."
-          },
-          "422": {
-            "description": "422 response."
-          }
-        }
-      }
-    },
-    "/api/profile/me/external-links": {
-      "get": {
-        "summary": "GET /api/profile/me/external-links",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "profile"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response."
-          }
-        }
-      },
-      "post": {
-        "summary": "POST /api/profile/me/external-links",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "profile"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "label": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "linkUrl": {
-                    "type": "string",
-                    "format": "url"
-                  }
-                },
-                "required": [
-                  "label",
-                  "linkUrl"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200 response."
-          },
-          "201": {
-            "description": "201 response."
-          },
-          "404": {
-            "description": "404 response."
           },
           "422": {
             "description": "422 response."
@@ -6285,80 +6375,6 @@
         }
       }
     },
-    "/api/profile/me/branding": {
-      "get": {
-        "summary": "GET /api/profile/me/branding",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "profile"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response."
-          }
-        }
-      },
-      "post": {
-        "summary": "POST /api/profile/me/branding",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "profile"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "bannerImage": {
-                    "type": "string",
-                    "format": "binary"
-                  },
-                  "profileImage": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                },
-                "anyOf": [
-                  {
-                    "required": [
-                      "bannerImage"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "profileImage"
-                    ]
-                  }
-                ],
-                "additionalProperties": true
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200 response."
-          },
-          "201": {
-            "description": "201 response."
-          },
-          "400": {
-            "description": "400 response."
-          },
-          "403": {
-            "description": "403 response."
-          },
-          "404": {
-            "description": "404 response."
-          },
-          "500": {
-            "description": "500 response."
-          }
-        }
-      }
-    },
     "/api/profile/me/billing": {
       "get": {
         "summary": "GET /api/profile/me/billing",
@@ -6384,6 +6400,143 @@
           },
           "404": {
             "description": "404 response."
+          }
+        }
+      }
+    },
+    "/api/profile/me/benefits": {
+      "get": {
+        "summary": "GET /api/profile/me/benefits",
+        "description": "List profile benefits.",
+        "tags": [
+          "profile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Benefits retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "benefits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "orderColumn": {
+                            "type": "number",
+                            "example": 0
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "description",
+                          "orderColumn"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "benefits"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/profile/me/benefits",
+        "description": "Add a new benefit to the profile.",
+        "tags": [
+          "profile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "iconName": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "iconStyle": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Benefit added successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "newBenefit": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "orderColumn": {
+                          "type": "number",
+                          "example": 0
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "description",
+                        "orderColumn"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "newBenefit"
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed."
           }
         }
       }
@@ -6606,139 +6759,76 @@
         }
       }
     },
-    "/api/profile/me/benefits": {
+    "/api/profile/me/branding": {
       "get": {
-        "summary": "GET /api/profile/me/benefits",
-        "description": "List profile benefits.",
+        "summary": "GET /api/profile/me/branding",
+        "description": "Auto-generated from Next.js route handler.",
         "tags": [
           "profile"
         ],
         "responses": {
           "200": {
-            "description": "Benefits retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "benefits": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "orderColumn": {
-                            "type": "number",
-                            "example": 0
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "title",
-                          "description",
-                          "orderColumn"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "benefits"
-                  ]
-                }
-              }
-            }
+            "description": "Successful response."
           }
         }
       },
       "post": {
-        "summary": "POST /api/profile/me/benefits",
-        "description": "Add a new benefit to the profile.",
+        "summary": "POST /api/profile/me/branding",
+        "description": "Auto-generated from Next.js route handler.",
         "tags": [
           "profile"
         ],
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "title": {
+                  "bannerImage": {
                     "type": "string",
-                    "minLength": 1
+                    "format": "binary"
                   },
-                  "description": {
+                  "profileImage": {
                     "type": "string",
-                    "nullable": true
-                  },
-                  "iconName": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "iconStyle": {
-                    "type": "string",
-                    "nullable": true
+                    "format": "binary"
                   }
                 },
-                "required": [
-                  "title"
-                ]
+                "anyOf": [
+                  {
+                    "required": [
+                      "bannerImage"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "profileImage"
+                    ]
+                  }
+                ],
+                "additionalProperties": true
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Benefit added successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "newBenefit": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "title": {
-                          "type": "string"
-                        },
-                        "description": {
-                          "type": "string",
-                          "nullable": true
-                        },
-                        "orderColumn": {
-                          "type": "number",
-                          "example": 0
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "title",
-                        "description",
-                        "orderColumn"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "newBenefit"
-                  ]
-                }
-              }
-            }
+          "200": {
+            "description": "200 response."
           },
-          "422": {
-            "description": "Validation failed."
+          "201": {
+            "description": "201 response."
+          },
+          "400": {
+            "description": "400 response."
+          },
+          "403": {
+            "description": "403 response."
+          },
+          "404": {
+            "description": "404 response."
+          },
+          "500": {
+            "description": "500 response."
           }
         }
       }
@@ -8263,6 +8353,137 @@
         }
       }
     },
+    "/api/profile/me/social-links/{linkId}": {
+      "put": {
+        "summary": "PUT /api/profile/me/social-links/{linkId}",
+        "description": "Update a social link.",
+        "tags": [
+          "profile"
+        ],
+        "parameters": [
+          {
+            "name": "linkId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "platform": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "username": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "profileUrl": {
+                    "type": "string",
+                    "format": "url"
+                  }
+                },
+                "required": [
+                  "platform",
+                  "username",
+                  "profileUrl"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Link updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "updatedLink": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "platform": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "profileUrl": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "platform",
+                        "username",
+                        "profileUrl"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "updatedLink"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Link not found."
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/profile/me/social-links/{linkId}",
+        "description": "Delete a social link.",
+        "tags": [
+          "profile"
+        ],
+        "parameters": [
+          {
+            "name": "linkId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Link deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deletedId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "deletedId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Link not found."
+          }
+        }
+      }
+    },
     "/api/profile/me/services/{serviceId}": {
       "put": {
         "summary": "PUT /api/profile/me/services/{serviceId}",
@@ -8426,10 +8647,10 @@
         }
       }
     },
-    "/api/profile/me/social-links/{linkId}": {
+    "/api/profile/me/external-links/{linkId}": {
       "put": {
-        "summary": "PUT /api/profile/me/social-links/{linkId}",
-        "description": "Update a social link.",
+        "summary": "PUT /api/profile/me/external-links/{linkId}",
+        "description": "Update an external link.",
         "tags": [
           "profile"
         ],
@@ -8450,23 +8671,18 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "platform": {
+                  "label": {
                     "type": "string",
                     "minLength": 1
                   },
-                  "username": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "profileUrl": {
+                  "linkUrl": {
                     "type": "string",
                     "format": "url"
                   }
                 },
                 "required": [
-                  "platform",
-                  "username",
-                  "profileUrl"
+                  "label",
+                  "linkUrl"
                 ]
               }
             }
@@ -8486,21 +8702,17 @@
                         "id": {
                           "type": "string"
                         },
-                        "platform": {
+                        "label": {
                           "type": "string"
                         },
-                        "username": {
-                          "type": "string"
-                        },
-                        "profileUrl": {
+                        "linkUrl": {
                           "type": "string"
                         }
                       },
                       "required": [
                         "id",
-                        "platform",
-                        "username",
-                        "profileUrl"
+                        "label",
+                        "linkUrl"
                       ]
                     }
                   },
@@ -8510,15 +8722,12 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "Link not found."
           }
         }
       },
       "delete": {
-        "summary": "DELETE /api/profile/me/social-links/{linkId}",
-        "description": "Delete a social link.",
+        "summary": "DELETE /api/profile/me/external-links/{linkId}",
+        "description": "Delete an external link.",
         "tags": [
           "profile"
         ],
@@ -8550,9 +8759,6 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "Link not found."
           }
         }
       }
@@ -8718,122 +8924,6 @@
           },
           "404": {
             "description": "Package not found."
-          }
-        }
-      }
-    },
-    "/api/profile/me/external-links/{linkId}": {
-      "put": {
-        "summary": "PUT /api/profile/me/external-links/{linkId}",
-        "description": "Update an external link.",
-        "tags": [
-          "profile"
-        ],
-        "parameters": [
-          {
-            "name": "linkId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "label": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "linkUrl": {
-                    "type": "string",
-                    "format": "url"
-                  }
-                },
-                "required": [
-                  "label",
-                  "linkUrl"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Link updated successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "updatedLink": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "label": {
-                          "type": "string"
-                        },
-                        "linkUrl": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "label",
-                        "linkUrl"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "updatedLink"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "DELETE /api/profile/me/external-links/{linkId}",
-        "description": "Delete an external link.",
-        "tags": [
-          "profile"
-        ],
-        "parameters": [
-          {
-            "name": "linkId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Link deleted successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "deletedId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "deletedId"
-                  ]
-                }
-              }
-            }
           }
         }
       }
@@ -9724,55 +9814,6 @@
         }
       }
     },
-    "/api/trainer/programs/templates/{templateId}/rest": {
-      "post": {
-        "summary": "POST /api/trainer/programs/templates/{templateId}/rest",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "trainer"
-        ],
-        "parameters": [
-          {
-            "name": "templateId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "durationSeconds": {
-                    "type": "number",
-                    "example": 0
-                  }
-                },
-                "required": [
-                  "durationSeconds"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200 response."
-          },
-          "201": {
-            "description": "201 response."
-          },
-          "422": {
-            "description": "422 response."
-          }
-        }
-      }
-    },
     "/api/trainer/programs/templates/{templateId}/exercises": {
       "post": {
         "summary": "POST /api/trainer/programs/templates/{templateId}/exercises",
@@ -9816,6 +9857,55 @@
                 },
                 "required": [
                   "exerciseId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 response."
+          },
+          "201": {
+            "description": "201 response."
+          },
+          "422": {
+            "description": "422 response."
+          }
+        }
+      }
+    },
+    "/api/trainer/programs/templates/{templateId}/rest": {
+      "post": {
+        "summary": "POST /api/trainer/programs/templates/{templateId}/rest",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "trainer"
+        ],
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "durationSeconds": {
+                    "type": "number",
+                    "example": 0
+                  }
+                },
+                "required": [
+                  "durationSeconds"
                 ]
               }
             }
@@ -10017,12 +10107,12 @@
       "description": "Exercises endpoints."
     },
     {
-      "name": "contact",
-      "description": "Contact endpoints."
-    },
-    {
       "name": "dashboard",
       "description": "Dashboard endpoints."
+    },
+    {
+      "name": "contact",
+      "description": "Contact endpoints."
     },
     {
       "name": "clients",
@@ -10065,12 +10155,12 @@
       "description": "Cron endpoints."
     },
     {
-      "name": "checkout",
-      "description": "Checkout endpoints."
-    },
-    {
       "name": "client",
       "description": "Client endpoints."
+    },
+    {
+      "name": "checkout",
+      "description": "Checkout endpoints."
     },
     {
       "name": "billing",
@@ -10085,5 +10175,5 @@
       "description": "Public endpoints."
     }
   ],
-  "x-generated-at": "2025-12-16T09:33:42.925Z"
+  "x-generated-at": "2025-12-16T11:26:14.868Z"
 }

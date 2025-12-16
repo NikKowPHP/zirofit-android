@@ -25,7 +25,9 @@ data class CalendarUiState(
     val selectedEvent: CalendarEvent? = null, // Track selected event for bottom sheet
     val isCreatingSession: Boolean = false,
     val createSessionSuccess: Boolean = false,
-    val createSessionError: String? = null
+
+    val createSessionError: String? = null,
+    val clientSummaries: List<com.ziro.fit.model.ClientSummaryItem> = emptyList()
 ) {
     // Derived property: Filter events for the selected date on the UI side
     // This makes the UI snappy as switching days doesn't always need a network call
@@ -130,6 +132,22 @@ class CalendarViewModel @Inject constructor(
 
     private fun fetchEvents() {
         refresh()
+        fetchSummary()
+    }
+
+    private fun fetchSummary() {
+        viewModelScope.launch {
+            // Fetch summary for a wider range (e.g. current month)
+            // Logic to check if we already have data for this range could be added here
+            // For now, simple fetch based on selected date
+            repository.getCalendarSummary(_uiState.value.selectedDate)
+                .onSuccess { summaries ->
+                    _uiState.update { it.copy(clientSummaries = summaries ?: emptyList()) }
+                }
+                .onFailure {
+                    // diverse error handling if needed, mainly just silent fail for badges
+                }
+        }
     }
 
     suspend fun createSession(request: com.ziro.fit.model.CreateSessionRequest): Result<String> {

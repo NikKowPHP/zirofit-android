@@ -105,7 +105,7 @@ fun CalendarScreen(
                 WeekCalendarView(
                     weekStartDate = weekStartDate,
                     selectedDate = state.selectedDate,
-                    events = state.events,
+                    clientSummaries = state.clientSummaries,
                     onDateSelected = viewModel::onDateSelected
                 )
             }
@@ -165,7 +165,7 @@ fun CalendarScreen(
 fun WeekCalendarView(
     weekStartDate: LocalDate,
     selectedDate: LocalDate,
-    events: List<CalendarEvent>,
+    clientSummaries: List<com.ziro.fit.model.ClientSummaryItem>,
     onDateSelected: (LocalDate) -> Unit
 ) {
     val days = (0..6).map { weekStartDate.plusDays(it.toLong()) }
@@ -178,11 +178,22 @@ fun WeekCalendarView(
             val isSelected = date.isEqual(selectedDate)
             val isToday = date.isEqual(LocalDate.now())
             
-            // Filter distinct clients for this day
-            val dayClients = events
-                .filter { it.startTime.toLocalDate().isEqual(date) && !it.clientName.isNullOrBlank() }
-                .mapNotNull { it.clientName }
-                .distinct()
+            // Filter distinct clients for this day using the summary list
+            // clientSummaries.date is ISO string, we need to parse it to LocalDate
+            val dayClients = clientSummaries
+                .filter { 
+                    try {
+                        // Assuming ISO_DATE_TIME format from backend
+                        java.time.Instant.parse(it.date)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toLocalDate()
+                            .isEqual(date)
+                    } catch (e: Exception) {
+                        false
+                    }
+                }
+                .distinctBy { it.clientId }
+
 
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -220,7 +231,7 @@ fun WeekCalendarView(
 }
 
 @Composable
-fun ClientCircles(clients: List<String>) {
+fun ClientCircles(clients: List<com.ziro.fit.model.ClientSummaryItem>) {
     val maxCircles = 3
     val displayCount = if (clients.size > maxCircles) 2 else clients.size
     val showEllipsis = clients.size > maxCircles
@@ -228,21 +239,13 @@ fun ClientCircles(clients: List<String>) {
     val overlap = 6.dp
 
     Box(contentAlignment = Alignment.Center) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // We use a Box to stack them with offset, but for simplicity in a Row with negative padding:
-            // However, Row negative padding isn't directly supported for overlap easily without custom layout or Box.
-            // Let's use a Box loop for perfect overlapping control.
-        }
-        
         // Using a Box to absolute position items for overlap effect
         val totalWidth = (circleSize * (displayCount + if (showEllipsis) 1 else 0)) - (overlap * (displayCount + (if (showEllipsis) 1 else 0) - 1))
         
         Box(modifier = Modifier.width(totalWidth.coerceAtLeast(circleSize)).height(circleSize)) {
             for (i in 0 until displayCount) {
-                val clientName = clients[i]
-                val firstChar = clientName.firstOrNull()?.uppercase() ?: "?"
+                val client = clients[i]
+                val firstChar = client.clientFirstName.firstOrNull()?.uppercase() ?: "?"
                 val offset = (circleSize - overlap) * i
                 
                 Box(

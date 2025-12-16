@@ -4,6 +4,7 @@ import com.ziro.fit.model.ApiResponse
 import com.ziro.fit.model.CalendarResponse
 import com.ziro.fit.model.GetExercisesResponse
 import com.ziro.fit.model.GetClientsResponse
+import com.ziro.fit.model.CalendarSummaryResponse
 import com.ziro.fit.model.GetClientDetailsResponse
 import com.ziro.fit.model.GetMeasurementsResponse
 import com.ziro.fit.model.GetAssessmentsResponse
@@ -46,6 +47,12 @@ interface ZiroApi {
         @Query("startDate") startDate: String,
         @Query("endDate") endDate: String
     ): ApiResponse<CalendarResponse>
+
+    @GET("api/trainer/calendar/clients-summary")
+    suspend fun getCalendarClientsSummary(
+        @Query("startDate") startDate: String,
+        @Query("endDate") endDate: String
+    ): ApiResponse<CalendarSummaryResponse>
 
     @POST("api/trainer/calendar")
     suspend fun createCalendarSession(@Body request: CreateSessionRequest): ApiResponse<CreateSessionResponse>
