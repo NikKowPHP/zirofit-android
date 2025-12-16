@@ -23,6 +23,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ziro.fit.viewmodel.ClientsViewModel
 
@@ -126,7 +130,31 @@ fun ClientsScreen(
                                         headlineContent = { Text(client.name) },
                                         supportingContent = { Text(client.email) },
                                         leadingContent = {
-                                            Icon(Icons.Default.Person, contentDescription = null)
+                                            if (client.avatarUrl != null) {
+                                                AsyncImage(
+                                                    model = client.avatarUrl,
+                                                    contentDescription = "Avatar",
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = client.name.take(1).uppercase(),
+                                                        style = MaterialTheme.typography.titleMedium,
+                                                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                                                    )
+                                                }
+                                            }
                                         },
                                         trailingContent = {
                                             Text(

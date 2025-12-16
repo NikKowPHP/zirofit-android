@@ -11,7 +11,8 @@ data class Client(
     @SerializedName("createdAt") val createdAt: String? = null,
     @SerializedName("checkInDay") val checkInDay: Int? = null,
     @SerializedName("checkInHour") val checkInHour: Int? = null,
-    @SerializedName("trainerId") val trainerId: String? = null
+    @SerializedName("trainerId") val trainerId: String? = null,
+    @SerializedName("avatarUrl") val avatarUrl: String? = null
 )
 
 data class CreateClientRequest(

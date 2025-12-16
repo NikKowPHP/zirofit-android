@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.ziro.fit.model.CalendarEvent
 import com.ziro.fit.model.ClientSummaryItem
 import java.time.LocalDate
@@ -138,7 +140,6 @@ fun ClientCircles(clients: List<ClientSummaryItem>) {
         Box(modifier = Modifier.width(totalWidth.coerceAtLeast(circleSize)).height(circleSize)) {
             for (i in 0 until displayCount) {
                 val client = clients[i]
-                val firstChar = client.clientFirstName.firstOrNull()?.uppercase() ?: "?"
                 val offset = (circleSize - overlap) * i
                 
                 Box(
@@ -150,13 +151,23 @@ fun ClientCircles(clients: List<ClientSummaryItem>) {
                         .border(1.dp, MaterialTheme.colorScheme.background, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = firstChar,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
+                    if (client.clientAvatarUrl != null) {
+                        AsyncImage(
+                            model = client.clientAvatarUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        val firstChar = client.clientFirstName.firstOrNull()?.uppercase() ?: "?"
+                        Text(
+                            text = firstChar,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
                 }
             }
             
