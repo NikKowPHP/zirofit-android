@@ -15,9 +15,16 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
+
+enum class CalendarViewMode {
+    AGENDA, DAY, WEEK, MONTH
+}
+
 data class CalendarUiState(
     val selectedDate: LocalDate = LocalDate.now(),
-    val currentWeekOffset: Int = 0, // 0 = current week, -1 = previous week, +1 = next week
+    val currentWeekOffset: Int = 0, // Used for Week View
+    val currentMonthOffset: Int = 0, // Used for Month View
+    val viewMode: CalendarViewMode = CalendarViewMode.WEEK, // Default to Week view
     val events: List<CalendarEvent> = emptyList(),
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
@@ -43,6 +50,13 @@ data class CalendarUiState(
             val startOfThisWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
             return startOfThisWeek.plusWeeks(currentWeekOffset.toLong())
         }
+
+    // Get the start of the current month being displayed
+    val currentMonthStart: LocalDate
+        get() {
+            val today = LocalDate.now()
+            return today.withDayOfMonth(1).plusMonths(currentMonthOffset.toLong())
+        }
 }
 
 @HiltViewModel
@@ -59,6 +73,10 @@ class CalendarViewModel @Inject constructor(
         fetchEvents()
     }
 
+    fun onViewModeChanged(mode: CalendarViewMode) {
+        _uiState.update { it.copy(viewMode = mode) }
+    }
+
     fun onDateSelected(date: LocalDate) {
         _uiState.update { it.copy(selectedDate = date) }
         // Optional: If date is outside current cache range, fetch more
@@ -72,14 +90,39 @@ class CalendarViewModel @Inject constructor(
         // Optionally fetch events for the new week range
         fetchEvents()
     }
-    
-    fun navigateToNextWeek() {
-        _uiState.update { it.copy(currentWeekOffset = it.currentWeekOffset + 1) }
+
+    fun onMonthChanged(monthOffset: Int) {
+        _uiState.update { it.copy(currentMonthOffset = monthOffset) }
         fetchEvents()
     }
     
-    fun navigateToPreviousWeek() {
-        _uiState.update { it.copy(currentWeekOffset = it.currentWeekOffset - 1) }
+    fun navigateToNext() {
+        when (_uiState.value.viewMode) {
+            CalendarViewMode.WEEK -> {
+                _uiState.update { it.copy(currentWeekOffset = it.currentWeekOffset + 1) }
+            }
+            CalendarViewMode.MONTH -> {
+                _uiState.update { it.copy(currentMonthOffset = it.currentMonthOffset + 1) }
+            }
+            CalendarViewMode.DAY, CalendarViewMode.AGENDA -> {
+                 _uiState.update { it.copy(selectedDate = it.selectedDate.plusDays(1)) }
+            }
+        }
+        fetchEvents()
+    }
+    
+    fun navigateToPrevious() {
+        when (_uiState.value.viewMode) {
+            CalendarViewMode.WEEK -> {
+                _uiState.update { it.copy(currentWeekOffset = it.currentWeekOffset - 1) }
+            }
+            CalendarViewMode.MONTH -> {
+                _uiState.update { it.copy(currentMonthOffset = it.currentMonthOffset - 1) }
+            }
+             CalendarViewMode.DAY, CalendarViewMode.AGENDA -> {
+                 _uiState.update { it.copy(selectedDate = it.selectedDate.minusDays(1)) }
+            }
+        }
         fetchEvents()
     }
 

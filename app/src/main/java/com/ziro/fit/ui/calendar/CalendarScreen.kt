@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -84,54 +85,128 @@ fun CalendarScreen(
             modifier = Modifier.fillMaxSize().padding(innerPadding)
         ) {
             Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            // 1. Header (Month Name)
-            Text(
-                text = state.currentWeekStart.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(16.dp),
-                color = MaterialTheme.colorScheme.onBackground
-            )
+                // Header & View Selector
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(), 
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (state.viewMode == CalendarViewMode.MONTH) 
+                                state.currentMonthStart.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+                            else 
+                                state.currentWeekStart.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        
+                        // View Selection using Dropdown
+                        Box {
+                            var expanded by remember { mutableStateOf(false) }
+                            
+                            TextButton(onClick = { expanded = true }) {
+                                Text(
+                                    text = state.viewMode.name.first() + state.viewMode.name.substring(1).lowercase(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = "Select View"
+                                )
+                            }
 
-            // 2. Horizontal Pager for Week View
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxWidth()
-            ) { page ->
-                val weekOffset = page - initialPage
-                val today = LocalDate.now()
-                val startOfThisWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
-                val weekStartDate = startOfThisWeek.plusWeeks(weekOffset.toLong())
-                
-                WeekCalendarView(
-                    weekStartDate = weekStartDate,
-                    selectedDate = state.selectedDate,
-                    clientSummaries = state.clientSummaries,
-                    onDateSelected = viewModel::onDateSelected
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 3. Events List
-            if (state.isLoading && state.events.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else if (state.error != null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "Error loading events", color = MaterialTheme.colorScheme.error)
-                        Button(onClick = { viewModel.retry() }) {
-                            Text("Retry")
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                CalendarViewMode.values().forEach { mode ->
+                                    DropdownMenuItem(
+                                        text = { 
+                                            Text(
+                                                text = mode.name.first() + mode.name.substring(1).lowercase(),
+                                                fontWeight = if (state.viewMode == mode) FontWeight.Bold else FontWeight.Normal
+                                            ) 
+                                        },
+                                        onClick = {
+                                            viewModel.onViewModeChanged(mode)
+                                            expanded = false
+                                        },
+                                        leadingIcon = {
+                                            if (state.viewMode == mode) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CheckCircle,
+                                                    contentDescription = "Selected",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            } else {
+                                                Icon(
+                                                    imageVector = Icons.Default.RadioButtonUnchecked, // Placeholder or empty
+                                                    contentDescription = null,
+                                                    tint = Color.Transparent
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
-            } else {
-                EventsList(
-                    events = state.selectedDateEvents,
-                    onEventClick = viewModel::onEventSelected
-                )
-            }
+
+                // Main Content
+                when (state.viewMode) {
+                    CalendarViewMode.WEEK -> {
+                        WeekViewPager(
+                            pagerState = pagerState, // Note: Pager state logic in VM/Screen might need update to handle distinct view pagers if needed. 
+                            // For simplicity, reusing pagerState for week navigation. 
+                            // Ideally we'd separate month/week pager states.
+                            selectedDate = state.selectedDate,
+                            clientSummaries = state.clientSummaries,
+                            onDateSelected = viewModel::onDateSelected
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        EventsListWithLoading(state, viewModel)
+                    }
+                    CalendarViewMode.MONTH -> {
+                        // We need a separate pager state for month view or reset/handle it.
+                        // For MVP, just creating a new state here might be tricky if it resets on recomposition.
+                        // Let's use a remembered state keyed to viewMode.
+                        val monthPagerState = rememberPagerState(
+                             initialPage = Int.MAX_VALUE / 2,
+                             pageCount = { Int.MAX_VALUE }
+                        )
+                        LaunchedEffect(monthPagerState.currentPage) {
+                             val offset = monthPagerState.currentPage - (Int.MAX_VALUE / 2)
+                             viewModel.onMonthChanged(offset)
+                        }
+
+                        MonthViewPager(
+                            pagerState = monthPagerState,
+                            selectedDate = state.selectedDate,
+                            clientSummaries = state.clientSummaries,
+                            onDateSelected = viewModel::onDateSelected
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        EventsListWithLoading(state, viewModel)
+                    }
+                    CalendarViewMode.DAY -> {
+                        DayCalendarView(
+                            date = state.selectedDate,
+                            events = state.selectedDateEvents,
+                            onEventClick = viewModel::onEventSelected
+                        )
+                    }
+                    CalendarViewMode.AGENDA -> {
+                         AgendaCalendarView(
+                            selectedDate = state.selectedDate,
+                            events = state.selectedDateEvents,
+                            onEventClick = viewModel::onEventSelected
+                        )
+                    }
+                }
         }
     }
 
@@ -144,16 +219,12 @@ fun CalendarScreen(
             EventDetailsSheetContent(
                 event = state.selectedEvent!!,
                 onStartSession = { event -> 
-                    // Use event.id as the plannedSessionId. 
-                    // We don't have clientId/templateId on the event object yet, relying on backend to resolve from session ID if needed, 
-                    // or assuming this ID is enough to 'start' the planned session.
                     workoutViewModel.startWorkout(null, null, event.id)
                     viewModel.onEventDismissed() 
                     onNavigateToLiveWorkout()
                 },
                 onUpdateSession = { 
                     viewModel.onUpdateSession(it)
-                    // Optional: keep sheet open or close
                 }
             )
         }
@@ -162,131 +233,25 @@ fun CalendarScreen(
 }
 
 @Composable
-fun WeekCalendarView(
-    weekStartDate: LocalDate,
-    selectedDate: LocalDate,
-    clientSummaries: List<com.ziro.fit.model.ClientSummaryItem>,
-    onDateSelected: (LocalDate) -> Unit
-) {
-    val days = (0..6).map { weekStartDate.plusDays(it.toLong()) }
-
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        days.forEach { date ->
-            val isSelected = date.isEqual(selectedDate)
-            val isToday = date.isEqual(LocalDate.now())
-            
-            // Filter distinct clients for this day using the summary list
-            // clientSummaries.date is ISO string, we need to parse it to LocalDate
-            val dayClients = clientSummaries
-                .filter { 
-                    try {
-                        // Assuming ISO_DATE_TIME format from backend
-                        java.time.Instant.parse(it.date)
-                            .atZone(java.time.ZoneId.systemDefault())
-                            .toLocalDate()
-                            .isEqual(date)
-                    } catch (e: Exception) {
-                        false
-                    }
-                }
-                .distinctBy { it.clientId }
-
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { onDateSelected(date) }
-                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                    .padding(vertical = 8.dp, horizontal = 4.dp) // Reduced horizontal padding to fit circles
-                    .width(42.dp) // Fixed width for consistent alignment
-            ) {
-                Text(
-                    text = date.format(DateTimeFormatter.ofPattern("EEE")),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isSelected) Color.White else Color.Gray
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = date.dayOfMonth.toString(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSelected) Color.White else if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
-                )
-                
-                // Client Circles
-                if (dayClients.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    ClientCircles(clients = dayClients)
-                } else {
-                    // Placeholder to keep height consistent (optional, or just Spacer)
-                    Spacer(modifier = Modifier.height(16.dp)) 
+fun EventsListWithLoading(state: CalendarUiState, viewModel: CalendarViewModel) {
+    if (state.isLoading && state.events.isEmpty()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else if (state.error != null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = "Error loading events", color = MaterialTheme.colorScheme.error)
+                Button(onClick = { viewModel.retry() }) {
+                    Text("Retry")
                 }
             }
         }
-    }
-}
-
-@Composable
-fun ClientCircles(clients: List<com.ziro.fit.model.ClientSummaryItem>) {
-    val maxCircles = 3
-    val displayCount = if (clients.size > maxCircles) 2 else clients.size
-    val showEllipsis = clients.size > maxCircles
-    val circleSize = 16.dp
-    val overlap = 6.dp
-
-    Box(contentAlignment = Alignment.Center) {
-        // Using a Box to absolute position items for overlap effect
-        val totalWidth = (circleSize * (displayCount + if (showEllipsis) 1 else 0)) - (overlap * (displayCount + (if (showEllipsis) 1 else 0) - 1))
-        
-        Box(modifier = Modifier.width(totalWidth.coerceAtLeast(circleSize)).height(circleSize)) {
-            for (i in 0 until displayCount) {
-                val client = clients[i]
-                val firstChar = client.clientFirstName.firstOrNull()?.uppercase() ?: "?"
-                val offset = (circleSize - overlap) * i
-                
-                Box(
-                    modifier = Modifier
-                        .padding(start = offset)
-                        .size(circleSize)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.tertiaryContainer)
-                        .border(1.dp, MaterialTheme.colorScheme.background, CircleShape), // Border for separation
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = firstChar,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                }
-            }
-            
-            if (showEllipsis) {
-                val offset = (circleSize - overlap) * displayCount
-                Box(
-                    modifier = Modifier
-                        .padding(start = offset)
-                        .size(circleSize)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.secondary)
-                        .border(1.dp, MaterialTheme.colorScheme.background, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "+${clients.size - displayCount}",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontSize = 7.sp,
-                        color = MaterialTheme.colorScheme.onSecondary
-                    )
-                }
-            }
-        }
+    } else {
+        EventsList(
+            events = state.selectedDateEvents,
+            onEventClick = viewModel::onEventSelected
+        )
     }
 }
 
