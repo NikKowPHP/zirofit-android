@@ -44,4 +44,34 @@ class ClientAssessmentsViewModel @Inject constructor(
                 }
         }
     }
+
+    fun createAssessment(clientId: String, assessmentId: String, date: String, value: Double, notes: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.createAssessment(clientId, assessmentId, date, value, notes)
+            result.onSuccess {
+                loadAssessments(clientId)
+            }.onFailure { e ->
+                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to create assessment"
+                )
+            }
+        }
+    }
+
+    fun deleteAssessment(clientId: String, resultId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.deleteAssessment(clientId, resultId)
+            result.onSuccess {
+                loadAssessments(clientId)
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to delete assessment"
+                )
+            }
+        }
+    }
 }

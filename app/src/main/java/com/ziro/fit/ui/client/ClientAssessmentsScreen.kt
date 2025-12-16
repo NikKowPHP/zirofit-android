@@ -5,11 +5,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,6 +29,7 @@ fun ClientAssessmentsScreen(
     viewModel: ClientAssessmentsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showCreateDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(clientId) {
         viewModel.loadAssessments(clientId)
@@ -45,6 +45,11 @@ fun ClientAssessmentsScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showCreateDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add Assessment")
+            }
         }
     ) { innerPadding ->
         Box(
@@ -75,11 +80,14 @@ fun ClientAssessmentsScreen(
                 }
                 else -> {
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         items(uiState.assessments) { assessment ->
-                            AssessmentItemFull(assessment)
+                            AssessmentItemFull(
+                                assessment = assessment,
+                                onDelete = { viewModel.deleteAssessment(clientId, assessment.id) }
+                            )
                             HorizontalDivider()
                         }
                         if (uiState.assessments.isEmpty()) {
@@ -95,16 +103,31 @@ fun ClientAssessmentsScreen(
                     }
                 }
             }
+
+            if (showCreateDialog) {
+                AssessmentFormDialog(
+                    onDismiss = { showCreateDialog = false },
+                    onConfirm = { id, date, value, notes ->
+                        viewModel.createAssessment(clientId, id, date, value, notes)
+                        showCreateDialog = false
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
-fun AssessmentItemFull(assessment: AssessmentResult) {
+fun AssessmentItemFull(
+    assessment: AssessmentResult,
+    onDelete: () -> Unit
+) {
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp, horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -119,12 +142,118 @@ fun AssessmentItemFull(assessment: AssessmentResult) {
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
+             if (!assessment.notes.isNullOrBlank()) {
+                Text(
+                    text = assessment.notes,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
-        Text(
-            text = "${assessment.value} ${assessment.unit ?: ""}",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "${assessment.value} ${assessment.unit ?: ""}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+             IconButton(onClick = { showDeleteConfirm = true }) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Gray)
+            }
+        }
+    }
+    
+     if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete Assessment") },
+            text = { Text("Are you sure you want to delete this result?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDelete()
+                        showDeleteConfirm = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AssessmentFormDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, Double, String?) -> Unit
+) {
+    var assessmentName by remember { mutableStateOf("") }
+    var value by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    val today = java.time.LocalDate.now().toString()
+    var date by remember { mutableStateOf(today) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Assessment Result") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = { date = it },
+                    label = { Text("Date (YYYY-MM-DD)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = assessmentName,
+                    onValueChange = { assessmentName = it },
+                    label = { Text("Assessment Name/ID") }, // Should be ID but using name as ID for MVP
+                    placeholder = { Text("e.g. Pushups") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { value = it },
+                    label = { Text("Value") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                 OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val v = value.toDoubleOrNull()
+                    if (assessmentName.isNotBlank() && v != null) {
+                         val isoDate = try {
+                            java.time.LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().toString()
+                        } catch (e: Exception) {
+                            if(date.contains("T")) date else Instant.now().toString()
+                        }
+                        onConfirm(assessmentName, isoDate, v, notes)
+                    }
+                },
+                enabled = assessmentName.isNotBlank() && value.toDoubleOrNull() != null
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

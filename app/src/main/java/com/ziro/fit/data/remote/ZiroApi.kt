@@ -24,6 +24,9 @@ import com.ziro.fit.model.CreateMeasurementRequest
 import com.ziro.fit.model.CreateMeasurementResponse
 import com.ziro.fit.model.CreateAssessmentRequest
 import com.ziro.fit.model.CreateAssessmentResponse
+import com.ziro.fit.model.UploadPhotoResponse
+import com.ziro.fit.model.UpdateSessionRequest
+import com.ziro.fit.model.ClientSession
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -94,8 +97,30 @@ interface ZiroApi {
     @GET("api/clients/{id}/photos")
     suspend fun getClientPhotos(@retrofit2.http.Path("id") id: String): ApiResponse<GetPhotosResponse>
 
+    @retrofit2.http.Multipart
+    @POST("api/clients/{id}/photos")
+    suspend fun uploadPhoto(
+        @retrofit2.http.Path("id") id: String,
+        @retrofit2.http.Part photo: okhttp3.MultipartBody.Part,
+        @retrofit2.http.Part("photoDate") photoDate: okhttp3.RequestBody,
+        @retrofit2.http.Part("caption") caption: okhttp3.RequestBody?
+    ): ApiResponse<UploadPhotoResponse>
+
+    @retrofit2.http.DELETE("api/clients/{id}/photos/{photoId}")
+    suspend fun deletePhoto(@retrofit2.http.Path("id") id: String, @retrofit2.http.Path("photoId") photoId: String): ApiResponse<Any>
+
     @GET("api/clients/{id}/sessions")
     suspend fun getClientSessions(@retrofit2.http.Path("id") id: String): ApiResponse<GetClientSessionsResponse>
+
+    @retrofit2.http.PUT("api/clients/{id}/sessions/{sessionId}")
+    suspend fun updateSession(
+        @retrofit2.http.Path("id") id: String, 
+        @retrofit2.http.Path("sessionId") sessionId: String,
+        @Body request: UpdateSessionRequest
+    ): ApiResponse<ClientSession>
+
+    @retrofit2.http.DELETE("api/clients/{id}/sessions/{sessionId}")
+    suspend fun deleteSession(@retrofit2.http.Path("id") id: String, @retrofit2.http.Path("sessionId") sessionId: String): ApiResponse<Any>
 
     @retrofit2.http.DELETE("api/clients/{id}")
     suspend fun deleteClient(@retrofit2.http.Path("id") id: String): ApiResponse<Any>

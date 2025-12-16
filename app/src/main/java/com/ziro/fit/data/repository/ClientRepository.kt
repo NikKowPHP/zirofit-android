@@ -6,6 +6,11 @@ import kotlinx.coroutines.async
 import com.ziro.fit.model.UpdateClientRequest
 import com.ziro.fit.model.CreateMeasurementRequest
 import com.ziro.fit.model.CreateAssessmentRequest
+import com.ziro.fit.model.UpdateSessionRequest
+import com.ziro.fit.model.UploadPhotoResponse
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import java.io.File 
 import kotlinx.coroutines.coroutineScope
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -131,6 +136,32 @@ class ClientRepository @Inject constructor(
         }
     }
 
+    suspend fun uploadPhoto(clientId: String, file: java.io.File, date: String, caption: String?): Result<TransformationPhoto> {
+        return try {
+            val mediaTypeImage = "image/*".toMediaTypeOrNull()
+            val mediaTypeText = "text/plain".toMediaTypeOrNull()
+            
+            val requestFile = okhttp3.RequestBody.create(mediaTypeImage, file)
+            val body = okhttp3.MultipartBody.Part.createFormData("photo", file.name, requestFile)
+            val dateBody = okhttp3.RequestBody.create(mediaTypeText, date)
+            val captionBody = caption?.let { okhttp3.RequestBody.create(mediaTypeText, it) }
+
+            val response = api.uploadPhoto(clientId, body, dateBody, captionBody)
+            Result.success(response.data.progressPhoto)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deletePhoto(clientId: String, photoId: String): Result<Unit> {
+        return try {
+            api.deletePhoto(clientId, photoId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun createMeasurement(clientId: String, date: String, weight: Double?, bodyFat: Double?, notes: String?): Result<Measurement> {
         return try {
             val response = api.createMeasurement(
@@ -161,6 +192,24 @@ class ClientRepository @Inject constructor(
         return try {
             val response = api.getClientSessions(clientId)
             Result.success(response.data.sessions ?: emptyList())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateSession(clientId: String, sessionId: String, notes: String?, status: String?): Result<ClientSession> {
+        return try {
+            val response = api.updateSession(clientId, sessionId, UpdateSessionRequest(notes, status))
+            Result.success(response.data)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteSession(clientId: String, sessionId: String): Result<Unit> {
+        return try {
+            api.deleteSession(clientId, sessionId)
+            Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
         }

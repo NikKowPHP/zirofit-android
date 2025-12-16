@@ -76,6 +76,15 @@ data class CreateAssessmentResponse(
     val assessmentResult: AssessmentResult
 )
 
+data class UploadPhotoResponse(
+    val progressPhoto: TransformationPhoto
+)
+
+data class UpdateSessionRequest(
+    val notes: String?,
+    val status: String? // "Completed", "Cancelled", etc.
+)
+
 data class AssessmentResult(
     val id: String,
     val assessmentId: String,

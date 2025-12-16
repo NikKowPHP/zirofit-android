@@ -44,4 +44,33 @@ class ClientSessionsViewModel @Inject constructor(
                 }
         }
     }
+    fun updateSession(clientId: String, sessionId: String, notes: String?, status: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.updateSession(clientId, sessionId, notes, status)
+            result.onSuccess {
+                loadSessions(clientId)
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to update session"
+                )
+            }
+        }
+    }
+
+    fun deleteSession(clientId: String, sessionId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.deleteSession(clientId, sessionId)
+            result.onSuccess {
+                loadSessions(clientId)
+            }.onFailure { e ->
+                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to delete session"
+                )
+            }
+        }
+    }
 }

@@ -44,4 +44,33 @@ class ClientPhotosViewModel @Inject constructor(
                 }
         }
     }
+    fun uploadPhoto(clientId: String, file: java.io.File, date: String, caption: String?) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.uploadPhoto(clientId, file, date, caption)
+            result.onSuccess {
+                loadPhotos(clientId)
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to upload photo"
+                )
+            }
+        }
+    }
+
+    fun deletePhoto(clientId: String, photoId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.deletePhoto(clientId, photoId)
+            result.onSuccess {
+                loadPhotos(clientId)
+            }.onFailure { e ->
+                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to delete photo"
+                )
+            }
+        }
+    }
 }
