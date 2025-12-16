@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
@@ -14,6 +15,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -30,9 +34,16 @@ fun ClientsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    var showCreateDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Clients") })
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { showCreateDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add Client")
+            }
         }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
@@ -49,7 +60,7 @@ fun ClientsScreen(
                     }
                 }
             } else {
-                LazyColumn {
+                LazyColumn(contentPadding = PaddingValues(bottom = 80.dp)) {
                     items(
                         items = uiState.clients,
                         key = { it.id }
@@ -130,6 +141,16 @@ fun ClientsScreen(
                         )
                     }
                 }
+            }
+            
+            if (showCreateDialog) {
+                ClientFormDialog(
+                    onDismiss = { showCreateDialog = false },
+                    onConfirm = { name, email, phone, status ->
+                        viewModel.createClient(name, email, phone, status)
+                        showCreateDialog = false
+                    }
+                )
             }
         }
     }

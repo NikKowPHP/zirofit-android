@@ -57,4 +57,34 @@ class ClientDetailsViewModel @Inject constructor(
     fun refresh(clientId: String) {
         loadClientProfile(clientId)
     }
+
+    fun updateClient(clientId: String, name: String, email: String, phone: String?, status: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.updateClient(clientId, name, email, phone, status)
+            result.onSuccess {
+                loadClientProfile(clientId) // Refresh profile
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to update client"
+                )
+            }
+        }
+    }
+    
+    fun deleteClient(clientId: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.deleteClient(clientId)
+            result.onSuccess {
+                onSuccess()
+            }.onFailure { e ->
+                 _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to delete client"
+                )
+            }
+        }
+    }
 }

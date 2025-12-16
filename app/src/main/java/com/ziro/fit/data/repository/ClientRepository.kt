@@ -28,6 +28,26 @@ class ClientRepository @Inject constructor(
         }
     }
 
+    suspend fun createClient(name: String, email: String, phone: String?, status: String): Result<Client> {
+        return try {
+            val request = CreateClientRequest(name, email, phone, status)
+            val response = api.createClient(request)
+            Result.success(response.data.client)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateClient(clientId: String, name: String?, email: String?, phone: String?, status: String?): Result<Unit> {
+        return try {
+            val request = UpdateClientRequest(name, email, phone, status)
+            api.updateClient(clientId, request)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getClientProfile(clientId: String): Result<ClientProfileData> {
         return try {
             coroutineScope {

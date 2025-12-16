@@ -14,6 +14,24 @@ data class Client(
     @SerializedName("trainerId") val trainerId: String? = null
 )
 
+data class CreateClientRequest(
+    val name: String,
+    val email: String,
+    val phone: String?,
+    val status: String = "active"
+)
+
+data class UpdateClientRequest(
+    val name: String? = null,
+    val email: String? = null,
+    val phone: String? = null,
+    val status: String? = null
+)
+
+data class CreateClientResponse(
+    val client: Client
+)
+
 data class GetClientsResponse(
     val clients: List<Client>
 )

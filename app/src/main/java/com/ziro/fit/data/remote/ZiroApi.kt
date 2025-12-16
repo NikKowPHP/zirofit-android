@@ -17,6 +17,9 @@ import com.ziro.fit.model.StartWorkoutRequest
 import com.ziro.fit.model.StartWorkoutResponse
 import com.ziro.fit.model.GetActiveSessionResponse
 import com.ziro.fit.model.User
+import com.ziro.fit.model.CreateClientRequest
+import com.ziro.fit.model.CreateClientResponse
+import com.ziro.fit.model.UpdateClientRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -53,11 +56,18 @@ interface ZiroApi {
         @Query("limit") limit: Int = 50
     ): ApiResponse<GetExercisesResponse>
 
+
+    @POST("api/clients")
+    suspend fun createClient(@Body request: CreateClientRequest): ApiResponse<CreateClientResponse>
+
     @GET("api/clients")
     suspend fun getClients(): ApiResponse<GetClientsResponse>
 
     @GET("api/clients/{id}")
     suspend fun getClientDetails(@retrofit2.http.Path("id") id: String): ApiResponse<GetClientDetailsResponse>
+
+    @retrofit2.http.PUT("api/clients/{id}")
+    suspend fun updateClient(@retrofit2.http.Path("id") id: String, @Body request: UpdateClientRequest): ApiResponse<Any>
 
     @GET("api/clients/{id}/measurements")
     suspend fun getClientMeasurements(@retrofit2.http.Path("id") id: String): ApiResponse<GetMeasurementsResponse>
@@ -71,6 +81,6 @@ interface ZiroApi {
     @GET("api/clients/{id}/sessions")
     suspend fun getClientSessions(@retrofit2.http.Path("id") id: String): ApiResponse<GetClientSessionsResponse>
 
-    @retrofit2.http.DELETE("api/trainer/clients/{id}")
+    @retrofit2.http.DELETE("api/clients/{id}")
     suspend fun deleteClient(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
 }

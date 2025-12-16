@@ -40,6 +40,8 @@ fun ClientDetailsScreen(
     viewModel: ClientDetailsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(clientId) {
         viewModel.loadClientProfile(clientId)
@@ -52,6 +54,14 @@ fun ClientDetailsScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showEditDialog = true }) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    }
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Delete")
                     }
                 }
             )
@@ -98,6 +108,43 @@ fun ClientDetailsScreen(
                 }
             }
         }
+        
+        if (showEditDialog && uiState.client != null) {
+            ClientFormDialog(
+                client = uiState.client,
+                onDismiss = { showEditDialog = false },
+                onConfirm = { name, email, phone, status ->
+                    viewModel.updateClient(clientId, name, email, phone, status)
+                    showEditDialog = false
+                }
+            )
+        }
+        
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete Client") },
+                text = { Text("Are you sure you want to delete this client? This action cannot be undone.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteClient(clientId) {
+                                showDeleteDialog = false
+                                onNavigateBack()
+                            }
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -123,64 +170,73 @@ fun ClientDetailsContent(
             ClientHeaderCard(client)
         }
 
-        // Stats/Measurements Section
-        if (measurements.isNotEmpty()) {
-            item {
-                SectionHeader(
-                    title = "Measurements",
-                    icon = Icons.Default.TrendingUp,
-                    onSeeAll = onSeeAllMeasurements
-                )
-            }
-            item {
-                MeasurementsCard(measurements)
-            }
-        }
-
-        // Assessments Section
-        if (assessments.isNotEmpty()) {
-            item {
-                SectionHeader(
-                    title = "Assessments",
-                    icon = Icons.Default.Assessment,
-                    onSeeAll = onSeeAllAssessments
-                )
-            }
-            item {
-                AssessmentsCard(assessments)
-            }
-        }
-
-        // Photos Section
-        if (photos.isNotEmpty()) {
-            item {
-                SectionHeader(
-                    title = "Transformation Photos",
-                    icon = Icons.Default.Photo,
-                    onSeeAll = onSeeAllPhotos
-                )
-            }
-            item {
-                PhotosCarousel(photos)
-            }
-        }
-
-        // Recent Activity Section
-        if (sessions.isNotEmpty()) {
-            item {
-                SectionHeader(
-                    title = "Recent Sessions",
-                    icon = Icons.Default.FitnessCenter,
-                    onSeeAll = onSeeAllSessions
-                )
-            }
-            items(sessions.take(5)) { session ->
-                SessionCard(session)
+        // Navigation Menu
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column {
+                    NavigationItem(
+                        title = "Measurements",
+                        icon = Icons.AutoMirrored.Filled.TrendingUp,
+                        subtitle = "${measurements.size} records",
+                        onClick = onSeeAllMeasurements
+                    )
+                    HorizontalDivider()
+                    NavigationItem(
+                        title = "Assessments",
+                        icon = Icons.Default.Assessment,
+                        subtitle = "${assessments.size} records",
+                        onClick = onSeeAllAssessments
+                    )
+                    HorizontalDivider()
+                    NavigationItem(
+                        title = "Total Sessions", // Changed title slightly to distinguish
+                        icon = Icons.Default.FitnessCenter,
+                        subtitle = "${sessions.size} sessions",
+                        onClick = onSeeAllSessions
+                    )
+                    HorizontalDivider()
+                    NavigationItem(
+                        title = "Transformation Photos",
+                        icon = Icons.Default.Photo,
+                        subtitle = "${photos.size} photos",
+                        onClick = onSeeAllPhotos
+                    )
+                }
             }
         }
     }
 }
 
+@Composable
+fun NavigationItem(
+    title: String,
+    icon: ImageVector,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = { Text(title, fontWeight = FontWeight.Medium) },
+        supportingContent = { Text(subtitle, color = Color.Gray) },
+        leadingContent = {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        trailingContent = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Navigate",
+                tint = Color.Gray
+            )
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}
 @Composable
 fun ClientHeaderCard(client: Client) {
     Card(

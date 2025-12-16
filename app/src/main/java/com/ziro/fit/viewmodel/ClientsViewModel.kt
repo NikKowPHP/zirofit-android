@@ -64,4 +64,19 @@ class ClientsViewModel @Inject constructor(
             }
         }
     }
+
+    fun createClient(name: String, email: String, phone: String?, status: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = clientRepository.createClient(name, email, phone, status)
+            result.onSuccess {
+                fetchClients() // Refresh list to get new client
+            }.onFailure { e ->
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Failed to create client"
+                )
+            }
+        }
+    }
 }

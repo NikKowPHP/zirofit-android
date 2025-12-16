@@ -18,13 +18,127 @@
     "/api/trainers": {
       "get": {
         "summary": "GET /api/trainers",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Search and list public trainers.",
         "tags": [
           "trainers"
         ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 0
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 0
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minRating",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 0
+            }
+          },
+          {
+            "name": "specialties",
+            "in": "query",
+            "required": false,
+            "schema": {
+
+            }
+          },
+          {
+            "name": "trainingTypes",
+            "in": "query",
+            "required": false,
+            "schema": {
+
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Trainers retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "trainers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    },
+                    "totalTrainers": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "currentPage": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "totalPages": {
+                      "type": "number",
+                      "example": 0
+                    }
+                  },
+                  "required": [
+                    "trainers",
+                    "totalTrainers",
+                    "currentPage",
+                    "totalPages"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -46,13 +160,59 @@
     "/api/notifications": {
       "get": {
         "summary": "GET /api/notifications",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "List notifications for the authenticated user.",
         "tags": [
           "notifications"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Notifications retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "notifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "readStatus": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "userId",
+                          "message",
+                          "type",
+                          "readStatus",
+                          "createdAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "notifications"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -60,13 +220,100 @@
     "/api/exercises": {
       "get": {
         "summary": "GET /api/exercises",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Search and list exercises.",
         "tags": [
           "exercises"
         ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 0
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Exercises retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "exercises": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "muscleGroup": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "equipment": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "muscleGroup",
+                          "equipment"
+                        ]
+                      }
+                    },
+                    "total": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "page": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "pageSize": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "exercises",
+                    "total",
+                    "page",
+                    "pageSize",
+                    "hasMore"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -74,13 +321,72 @@
     "/api/dashboard": {
       "get": {
         "summary": "GET /api/dashboard",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get mobile dashboard data for the authenticated trainer.",
         "tags": [
           "dashboard"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Mobile dashboard data retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+
+                    },
+                    "profileChecklist": {
+
+                    },
+                    "upcomingSessions": {
+                      "type": "array",
+                      "items": {
+
+                      }
+                    },
+                    "activityFeed": {
+                      "type": "array",
+                      "items": {
+
+                      }
+                    },
+                    "businessPerformance": {
+
+                    },
+                    "clientEngagement": {
+
+                    },
+                    "servicePopularity": {
+
+                    },
+                    "clients": {
+                      "type": "array",
+                      "items": {
+
+                      }
+                    },
+                    "programsAndTemplates": {
+
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "profileChecklist",
+                    "upcomingSessions",
+                    "activityFeed",
+                    "businessPerformance",
+                    "clientEngagement",
+                    "servicePopularity",
+                    "clients",
+                    "programsAndTemplates"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden."
           }
         }
       }
@@ -576,19 +882,34 @@
     "/api/workout-sessions/live": {
       "get": {
         "summary": "GET /api/workout-sessions/live",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get the currently active workout session.",
         "tags": [
           "workout-sessions"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Active session retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "session"
+                  ]
+                }
+              }
+            }
           }
         }
       },
       "post": {
         "summary": "POST /api/workout-sessions/live",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Log an exercise set for a live session (create or update).",
         "tags": [
           "workout-sessions"
         ],
@@ -666,13 +987,110 @@
     "/api/workout-sessions/history": {
       "get": {
         "summary": "GET /api/workout-sessions/history",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get completed workout sessions history with cursor pagination.",
         "tags": [
           "workout-sessions"
         ],
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 0
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "History retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "startTime": {
+                            "type": "string"
+                          },
+                          "endTime": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "COMPLETED"
+                            ]
+                          },
+                          "client": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "startTime",
+                          "endTime",
+                          "status",
+                          "client"
+                        ]
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "sessions",
+                    "nextCursor",
+                    "hasMore"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Client ID is required for trainers."
           }
         }
       }
@@ -722,7 +1140,7 @@
     "/api/workout-sessions/{id}": {
       "get": {
         "summary": "GET /api/workout-sessions/{id}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get details of a specific workout session.",
         "tags": [
           "workout-sessions"
         ],
@@ -738,13 +1156,39 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Session retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "session"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found."
           }
         }
       },
       "put": {
         "summary": "PUT /api/workout-sessions/{id}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update workout session notes.",
         "tags": [
           "workout-sessions"
         ],
@@ -758,9 +1202,48 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notes": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Session updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "session"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -865,13 +1348,38 @@
     "/api/user/tier": {
       "get": {
         "summary": "GET /api/user/tier",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get the current user's subscription tier.",
         "tags": [
           "user"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Tier retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tier": {
+                      "type": "string"
+                    },
+                    "isFreeMode": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "tier",
+                    "isFreeMode"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "404": {
+            "description": "User not found."
           }
         }
       }
@@ -879,13 +1387,16 @@
     "/api/user/delete": {
       "delete": {
         "summary": "DELETE /api/user/delete",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Delete the authenticated user account.",
         "tags": [
           "user"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "User deleted successfully."
+          },
+          "401": {
+            "description": "Unauthorized."
           }
         }
       }
@@ -893,13 +1404,31 @@
     "/api/trainers/specialties": {
       "get": {
         "summary": "GET /api/trainers/specialties",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get list of available specialties.",
         "tags": [
           "trainers"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Specialties retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "specialties": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "specialties"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -907,7 +1436,7 @@
     "/api/trainers/{username}": {
       "get": {
         "summary": "GET /api/trainers/{username}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get public profile details for a trainer.",
         "tags": [
           "trainers"
         ],
@@ -923,7 +1452,63 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Trainer profile retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "username": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "profile": {
+
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "clientsCoached": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "reviewCount": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "averageRating": {
+                          "type": "number",
+                          "example": 0,
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "clientsCoached",
+                        "reviewCount",
+                        "averageRating"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "username",
+                    "profile",
+                    "stats"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Trainer not found."
           }
         }
       }
@@ -931,25 +1516,87 @@
     "/api/trainer/settings": {
       "get": {
         "summary": "GET /api/trainer/settings",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get trainer settings.",
         "tags": [
           "trainer"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Settings retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "defaultCheckInDay": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "defaultCheckInHour": {
+                      "type": "number",
+                      "example": 0
+                    }
+                  },
+                  "required": [
+                    "defaultCheckInDay",
+                    "defaultCheckInHour"
+                  ]
+                }
+              }
+            }
           }
         }
       },
       "patch": {
         "summary": "PATCH /api/trainer/settings",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update trainer settings.",
         "tags": [
           "trainer"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "defaultCheckInDay": {
+                    "type": "number",
+                    "example": 0
+                  },
+                  "defaultCheckInHour": {
+                    "type": "number",
+                    "example": 0
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Settings updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "defaultCheckInDay": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "defaultCheckInHour": {
+                      "type": "number",
+                      "example": 0
+                    }
+                  },
+                  "required": [
+                    "defaultCheckInDay",
+                    "defaultCheckInHour"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -957,13 +1604,75 @@
     "/api/trainer/session-creation-data": {
       "get": {
         "summary": "GET /api/trainer/session-creation-data",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get lightweight data (clients, templates) for creating sessions.",
         "tags": [
           "trainer"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Data retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clients": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    },
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "program": {
+                            "type": "object",
+                            "properties": {
+                              "trainerId": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "trainerId"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "program"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "clients",
+                    "templates"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -971,19 +1680,112 @@
     "/api/trainer/programs": {
       "get": {
         "summary": "GET /api/trainer/programs",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get trainer's program library (programs and templates).",
         "tags": [
           "trainer"
         ],
+        "parameters": [
+          {
+            "name": "lightweight",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Library retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userPrograms": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "templates": {
+                            "type": "array",
+                            "items": {
+
+                            },
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "templates"
+                        ]
+                      }
+                    },
+                    "systemPrograms": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "templates": {
+                            "type": "array",
+                            "items": {
+
+                            },
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "templates"
+                        ]
+                      }
+                    },
+                    "userTemplates": {
+                      "type": "array",
+                      "items": {
+
+                      }
+                    },
+                    "systemTemplates": {
+                      "type": "array",
+                      "items": {
+
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
       "post": {
         "summary": "POST /api/trainer/programs",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Create a new workout program.",
         "tags": [
           "trainer"
         ],
@@ -1011,14 +1813,26 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "200 response."
-          },
           "201": {
-            "description": "201 response."
+            "description": "Program created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "program": {
+
+                    }
+                  },
+                  "required": [
+                    "program"
+                  ]
+                }
+              }
+            }
           },
           "422": {
-            "description": "422 response."
+            "description": "Validation failed."
           }
         }
       }
@@ -1026,13 +1840,66 @@
     "/api/trainer/profile": {
       "get": {
         "summary": "GET /api/trainer/profile",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get the full profile for the authenticated trainer (Alias).",
         "tags": [
           "trainer"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Profile retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "profile": {
+
+                        },
+                        "packages": {
+                          "type": "array",
+                          "items": {
+
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "email",
+                        "username",
+                        "role",
+                        "profile",
+                        "packages"
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "profile"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -1040,25 +1907,129 @@
     "/api/trainer/clients": {
       "get": {
         "summary": "GET /api/trainer/clients",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "List all clients for the authenticated trainer (Alias).",
         "tags": [
           "trainer"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Successfully retrieved client list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clients": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "email": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "phone": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "inactive",
+                              "pending"
+                            ]
+                          },
+                          "userId": {
+                            "type": "string"
+                          },
+                          "lastWorkoutDate": {
+                            "type": "string"
+                          },
+                          "engagementScore": {
+                            "type": "string",
+                            "enum": [
+                              "high",
+                              "medium",
+                              "low"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "status",
+                          "engagementScore"
+                        ]
+                      }
+                    },
+                    "isPremium": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "clients",
+                    "isPremium"
+                  ]
+                }
+              }
+            }
           }
         }
       },
       "post": {
         "summary": "POST /api/trainer/clients",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Create a new client (Alias).",
         "tags": [
           "trainer"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "email": {
+
+                  },
+                  "phone": {
+
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "inactive",
+                      "pending"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "email",
+                  "phone"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "Successful response."
+          "201": {
+            "description": "Successfully created client."
+          },
+          "400": {
+            "description": "Invalid JSON body."
           }
         }
       }
@@ -1066,40 +2037,167 @@
     "/api/trainer/calendar": {
       "get": {
         "summary": "GET /api/trainer/calendar",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get calendar events within a date range.",
         "tags": [
           "trainer"
         ],
+        "parameters": [
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Events retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "start": {
+                            "type": "string"
+                          },
+                          "end": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "booking",
+                              "session_planned",
+                              "session_completed",
+                              "session_in_progress"
+                            ]
+                          },
+                          "clientId": {
+                            "type": "string"
+                          },
+                          "clientName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "start",
+                          "end",
+                          "type",
+                          "clientName"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "events"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing start/end date."
           }
         }
       },
       "post": {
         "summary": "POST /api/trainer/calendar",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Schedule a new session.",
         "tags": [
           "trainer"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "clientId": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "startTime": {
+                    "type": "string"
+                  },
+                  "endTime": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "templateId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "repeats": {
+                    "type": "boolean"
+                  },
+                  "repeatWeeks": {
+                    "type": "number",
+                    "example": 0
+                  },
+                  "repeatDays": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "clientId",
+                  "startTime",
+                  "endTime"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
-          "200": {
-            "description": "200 response."
-          },
           "201": {
-            "description": "201 response."
+            "description": "Session(s) created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
           },
           "400": {
-            "description": "400 response."
-          },
-          "403": {
-            "description": "403 response."
+            "description": "Invalid input."
           },
           "409": {
-            "description": "409 response."
-          },
-          "422": {
-            "description": "422 response."
+            "description": "Conflict detected."
           }
         }
       }
@@ -1107,27 +2205,57 @@
     "/api/trainer/assessments": {
       "get": {
         "summary": "GET /api/trainer/assessments",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "List all assessments available to the trainer.",
         "tags": [
           "trainer"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
-          }
-        }
-      }
-    },
-    "/api/sync/pull": {
-      "get": {
-        "summary": "GET /api/sync/pull",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "sync"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response."
+            "description": "Assessments retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assessments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "unit": {
+                            "type": "string"
+                          },
+                          "trainerId": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "unit",
+                          "trainerId"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "assessments"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -1149,16 +2277,143 @@
         }
       }
     },
+    "/api/sync/pull": {
+      "get": {
+        "summary": "GET /api/sync/pull",
+        "description": "Pull changes for WatermelonDB sync.",
+        "tags": [
+          "sync"
+        ],
+        "parameters": [
+          {
+            "name": "last_pulled_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "migration",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Changes retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "changes": {
+
+                    },
+                    "timestamp": {
+                      "type": "number",
+                      "example": 0
+                    }
+                  },
+                  "required": [
+                    "changes",
+                    "timestamp"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/profile/me": {
       "get": {
         "summary": "GET /api/profile/me",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get the full profile for the authenticated user.",
         "tags": [
           "profile"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Profile retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "profile": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "aboutMe": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "aboutMe"
+                          ],
+                          "nullable": true
+                        },
+                        "packages": {
+                          "type": "array",
+                          "items": {
+
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "email",
+                        "username",
+                        "role",
+                        "profile",
+                        "packages"
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "profile"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -1166,7 +2421,7 @@
     "/api/notifications/{id}": {
       "put": {
         "summary": "PUT /api/notifications/{id}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Mark a notification as read.",
         "tags": [
           "notifications"
         ],
@@ -1182,7 +2437,34 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Notification updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "notification": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "readStatus": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "readStatus"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "notification"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -1190,27 +2472,43 @@
     "/api/exercises/find-media": {
       "get": {
         "summary": "GET /api/exercises/find-media",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Find a media URL (GIF/Video) for a given exercise name.",
         "tags": [
           "exercises"
         ],
-        "responses": {
-          "200": {
-            "description": "Successful response."
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
           }
-        }
-      }
-    },
-    "/api/dashboard/insights": {
-      "get": {
-        "summary": "GET /api/dashboard/insights",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "dashboard"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Media URL found or null.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mediaUrl": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "mediaUrl"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Name parameter is required."
           }
         }
       }
@@ -1218,13 +2516,328 @@
     "/api/dashboard/summary": {
       "get": {
         "summary": "GET /api/dashboard/summary",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get aggregated summary data for the trainer dashboard.",
         "tags": [
           "dashboard"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Dashboard summary retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "profileChecklist": {
+                      "type": "object",
+                      "properties": {
+                        "completionPercentage": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "missingFields": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "profile": {
+                          "type": "object",
+                          "properties": {
+                            "profilePhotoPath": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "bannerImagePath": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "aboutMe": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          },
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "completionPercentage",
+                        "missingFields",
+                        "profile"
+                      ]
+                    },
+                    "upcomingSessions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "booking",
+                              "session"
+                            ]
+                          },
+                          "startTime": {
+                            "type": "string"
+                          },
+                          "clientName": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "clientId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "startTime",
+                          "clientName",
+                          "title",
+                          "clientId"
+                        ]
+                      }
+                    },
+                    "activityFeed": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "NEW_MEASUREMENT",
+                              "PROGRESS_PHOTO",
+                              "WORKOUT_COMPLETED"
+                            ]
+                          },
+                          "date": {
+                            "type": "string"
+                          },
+                          "clientName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "date",
+                          "clientName"
+                        ]
+                      }
+                    },
+                    "businessPerformance": {
+                      "type": "object",
+                      "properties": {
+                        "currentMonth": {
+                          "type": "object",
+                          "properties": {
+                            "revenue": {
+                              "type": "number",
+                              "example": 0
+                            },
+                            "newClients": {
+                              "type": "number",
+                              "example": 0
+                            },
+                            "completedSessions": {
+                              "type": "number",
+                              "example": 0
+                            },
+                            "totalSessions": {
+                              "type": "number",
+                              "example": 0
+                            }
+                          },
+                          "required": [
+                            "revenue",
+                            "newClients",
+                            "completedSessions",
+                            "totalSessions"
+                          ]
+                        },
+                        "previousMonth": {
+                          "type": "object",
+                          "properties": {
+                            "revenue": {
+                              "type": "number",
+                              "example": 0
+                            },
+                            "newClients": {
+                              "type": "number",
+                              "example": 0
+                            },
+                            "completedSessions": {
+                              "type": "number",
+                              "example": 0
+                            },
+                            "totalSessions": {
+                              "type": "number",
+                              "example": 0
+                            }
+                          },
+                          "required": [
+                            "revenue",
+                            "newClients",
+                            "completedSessions",
+                            "totalSessions"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "currentMonth",
+                        "previousMonth"
+                      ]
+                    },
+                    "clientEngagement": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "slipping": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "atRisk": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "retentionRate": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "pendingActionsDetails": {
+                          "type": "array",
+                          "items": {
+
+                          }
+                        }
+                      },
+                      "required": [
+                        "active",
+                        "slipping",
+                        "atRisk"
+                      ]
+                    },
+                    "servicePopularity": {
+                      "type": "object",
+                      "properties": {
+                        "popularPackages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "count": {
+                                "type": "number",
+                                "example": 0
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "count"
+                            ]
+                          }
+                        },
+                        "popularTemplates": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "count": {
+                                "type": "number",
+                                "example": 0
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "count"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "popularPackages",
+                        "popularTemplates"
+                      ]
+                    },
+                    "userTier": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "profileChecklist",
+                    "upcomingSessions",
+                    "activityFeed",
+                    "businessPerformance",
+                    "clientEngagement",
+                    "servicePopularity"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/insights": {
+      "get": {
+        "summary": "GET /api/dashboard/insights",
+        "description": "Get AI-generated insights for the trainer dashboard.",
+        "tags": [
+          "dashboard"
+        ],
+        "responses": {
+          "200": {
+            "description": "Insights retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "insights": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "opportunity",
+                              "risk",
+                              "operational"
+                            ]
+                          },
+                          "text": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "text"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "insights"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -1615,13 +3228,59 @@
     "/api/client/progress": {
       "get": {
         "summary": "GET /api/client/progress",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get progress metrics for the authenticated client.",
         "tags": [
           "client"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Progress data retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "weight": {
+                      "type": "array",
+                      "items": {
+
+                      }
+                    },
+                    "bodyFat": {
+                      "type": "array",
+                      "items": {
+
+                      }
+                    },
+                    "volume": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "volume": {
+                            "type": "number",
+                            "example": 0
+                          }
+                        },
+                        "required": [
+                          "date",
+                          "volume"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "weight",
+                    "bodyFat",
+                    "volume"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -1629,13 +3288,172 @@
     "/api/client/dashboard": {
       "get": {
         "summary": "GET /api/client/dashboard",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get the dashboard data for the authenticated client.",
         "tags": [
           "client"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Dashboard data retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clientData": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "trainer": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "username": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "username",
+                            "email"
+                          ],
+                          "nullable": true
+                        },
+                        "workoutSessions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "startTime": {
+                                "type": "string"
+                              },
+                              "endTime": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "exerciseLogs": {
+                                "type": "array",
+                                "items": {
+
+                                }
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "startTime",
+                              "endTime",
+                              "status",
+                              "name",
+                              "exerciseLogs"
+                            ]
+                          }
+                        },
+                        "measurements": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "measurementDate": {
+                                "type": "string"
+                              },
+                              "weightKg": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              },
+                              "bodyFatPercentage": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "measurementDate",
+                              "weightKg",
+                              "bodyFatPercentage"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "email",
+                        "trainer",
+                        "workoutSessions",
+                        "measurements"
+                      ]
+                    },
+                    "weightUnit": {
+                      "type": "string"
+                    },
+                    "upcomingClientSessions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string"
+                          },
+                          "duration": {
+                            "type": "number",
+                            "example": 0
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "date",
+                          "duration"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "clientData",
+                    "weightUnit",
+                    "upcomingClientSessions"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Client profile not found."
           }
         }
       }
@@ -1883,13 +3701,58 @@
     "/api/auth/me": {
       "get": {
         "summary": "GET /api/auth/me",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Retrieve the current authenticated user's details.",
         "tags": [
           "auth"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "User details retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email"
+                    },
+                    "name": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "tier": {
+                      "type": "string"
+                    },
+                    "metadata": {
+
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "email",
+                    "name",
+                    "role",
+                    "username",
+                    "tier",
+                    "metadata"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized."
           }
         }
       }
@@ -1961,7 +3824,7 @@
     "/api/workout-sessions/{id}/summary": {
       "get": {
         "summary": "GET /api/workout-sessions/{id}/summary",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get summary of a completed workout session (authenticated).",
         "tags": [
           "workout-sessions"
         ],
@@ -1977,7 +3840,61 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Summary retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session": {
+
+                    },
+                    "totalWorkouts": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "bestSet": {
+                      "type": "object",
+                      "properties": {
+                        "exerciseName": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "reps": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "weight": {
+                          "type": "number",
+                          "example": 0
+                        }
+                      },
+                      "required": [
+                        "exerciseName",
+                        "reps",
+                        "weight"
+                      ]
+                    },
+                    "newRecordsCount": {
+                      "type": "number",
+                      "example": 0
+                    }
+                  },
+                  "required": [
+                    "session",
+                    "totalWorkouts",
+                    "bestSet",
+                    "newRecordsCount"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Unauthorized."
+          },
+          "404": {
+            "description": "Session not found."
           }
         }
       }
@@ -2116,37 +4033,28 @@
     "/api/workout/session/active": {
       "get": {
         "summary": "GET /api/workout/session/active",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get the currently active workout session for the authenticated user (Alias).",
         "tags": [
           "workout"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
-          }
-        }
-      }
-    },
-    "/api/trainers/{username}/transformation-photos": {
-      "get": {
-        "summary": "GET /api/trainers/{username}/transformation-photos",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "trainers"
-        ],
-        "parameters": [
-          {
-            "name": "username",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
+            "description": "Active session retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session": {
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "session"
+                  ]
+                }
+              }
             }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response."
           }
         }
       }
@@ -2154,7 +4062,7 @@
     "/api/trainers/{username}/testimonials": {
       "get": {
         "summary": "GET /api/trainers/{username}/testimonials",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get testimonials for a trainer.",
         "tags": [
           "trainers"
         ],
@@ -2170,7 +4078,115 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Testimonials retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "testimonials": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "clientName": {
+                            "type": "string"
+                          },
+                          "testimonialText": {
+                            "type": "string"
+                          },
+                          "rating": {
+                            "type": "number",
+                            "example": 0,
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "clientName",
+                          "testimonialText",
+                          "rating"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "testimonials"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trainers/{username}/transformation-photos": {
+      "get": {
+        "summary": "GET /api/trainers/{username}/transformation-photos",
+        "description": "Get transformation photos for a trainer.",
+        "tags": [
+          "trainers"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Photos retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "photos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "imagePath": {
+                            "type": "string"
+                          },
+                          "caption": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "clientName": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "publicUrl": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "imagePath",
+                          "caption",
+                          "clientName",
+                          "publicUrl"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "photos"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -2178,7 +4194,7 @@
     "/api/trainers/{username}/schedule": {
       "get": {
         "summary": "GET /api/trainers/{username}/schedule",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get public schedule for a trainer.",
         "tags": [
           "trainers"
         ],
@@ -2194,7 +4210,44 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Schedule retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "availability": {
+
+                    },
+                    "bookings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "startTime": {
+                            "type": "string"
+                          },
+                          "endTime": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "startTime",
+                          "endTime"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "availability",
+                    "bookings"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Trainer not found."
           }
         }
       }
@@ -2202,7 +4255,7 @@
     "/api/trainers/{username}/packages": {
       "get": {
         "summary": "GET /api/trainers/{username}/packages",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get packages for a specific trainer by username.",
         "tags": [
           "trainers"
         ],
@@ -2218,7 +4271,54 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Packages retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "packages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "price": {
+                            "type": "string"
+                          },
+                          "numberOfSessions": {
+                            "type": "number",
+                            "example": 0
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "price",
+                          "numberOfSessions"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "packages"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Username required."
           }
         }
       }
@@ -2226,7 +4326,7 @@
     "/api/trainer/programs/templates": {
       "post": {
         "summary": "POST /api/trainer/programs/templates",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Create a new workout template.",
         "tags": [
           "trainer"
         ],
@@ -2258,26 +4358,75 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "200 response."
-          },
           "201": {
-            "description": "201 response."
+            "description": "Template created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "template": {
+
+                    }
+                  },
+                  "required": [
+                    "template"
+                  ]
+                }
+              }
+            }
           },
           "422": {
-            "description": "422 response."
+            "description": "Validation failed."
           }
         }
       },
       "get": {
         "summary": "GET /api/trainer/programs/templates",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get a flat list of templates available for the user.",
         "tags": [
           "trainer"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Templates retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string",
+                            "enum": [
+                              "trainer",
+                              "system"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "templates"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -2285,7 +4434,7 @@
     "/api/trainer/clients/{id}": {
       "get": {
         "summary": "GET /api/trainer/clients/{id}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Retrieve detailed information for a specific client (Alias).",
         "tags": [
           "trainer"
         ],
@@ -2301,13 +4450,82 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Successfully retrieved client information.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "client": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "phone": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "active",
+                            "inactive",
+                            "pending"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "checkInDay": {
+                          "type": "number",
+                          "example": 0,
+                          "nullable": true
+                        },
+                        "checkInHour": {
+                          "type": "number",
+                          "example": 0,
+                          "nullable": true
+                        },
+                        "trainerId": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "email",
+                        "phone",
+                        "status",
+                        "createdAt",
+                        "checkInDay",
+                        "checkInHour",
+                        "trainerId"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "client"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Client not found."
           }
         }
       },
       "put": {
         "summary": "PUT /api/trainer/clients/{id}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update client information (Alias).",
         "tags": [
           "trainer"
         ],
@@ -2321,15 +4539,57 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "inactive",
+                      "pending"
+                    ]
+                  },
+                  "checkInDay": {
+                    "type": "number",
+                    "example": 0,
+                    "nullable": true
+                  },
+                  "checkInHour": {
+                    "type": "number",
+                    "example": 0,
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Successfully updated client information."
           }
         }
       },
       "delete": {
         "summary": "DELETE /api/trainer/clients/{id}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Delete a client (Alias).",
         "tags": [
           "trainer"
         ],
@@ -2345,7 +4605,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Successfully deleted client."
           }
         }
       }
@@ -2353,13 +4613,54 @@
     "/api/trainer/check-ins/pending": {
       "get": {
         "summary": "GET /api/trainer/check-ins/pending",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "List all pending check-ins for the trainer.",
         "tags": [
           "trainer"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Pending check-ins retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "SUBMITTED"
+                        ]
+                      },
+                      "client": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ]
+                      },
+                      "date": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "status",
+                      "client",
+                      "date"
+                    ]
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2367,7 +4668,7 @@
     "/api/trainer/check-ins/{id}": {
       "get": {
         "summary": "GET /api/trainer/check-ins/{id}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get details of a specific check-in.",
         "tags": [
           "trainer"
         ],
@@ -2383,7 +4684,133 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Check-in details retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "current": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "date": {
+                          "type": "string"
+                        },
+                        "client": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "date",
+                        "client"
+                      ]
+                    },
+                    "previous": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "date": {
+                          "type": "string"
+                        },
+                        "client": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "name"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "status",
+                        "date",
+                        "client"
+                      ],
+                      "nullable": true
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "date": {
+                            "type": "string"
+                          },
+                          "client": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "status",
+                          "date",
+                          "client"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "current",
+                    "previous",
+                    "history"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Check-in not found."
           }
         }
       }
@@ -2391,7 +4818,7 @@
     "/api/trainer/calendar/{sessionId}": {
       "put": {
         "summary": "PUT /api/trainer/calendar/{sessionId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update a planned session in the calendar.",
         "tags": [
           "trainer"
         ],
@@ -2405,15 +4832,53 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "startTime": {
+                    "type": "string",
+                    "format": "datetime"
+                  },
+                  "endTime": {
+                    "type": "string",
+                    "format": "datetime"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "templateId": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "startTime",
+                  "endTime"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Session updated successfully."
+          },
+          "404": {
+            "description": "Session not found."
+          },
+          "409": {
+            "description": "Conflict detected."
           }
         }
       },
       "delete": {
         "summary": "DELETE /api/trainer/calendar/{sessionId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Delete (cancel) a planned session.",
         "tags": [
           "trainer"
         ],
@@ -2429,7 +4894,25 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Session deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deletedId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "deletedId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found."
           }
         }
       }
@@ -2437,7 +4920,7 @@
     "/api/public/workout-summary/{sessionId}": {
       "get": {
         "summary": "GET /api/public/workout-summary/{sessionId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get a public summary of a completed workout session.",
         "tags": [
           "public"
         ],
@@ -2453,7 +4936,82 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Workout summary retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "client": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "trainer": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "nullable": true
+                                }
+                              },
+                              "required": [
+                                "name"
+                              ],
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "trainer"
+                          ]
+                        },
+                        "exerciseLogs": {
+                          "type": "array",
+                          "items": {
+
+                          }
+                        },
+                        "personalRecords": {
+                          "type": "array",
+                          "items": {
+
+                          }
+                        },
+                        "startTime": {
+                          "type": "string"
+                        },
+                        "endTime": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "client",
+                        "exerciseLogs",
+                        "personalRecords",
+                        "startTime",
+                        "endTime"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "session"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found or not completed."
           }
         }
       }
@@ -2527,25 +5085,110 @@
     "/api/profile/me/text-content": {
       "get": {
         "summary": "GET /api/profile/me/text-content",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get profile text content.",
         "tags": [
           "profile"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Text content retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "textContents": {
+                      "type": "object",
+                      "properties": {
+                        "aboutMe": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "philosophy": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "methodology": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "branding": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "aboutMe",
+                        "philosophy",
+                        "methodology",
+                        "branding"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "textContents"
+                  ]
+                }
+              }
+            }
           }
         }
       },
       "put": {
         "summary": "PUT /api/profile/me/text-content",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update a specific profile text field.",
         "tags": [
           "profile"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fieldName": {
+                    "type": "string",
+                    "enum": [
+                      "aboutMe",
+                      "philosophy",
+                      "methodology",
+                      "branding"
+                    ]
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "fieldName",
+                  "content"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Content updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid field name."
           }
         }
       }
@@ -2987,25 +5630,270 @@
     "/api/profile/me/core-info": {
       "get": {
         "summary": "GET /api/profile/me/core-info",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get core profile information.",
         "tags": [
           "profile"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Core info retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "coreInfo": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "weightUnit": {
+                          "type": "string",
+                          "enum": [
+                            "KG",
+                            "LB"
+                          ],
+                          "nullable": true
+                        },
+                        "certifications": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "phone": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "specialties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "trainingTypes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "locations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "address": {
+                                "type": "string"
+                              },
+                              "latitude": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              },
+                              "longitude": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "address",
+                              "latitude",
+                              "longitude"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "username",
+                        "weightUnit",
+                        "certifications",
+                        "phone",
+                        "specialties",
+                        "trainingTypes",
+                        "locations"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "coreInfo"
+                  ]
+                }
+              }
+            }
           }
         }
       },
       "put": {
         "summary": "PUT /api/profile/me/core-info",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update core profile information.",
         "tags": [
           "profile"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "username": {
+                    "type": "string",
+                    "minLength": 3
+                  },
+                  "certifications": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "phone": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "specialties": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "trainingTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "weightUnit": {
+                    "type": "string",
+                    "enum": [
+                      "KG",
+                      "LB"
+                    ]
+                  },
+                  "locations": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "username"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Core info updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "coreInfo": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "weightUnit": {
+                          "type": "string",
+                          "enum": [
+                            "KG",
+                            "LB"
+                          ],
+                          "nullable": true
+                        },
+                        "certifications": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "phone": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "specialties": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "trainingTypes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "locations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "address": {
+                                "type": "string"
+                              },
+                              "latitude": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              },
+                              "longitude": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "address",
+                              "latitude",
+                              "longitude"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "username",
+                        "weightUnit",
+                        "certifications",
+                        "phone",
+                        "specialties",
+                        "trainingTypes",
+                        "locations"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "coreInfo"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Username taken."
+          },
+          "422": {
+            "description": "Validation failed."
           }
         }
       }
@@ -3116,19 +6004,59 @@
     "/api/profile/me/benefits": {
       "get": {
         "summary": "GET /api/profile/me/benefits",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "List profile benefits.",
         "tags": [
           "profile"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Benefits retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "benefits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "orderColumn": {
+                            "type": "number",
+                            "example": 0
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "title",
+                          "description",
+                          "orderColumn"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "benefits"
+                  ]
+                }
+              }
+            }
           }
         }
       },
       "post": {
         "summary": "POST /api/profile/me/benefits",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Add a new benefit to the profile.",
         "tags": [
           "profile"
         ],
@@ -3164,17 +6092,48 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "200 response."
-          },
           "201": {
-            "description": "201 response."
-          },
-          "404": {
-            "description": "404 response."
+            "description": "Benefit added successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "newBenefit": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "orderColumn": {
+                          "type": "number",
+                          "example": 0
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "description",
+                        "orderColumn"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "newBenefit"
+                  ]
+                }
+              }
+            }
           },
           "422": {
-            "description": "422 response."
+            "description": "Validation failed."
           }
         }
       }
@@ -3182,25 +6141,73 @@
     "/api/profile/me/availability": {
       "get": {
         "summary": "GET /api/profile/me/availability",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Get trainer availability.",
         "tags": [
           "profile"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Availability retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "availability": {
+
+                    }
+                  },
+                  "required": [
+                    "availability"
+                  ]
+                }
+              }
+            }
           }
         }
       },
       "put": {
         "summary": "PUT /api/profile/me/availability",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update trainer availability.",
         "tags": [
           "profile"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "availability": {
+
+                  }
+                },
+                "required": [
+                  "availability"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Availability updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -3208,19 +6215,63 @@
     "/api/profile/me/assessments": {
       "get": {
         "summary": "GET /api/profile/me/assessments",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "List all assessments available to the user.",
         "tags": [
           "profile"
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Assessments retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assessments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "unit": {
+                            "type": "string"
+                          },
+                          "trainerId": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "unit",
+                          "trainerId"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "assessments"
+                  ]
+                }
+              }
+            }
           }
         }
       },
       "post": {
         "summary": "POST /api/profile/me/assessments",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Create a new custom assessment.",
         "tags": [
           "profile"
         ],
@@ -3252,17 +6303,55 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "200 response."
-          },
           "201": {
-            "description": "201 response."
+            "description": "Assessment created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "newAssessment": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "unit": {
+                          "type": "string"
+                        },
+                        "trainerId": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "description",
+                        "unit",
+                        "trainerId"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "newAssessment"
+                  ]
+                }
+              }
+            }
           },
           "409": {
-            "description": "409 response."
+            "description": "Assessment name exists."
           },
           "422": {
-            "description": "422 response."
+            "description": "Validation failed."
           }
         }
       }
@@ -4492,7 +7581,7 @@
     "/api/trainer/check-ins/{id}/review": {
       "patch": {
         "summary": "PATCH /api/trainer/check-ins/{id}/review",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Submit a review/response for a client check-in.",
         "tags": [
           "trainer"
         ],
@@ -4506,9 +7595,31 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "trainerResponse": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "trainerResponse"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Check-in reviewed successfully."
+          },
+          "404": {
+            "description": "Check-in not found."
           }
         }
       }
@@ -4516,7 +7627,7 @@
     "/api/profile/me/transformation-photos/{photoId}": {
       "delete": {
         "summary": "DELETE /api/profile/me/transformation-photos/{photoId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Delete a transformation photo.",
         "tags": [
           "profile"
         ],
@@ -4532,7 +7643,29 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Photo deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deletedId": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "deletedId",
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Photo not found."
           }
         }
       }
@@ -4540,7 +7673,7 @@
     "/api/profile/me/testimonials/{testimonialId}": {
       "put": {
         "summary": "PUT /api/profile/me/testimonials/{testimonialId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update a testimonial.",
         "tags": [
           "profile"
         ],
@@ -4554,15 +7687,84 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "clientName": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "testimonialText": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "rating": {
+                    "type": "number",
+                    "example": 0,
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "clientName",
+                  "testimonialText"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Testimonial updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "testimonial": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "clientName": {
+                          "type": "string"
+                        },
+                        "testimonialText": {
+                          "type": "string"
+                        },
+                        "rating": {
+                          "type": "number",
+                          "example": 0,
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "clientName",
+                        "testimonialText",
+                        "rating"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "testimonial"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Testimonial not found."
           }
         }
       },
       "delete": {
         "summary": "DELETE /api/profile/me/testimonials/{testimonialId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Delete a testimonial.",
         "tags": [
           "profile"
         ],
@@ -4578,7 +7780,47 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Testimonial deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "testimonial": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "clientName": {
+                          "type": "string"
+                        },
+                        "testimonialText": {
+                          "type": "string"
+                        },
+                        "rating": {
+                          "type": "number",
+                          "example": 0,
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "clientName",
+                        "testimonialText",
+                        "rating"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "testimonial"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Testimonial not found."
           }
         }
       }
@@ -4586,7 +7828,7 @@
     "/api/profile/me/social-links/{linkId}": {
       "put": {
         "summary": "PUT /api/profile/me/social-links/{linkId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update a social link.",
         "tags": [
           "profile"
         ],
@@ -4600,15 +7842,82 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "platform": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "username": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "profileUrl": {
+                    "type": "string",
+                    "format": "url"
+                  }
+                },
+                "required": [
+                  "platform",
+                  "username",
+                  "profileUrl"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Link updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "updatedLink": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "platform": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "profileUrl": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "platform",
+                        "username",
+                        "profileUrl"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "updatedLink"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Link not found."
           }
         }
       },
       "delete": {
         "summary": "DELETE /api/profile/me/social-links/{linkId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Delete a social link.",
         "tags": [
           "profile"
         ],
@@ -4624,7 +7933,25 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Link deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deletedId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "deletedId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Link not found."
           }
         }
       }
@@ -4632,7 +7959,7 @@
     "/api/profile/me/services/{serviceId}": {
       "put": {
         "summary": "PUT /api/profile/me/services/{serviceId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update a service.",
         "tags": [
           "profile"
         ],
@@ -4646,15 +7973,93 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "price": {
+                    "type": "number",
+                    "example": 0,
+                    "nullable": true
+                  },
+                  "currency": {
+                    "type": "string",
+                    "minLength": 1,
+                    "nullable": true
+                  },
+                  "duration": {
+                    "type": "number",
+                    "example": 0,
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "title",
+                  "description"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Service updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "description",
+                        "price"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "service"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service not found."
           }
         }
       },
       "delete": {
         "summary": "DELETE /api/profile/me/services/{serviceId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Delete a service.",
         "tags": [
           "profile"
         ],
@@ -4670,7 +8075,46 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Service deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "description",
+                        "price"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "service"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Service not found."
           }
         }
       }
@@ -4678,7 +8122,7 @@
     "/api/profile/me/packages/{packageId}": {
       "put": {
         "summary": "PUT /api/profile/me/packages/{packageId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update a package.",
         "tags": [
           "profile"
         ],
@@ -4692,15 +8136,91 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "price": {
+                    "type": "number",
+                    "example": 0
+                  },
+                  "numberOfSessions": {
+                    "type": "number",
+                    "example": 0
+                  }
+                },
+                "required": [
+                  "name",
+                  "price",
+                  "numberOfSessions"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Package updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "package": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "string"
+                        },
+                        "numberOfSessions": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "isActive": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "price",
+                        "numberOfSessions",
+                        "isActive"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "package"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Package not found."
           }
         }
       },
       "delete": {
         "summary": "DELETE /api/profile/me/packages/{packageId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Archive a package.",
         "tags": [
           "profile"
         ],
@@ -4716,7 +8236,50 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Package archived successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "package": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "string"
+                        },
+                        "numberOfSessions": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "isActive": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "price",
+                        "numberOfSessions",
+                        "isActive"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "package"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Package not found."
           }
         }
       }
@@ -4724,7 +8287,7 @@
     "/api/profile/me/external-links/{linkId}": {
       "put": {
         "summary": "PUT /api/profile/me/external-links/{linkId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update an external link.",
         "tags": [
           "profile"
         ],
@@ -4738,15 +8301,70 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "linkUrl": {
+                    "type": "string",
+                    "format": "url"
+                  }
+                },
+                "required": [
+                  "label",
+                  "linkUrl"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Link updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "updatedLink": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "linkUrl": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "label",
+                        "linkUrl"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "updatedLink"
+                  ]
+                }
+              }
+            }
           }
         }
       },
       "delete": {
         "summary": "DELETE /api/profile/me/external-links/{linkId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Delete an external link.",
         "tags": [
           "profile"
         ],
@@ -4762,7 +8380,22 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Link deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deletedId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "deletedId"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -4770,7 +8403,7 @@
     "/api/profile/me/exercises/{exerciseId}": {
       "put": {
         "summary": "PUT /api/profile/me/exercises/{exerciseId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update a custom exercise.",
         "tags": [
           "profile"
         ],
@@ -4784,15 +8417,74 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 2
+                  },
+                  "muscleGroup": {
+                    "type": "string"
+                  },
+                  "equipment": {
+                    "type": "string"
+                  },
+                  "videoUrl": {
+
+                  }
+                },
+                "required": [
+                  "name",
+                  "videoUrl"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Exercise updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "updatedExercise": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "updatedExercise"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden."
           }
         }
       },
       "delete": {
         "summary": "DELETE /api/profile/me/exercises/{exerciseId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Delete a custom exercise.",
         "tags": [
           "profile"
         ],
@@ -4808,7 +8500,22 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Exercise deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deletedId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "deletedId"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -4816,13 +8523,52 @@
     "/api/profile/me/benefits/order": {
       "put": {
         "summary": "PUT /api/profile/me/benefits/order",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update the order of benefits.",
         "tags": [
           "profile"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Order updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload."
           }
         }
       }
@@ -4830,7 +8576,7 @@
     "/api/profile/me/benefits/{benefitId}": {
       "put": {
         "summary": "PUT /api/profile/me/benefits/{benefitId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Update a specific benefit.",
         "tags": [
           "profile"
         ],
@@ -4844,15 +8590,81 @@
             }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "iconName": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "iconStyle": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Benefit updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "updatedBenefit": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "title",
+                        "description"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "updatedBenefit"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Benefit or profile not found."
           }
         }
       },
       "delete": {
         "summary": "DELETE /api/profile/me/benefits/{benefitId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Delete a specific benefit.",
         "tags": [
           "profile"
         ],
@@ -4868,7 +8680,25 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Benefit deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deletedId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "deletedId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Benefit or profile not found."
           }
         }
       }
@@ -5456,55 +9286,6 @@
         }
       }
     },
-    "/api/trainer/programs/templates/{templateId}/rest": {
-      "post": {
-        "summary": "POST /api/trainer/programs/templates/{templateId}/rest",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "trainer"
-        ],
-        "parameters": [
-          {
-            "name": "templateId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "durationSeconds": {
-                    "type": "number",
-                    "example": 0
-                  }
-                },
-                "required": [
-                  "durationSeconds"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200 response."
-          },
-          "201": {
-            "description": "201 response."
-          },
-          "422": {
-            "description": "422 response."
-          }
-        }
-      }
-    },
     "/api/trainer/programs/templates/{templateId}/exercises": {
       "post": {
         "summary": "POST /api/trainer/programs/templates/{templateId}/exercises",
@@ -5593,6 +9374,55 @@
         }
       }
     },
+    "/api/trainer/programs/templates/{templateId}/rest": {
+      "post": {
+        "summary": "POST /api/trainer/programs/templates/{templateId}/rest",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "trainer"
+        ],
+        "parameters": [
+          {
+            "name": "templateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "durationSeconds": {
+                    "type": "number",
+                    "example": 0
+                  }
+                },
+                "required": [
+                  "durationSeconds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 response."
+          },
+          "201": {
+            "description": "201 response."
+          },
+          "422": {
+            "description": "422 response."
+          }
+        }
+      }
+    },
     "/api/trainer/calendar/sessions/{sessionId}/remind": {
       "post": {
         "summary": "POST /api/trainer/calendar/sessions/{sessionId}/remind",
@@ -5626,7 +9456,7 @@
     "/api/trainer/programs/templates/{templateId}/exercises/{exerciseStepId}": {
       "delete": {
         "summary": "DELETE /api/trainer/programs/templates/{templateId}/exercises/{exerciseStepId}",
-        "description": "Auto-generated from Next.js route handler.",
+        "description": "Remove an exercise step from a template.",
         "tags": [
           "trainer"
         ],
@@ -5650,7 +9480,22 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful response."
+            "description": "Exercise step deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -5742,5 +9587,5 @@
       "description": "Public endpoints."
     }
   ],
-  "x-generated-at": "2025-12-16T08:27:15.609Z"
+  "x-generated-at": "2025-12-16T09:08:54.273Z"
 }
