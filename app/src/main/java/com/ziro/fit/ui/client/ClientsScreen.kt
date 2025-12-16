@@ -148,8 +148,15 @@ fun ClientsScreen(
                                                         .background(MaterialTheme.colorScheme.primaryContainer),
                                                     contentAlignment = Alignment.Center
                                                 ) {
+                                                    val initials = client.name
+                                                        .split(" ")
+                                                        .mapNotNull { it.firstOrNull()?.toString() }
+                                                        .take(2)
+                                                        .joinToString("")
+                                                        .uppercase()
+                                                    
                                                     Text(
-                                                        text = client.name.take(1).uppercase(),
+                                                        text = initials,
                                                         style = MaterialTheme.typography.titleMedium,
                                                         color = MaterialTheme.colorScheme.onPrimaryContainer
                                                     )
