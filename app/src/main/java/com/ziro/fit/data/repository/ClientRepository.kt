@@ -180,8 +180,8 @@ class ClientRepository @Inject constructor(
                 clientId,
                 CreateMeasurementRequest(
                     measurementDate = date,
-                    weightKg = weight,
-                    bodyFatPercentage = bodyFat,
+                    weightKg = weight?.toString(),
+                    bodyFatPercentage = bodyFat?.toString(),
                     notes = notes
                 )
             )

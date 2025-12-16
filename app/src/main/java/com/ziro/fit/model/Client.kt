@@ -52,8 +52,8 @@ data class Measurement(
 
 data class CreateMeasurementRequest(
     val measurementDate: String,
-    val weightKg: Double?,
-    val bodyFatPercentage: Double?,
+    val weightKg: String?,
+    val bodyFatPercentage: String?,
     val notes: String?,
     val customMetrics: Map<String, Any>? = null
 )
