@@ -274,13 +274,21 @@
                           "equipment": {
                             "type": "string",
                             "nullable": true
+                          },
+                          "videoUrl": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "isCustom": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
                           "id",
                           "name",
                           "muscleGroup",
-                          "equipment"
+                          "equipment",
+                          "isCustom"
                         ]
                       }
                     },
@@ -310,6 +318,173 @@
                 }
               }
             }
+          }
+        }
+      },
+      "post": {
+        "summary": "POST /api/exercises",
+        "description": "Create a new custom exercise.",
+        "tags": [
+          "exercises"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "muscleGroup": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "equipment": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "videoUrl": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Exercise created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "exercise": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "muscleGroup": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "equipment": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "videoUrl": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "isCustom": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/exercises/{id}": {
+      "put": {
+        "summary": "PUT /api/exercises/{id}",
+        "description": "Update an existing custom exercise.",
+        "tags": [
+          "exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "muscleGroup": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "equipment": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "videoUrl": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exercise updated successfully."
+          },
+          "403": {
+            "description": "Forbidden - You can only edit your own custom exercises."
+          },
+          "404": {
+            "description": "Exercise not found."
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/exercises/{id}",
+        "description": "Delete a custom exercise.",
+        "tags": [
+          "exercises"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exercise deleted successfully."
+          },
+          "403": {
+            "description": "Forbidden - You can only delete your own custom exercises."
+          },
+          "404": {
+            "description": "Exercise not found."
           }
         }
       }

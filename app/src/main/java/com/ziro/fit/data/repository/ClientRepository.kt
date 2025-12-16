@@ -31,9 +31,9 @@ class ClientRepository @Inject constructor(
     suspend fun getClients(): Result<List<Client>> {
         return try {
             val response = api.getClients()
-            Result.success(response.data.clients)
+            Result.success(response.data!!.clients)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -42,9 +42,9 @@ class ClientRepository @Inject constructor(
         return try {
             val request = CreateClientRequest(name, email, phone, status)
             val response = api.createClient(request)
-            Result.success(response.data.client)
+            Result.success(response.data!!.client)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -55,7 +55,7 @@ class ClientRepository @Inject constructor(
             api.updateClient(clientId, request)
             Result.success(Unit)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -71,11 +71,11 @@ class ClientRepository @Inject constructor(
                 val sessionsDeferred = async { api.getClientSessions(clientId) }
 
                 // Await all results
-                val client = clientDeferred.await().data.client
-                val measurements = measurementsDeferred.await().data.measurements ?: emptyList()
-                val assessments = assessmentsDeferred.await().data.results ?: emptyList()
-                val photos = photosDeferred.await().data.photos ?: emptyList()
-                val sessions = sessionsDeferred.await().data.sessions ?: emptyList()
+                val client = clientDeferred.await().data!!.client
+                val measurements = measurementsDeferred.await().data?.measurements ?: emptyList()
+                val assessments = assessmentsDeferred.await().data?.results ?: emptyList()
+                val photos = photosDeferred.await().data?.photos ?: emptyList()
+                val sessions = sessionsDeferred.await().data?.sessions ?: emptyList()
 
                 Result.success(
                     ClientProfileData(
@@ -88,7 +88,7 @@ class ClientRepository @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -96,9 +96,9 @@ class ClientRepository @Inject constructor(
     suspend fun getClientMeasurements(clientId: String): Result<List<Measurement>> {
         return try {
             val response = api.getClientMeasurements(clientId)
-            Result.success(response.data.measurements ?: emptyList())
+            Result.success(response.data?.measurements ?: emptyList())
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -106,9 +106,9 @@ class ClientRepository @Inject constructor(
     suspend fun getClientAssessments(clientId: String): Result<List<AssessmentResult>> {
         return try {
             val response = api.getClientAssessments(clientId)
-            Result.success(response.data.results ?: emptyList())
+            Result.success(response.data?.results ?: emptyList())
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -117,11 +117,11 @@ class ClientRepository @Inject constructor(
         return try {
             val response = api.createAssessment(
                 clientId,
-                CreateAssessmentRequest(assessmentId, date, value, notes)
+                CreateClientAssessmentRequest(assessmentId, date, value, notes)
             )
-            Result.success(response.data.assessmentResult)
+            Result.success(response.data!!.assessmentResult)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -131,7 +131,7 @@ class ClientRepository @Inject constructor(
             api.deleteAssessment(clientId, resultId)
             Result.success(Unit)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -139,9 +139,9 @@ class ClientRepository @Inject constructor(
     suspend fun getClientPhotos(clientId: String): Result<List<TransformationPhoto>> {
         return try {
             val response = api.getClientPhotos(clientId)
-            Result.success(response.data.photos ?: emptyList())
+            Result.success(response.data?.photos ?: emptyList())
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -157,9 +157,9 @@ class ClientRepository @Inject constructor(
             val captionBody = caption?.let { okhttp3.RequestBody.create(mediaTypeText, it) }
 
             val response = api.uploadPhoto(clientId, body, dateBody, captionBody)
-            Result.success(response.data.progressPhoto)
+            Result.success(response.data!!.progressPhoto)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -169,7 +169,7 @@ class ClientRepository @Inject constructor(
             api.deletePhoto(clientId, photoId)
             Result.success(Unit)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -185,9 +185,9 @@ class ClientRepository @Inject constructor(
                     notes = notes
                 )
             )
-            Result.success(response.data.measurement)
+            Result.success(response.data!!.measurement)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -197,7 +197,7 @@ class ClientRepository @Inject constructor(
             api.deleteMeasurement(clientId, measurementId)
             Result.success(Unit)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -205,9 +205,9 @@ class ClientRepository @Inject constructor(
     suspend fun getClientSessions(clientId: String): Result<List<ClientSession>> {
         return try {
             val response = api.getClientSessions(clientId)
-            Result.success(response.data.sessions ?: emptyList())
+            Result.success(response.data?.sessions ?: emptyList())
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -215,9 +215,9 @@ class ClientRepository @Inject constructor(
     suspend fun updateSession(clientId: String, sessionId: String, notes: String?, status: String?): Result<ClientSession> {
         return try {
             val response = api.updateSession(clientId, sessionId, UpdateSessionRequest(notes, status))
-            Result.success(response.data)
+            Result.success(response.data!!)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -227,7 +227,7 @@ class ClientRepository @Inject constructor(
             api.deleteSession(clientId, sessionId)
             Result.success(Unit)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -237,7 +237,7 @@ class ClientRepository @Inject constructor(
             api.deleteClient(clientId)
             Result.success(Unit)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }

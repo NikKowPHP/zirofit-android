@@ -19,7 +19,7 @@ object ApiErrorParser {
     /**
      * Parse an exception into a user-friendly ApiError
      */
-    fun parseError(throwable: Throwable): ApiError {
+    fun parse(throwable: Throwable): ApiError {
         Log.e(TAG, "════════════════════════════════════════")
         Log.e(TAG, "API ERROR CAUGHT")
         Log.e(TAG, "Exception Type: ${throwable.javaClass.simpleName}")

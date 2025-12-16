@@ -66,14 +66,14 @@ data class GetMeasurementsResponse(
     val measurements: List<Measurement>?
 )
 
-data class CreateAssessmentRequest(
+data class CreateClientAssessmentRequest(
     val assessmentId: String,
     val date: String,
     val value: Double,
     val notes: String?
 )
 
-data class CreateAssessmentResponse(
+data class CreateClientAssessmentResponse(
     val assessmentResult: AssessmentResult
 )
 
@@ -96,7 +96,7 @@ data class AssessmentResult(
     val unit: String?
 )
 
-data class GetAssessmentsResponse(
+data class GetClientAssessmentsResponse(
     val results: List<AssessmentResult>?
 )
 

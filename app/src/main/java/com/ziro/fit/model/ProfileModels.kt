@@ -1,0 +1,132 @@
+package com.ziro.fit.model
+
+import com.google.gson.annotations.SerializedName
+
+data class ProfileCoreInfoResponse(
+    val coreInfo: ProfileCoreInfo
+)
+
+data class ProfileCoreInfo(
+    val id: String,
+    val username: String,
+    @SerializedName("name") val fullName: String?, // Map 'name' from JSON to 'fullName'
+    val bio: String?,
+    val profileImageUrl: String?
+)
+
+data class ProfileBrandingResponse(
+    val branding: ProfileBranding
+)
+
+data class ProfileBranding(
+    val primaryColor: String?,
+    val logoUrl: String?,
+    val bannerUrl: String?
+)
+
+data class ProfileService(
+    val id: String,
+    val title: String,
+    val description: String?,
+    val price: Double?,
+    val currency: String?
+)
+
+data class ProfileServicesResponse(
+    val services: List<ProfileService>
+)
+
+data class ProfilePackage(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val price: Double?,
+    val sessionCount: Int?
+)
+
+data class ProfilePackagesResponse(
+    val packages: List<ProfilePackage>
+)
+
+data class ProfileAvailabilityResponse(
+    val availability: ProfileAvailability
+)
+
+data class ProfileAvailability(
+    val timeZone: String?,
+    val schedule: Map<String, List<String>>?
+)
+
+data class ProfileTransformationPhoto(
+    val id: String,
+    val beforeUrl: String?,
+    val afterUrl: String?,
+    val date: String?,
+    val description: String?
+)
+
+data class ProfileTransformationPhotosResponse(
+    val photos: List<ProfileTransformationPhoto>
+)
+
+data class Testimonial(
+    val id: String,
+    val clientName: String,
+    val content: String,
+    val rating: Int?
+)
+
+data class ProfileTestimonialsResponse(
+    val testimonials: List<Testimonial>
+)
+
+data class SocialLink(
+    val id: String,
+    val platform: String,
+    val url: String
+)
+
+data class ProfileSocialLinksResponse(
+    val links: List<SocialLink>
+)
+
+data class ExternalLink(
+    val id: String,
+    val title: String,
+    val url: String
+)
+
+data class ProfileExternalLinksResponse(
+    val links: List<ExternalLink>
+)
+
+data class ProfileBillingResponse(
+    val billing: ProfileBilling
+)
+
+data class ProfileBilling(
+    val stripeConnected: Boolean?,
+    val subscriptionStatus: String?
+)
+
+data class Benefit(
+    val id: String,
+    val text: String
+)
+
+data class ProfileBenefitsResponse(
+    val benefits: List<Benefit>
+)
+
+data class Notification(
+    val id: String,
+    val userId: String,
+    val message: String,
+    val type: String,
+    val readStatus: Boolean,
+    val createdAt: String
+)
+
+data class GetNotificationsResponse(
+    val notifications: List<Notification>
+)

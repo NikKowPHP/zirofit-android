@@ -28,9 +28,9 @@ class CalendarRepository @Inject constructor(
                 endDate = end.format(formatter)
             )
             
-            Result.success(response.data.events)
+            Result.success(response.data!!.events)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -38,9 +38,9 @@ class CalendarRepository @Inject constructor(
     suspend fun createSession(request: CreateSessionRequest): Result<String> {
         return try {
             val response = api.createCalendarSession(request)
-            Result.success(response.data.message)
+            Result.success(response.data!!.message)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -58,10 +58,10 @@ class CalendarRepository @Inject constructor(
                 endDate = end.format(formatter)
             )
 
-            Result.success(response.data.summary ?: emptyList())
+            Result.success(response.data?.summary ?: emptyList())
         } catch (e: Exception) {
             // Log error but don't crash UI, maybe return empty list or propagate error
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }

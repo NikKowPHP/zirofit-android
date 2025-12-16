@@ -43,7 +43,7 @@ class AuthViewModel @Inject constructor(
             try {
                 val response = api.login(LoginRequest(email, pass))
                 // Save the token from the response
-                tokenManager.saveToken(response.data.accessToken)
+                tokenManager.saveToken(response.data!!.accessToken)
                 authState = AuthState.Authenticated
             } catch (e: Exception) {
                 e.printStackTrace()

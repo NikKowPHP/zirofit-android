@@ -11,6 +11,7 @@ import kotlin.math.roundToInt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -132,6 +133,18 @@ fun MainAppScreen(onLogout: () -> Unit) {
                                 }
                             }
                         )
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.Menu, contentDescription = null) },
+                            label = { Text("More") },
+                            selected = currentRoute == "more",
+                            onClick = {
+                                navController.navigate("more") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -214,7 +227,59 @@ fun MainAppScreen(onLogout: () -> Unit) {
                     )
                 }
                 composable("profile") {
-                    ProfileScreen(onLogout = onLogout)
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.ProfileScreen(
+                        onLogout = onLogout,
+                        onNavigateToSubScreen = { route -> navController.navigate(route) }
+                    )
+                }
+                composable("profile/core_info") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.CoreInfoScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/branding") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.BrandingScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/services") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.ServicesScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/packages") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.PackagesScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/availability") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.AvailabilityScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/transformation_photos") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.TransformationPhotosScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/testimonials") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.TestimonialsScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/social_links") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.SocialLinksScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/external_links") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.ExternalLinksScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/billing") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.BillingScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/benefits") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.BenefitsScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/notifications") {
+                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.NotificationsScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
                 }
                 composable("live_workout") {
                     LiveWorkoutScreen(
@@ -241,6 +306,56 @@ fun MainAppScreen(onLogout: () -> Unit) {
                     com.ziro.fit.ui.calendar.CreateSessionScreen(
                         initialDate = initialDate,
                         onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable("more") {
+                    com.ziro.fit.ui.more.MoreScreen(
+                        onNavigateToAssessments = { navController.navigate("assessments_library") },
+                        onNavigateToBookings = { navController.navigate("bookings_list") }
+                    )
+                }
+                composable("assessments_library") {
+                    com.ziro.fit.ui.more.AssessmentsLibraryScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToCreate = { navController.navigate("assessments_create") },
+                        onNavigateToEdit = { id -> navController.navigate("assessments_edit/$id") }
+                    )
+                }
+                composable("assessments_create") {
+                    com.ziro.fit.ui.more.CreateEditAssessmentScreen(
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = "assessments_edit/{assessmentId}",
+                    arguments = listOf(navArgument("assessmentId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val assessmentId = backStackEntry.arguments?.getString("assessmentId")
+                    com.ziro.fit.ui.more.CreateEditAssessmentScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        assessmentId = assessmentId
+                    )
+                }
+                composable("bookings_list") {
+                    com.ziro.fit.ui.bookings.BookingsListScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToCreate = { navController.navigate("bookings_create") },
+                        onNavigateToEdit = { id -> navController.navigate("bookings_edit/$id") }
+                    )
+                }
+                composable("bookings_create") {
+                    com.ziro.fit.ui.bookings.CreateEditBookingScreen(
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = "bookings_edit/{bookingId}",
+                    arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val bookingId = backStackEntry.arguments?.getString("bookingId")
+                    com.ziro.fit.ui.bookings.CreateEditBookingScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        bookingId = bookingId
                     )
                 }
             }
@@ -328,42 +443,5 @@ fun LoginScreen(onLogin: (String, String) -> Unit, error: String? = null) {
     }
 }
 
-@Composable
-fun ProfileScreen(
-    onLogout: () -> Unit,
-    userViewModel: UserViewModel = hiltViewModel()
-) {
-    val user = userViewModel.user
-    val isLoading = userViewModel.isLoading
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        if (isLoading) {
-            CircularProgressIndicator()
-        } else if (user != null) {
-            Text("Welcome back,", style = MaterialTheme.typography.titleMedium)
-            Text(user.name ?: user.email, style = MaterialTheme.typography.headlineLarge)
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text("Email: ${user.email}")
-            Text("Role: ${user.role ?: "N/A"}")
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            Button(onClick = onLogout, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                Text("Logout")
-            }
-        } else {
-            Text("Failed to load user data")
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onLogout) { Text("Logout") }
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { userViewModel.fetchUserProfile() }) { Text("Retry") }
-        }
-    }
-}
       

@@ -20,7 +20,7 @@ class LiveWorkoutRepository @Inject constructor(
     suspend fun getActiveSession(): Result<LiveWorkoutUiModel> {
         return try {
             val response = api.getActiveSession()
-            val data = response.data
+            val data = response.data!!
             if (data.session != null) {
                 Result.success(mapResponseToUiModel(data.session))
             } else {
@@ -28,7 +28,7 @@ class LiveWorkoutRepository @Inject constructor(
                 Result.success(LiveWorkoutUiModel(id = "", title = "", startTime = "", exercises = emptyList()))
             }
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -36,9 +36,9 @@ class LiveWorkoutRepository @Inject constructor(
     suspend fun startWorkout(clientId: String?, templateId: String?, plannedSessionId: String?): Result<LiveWorkoutUiModel> {
         return try {
             val response = api.startWorkout(StartWorkoutRequest(clientId, templateId, plannedSessionId))
-            Result.success(mapResponseToUiModel(response.data.session))
+            Result.success(mapResponseToUiModel(response.data!!.session))
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -48,7 +48,7 @@ class LiveWorkoutRepository @Inject constructor(
             api.logSet(LogSetRequest(sessionId, exerciseId, reps, weight, order))
             Result.success(Unit)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -58,7 +58,7 @@ class LiveWorkoutRepository @Inject constructor(
             api.finishSession(mapOf("workoutSessionId" to sessionId, "notes" to (notes ?: "")))
             Result.success(Unit)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
@@ -66,9 +66,9 @@ class LiveWorkoutRepository @Inject constructor(
     suspend fun getExercises(query: String?): Result<List<Exercise>> {
         return try {
             val response = api.getExercises(search = query)
-            Result.success(response.data.exercises)
+            Result.success(response.data!!.exercises)
         } catch (e: Exception) {
-            val apiError = ApiErrorParser.parseError(e)
+            val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
