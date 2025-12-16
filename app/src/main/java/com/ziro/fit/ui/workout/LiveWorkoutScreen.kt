@@ -1,14 +1,17 @@
 package com.ziro.fit.ui.workout
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,28 +20,38 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import com.ziro.fit.model.Exercise
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
+import com.ziro.fit.viewmodel.WorkoutViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LiveWorkoutScreen(
-    viewModel: LiveWorkoutViewModel = hiltViewModel(),
+    viewModel: WorkoutViewModel,
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+    var showExerciseSheet by remember { mutableStateOf(false) }
 
-    // Handle Finish Navigation
-    LaunchedEffect(state.isFinished) {
-        if (state.isFinished) onNavigateBack()
+    // Handle back navigation if session is gone
+    if (state.activeSession == null && !state.isLoading) {
+        LaunchedEffect(Unit) {
+            onNavigateBack()
+        }
+    }
+    
+    // Load exercises initially
+    LaunchedEffect(Unit) {
+        viewModel.loadExercises()
     }
 
     Scaffold(
         topBar = {
             LiveWorkoutHeader(
-                templateName = state.session?.title ?: "Workout",
+                templateName = state.activeSession?.title ?: "Workout",
                 elapsedSeconds = state.elapsedSeconds,
-                onFinish = viewModel::finishWorkout,
+                onFinish = { viewModel.finishWorkout() },
                 isFinishing = state.isFinishing
             )
         }
@@ -55,18 +68,91 @@ fun LiveWorkoutScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(state.session?.exercises ?: emptyList()) { exercise ->
+                items(state.activeSession?.exercises ?: emptyList()) { exercise ->
                     ExerciseCard(
                         exercise = exercise,
                         onInputChange = viewModel::updateSetInput,
-                        onSetToggle = { set -> 
-                            viewModel.onToggleSet(exercise.exerciseId, set) 
-                        }
+                        onSetToggle = { set -> viewModel.logSet(exercise.exerciseId, set) },
+                        onAddSet = { viewModel.addSetToExercise(exercise.exerciseId) }
                     )
                 }
                 
                 item {
+                    Button(
+                        onClick = { showExerciseSheet = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors()
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Add Exercise")
+                    }
+                }
+                
+                item {
                     Spacer(Modifier.height(32.dp))
+                }
+            }
+        }
+        
+        if (showExerciseSheet) {
+            ModalBottomSheet(onDismissRequest = { showExerciseSheet = false }) {
+                ExerciseBrowserContent(
+                    exercises = state.availableExercises,
+                    isLoading = state.isExercisesLoading,
+                    onSearch = viewModel::loadExercises,
+                    onSelect = { exercise ->
+                        viewModel.addExerciseToSession(exercise)
+                        showExerciseSheet = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ExerciseBrowserContent(
+    exercises: List<Exercise>,
+    isLoading: Boolean,
+    onSearch: (String) -> Unit,
+    onSelect: (Exercise) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { 
+                searchQuery = it
+                onSearch(it) 
+            },
+            label = { Text("Search Exercises") },
+            leadingIcon = { Icon(Icons.Default.Search, null) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(Modifier.height(16.dp))
+        
+        if (isLoading) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(exercises) { exercise ->
+                    ListItem(
+                        headlineContent = { Text(exercise.name) },
+                        supportingContent = { Text("${exercise.muscleGroup ?: ""} • ${exercise.equipment ?: ""}") },
+                        modifier = Modifier
+                            .clickable { onSelect(exercise) }
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                    )
+                }
+                if (exercises.isEmpty()) {
+                    item {
+                        Text("No exercises found", modifier = Modifier.padding(16.dp), color = Color.Gray)
+                    }
                 }
             }
         }
@@ -119,18 +205,26 @@ fun LiveWorkoutHeader(
 fun ExerciseCard(
     exercise: WorkoutExerciseUi,
     onInputChange: (String, Int, String, String) -> Unit, // exerciseId, index, weight, reps
-    onSetToggle: (WorkoutSetUi) -> Unit
+    onSetToggle: (WorkoutSetUi) -> Unit,
+    onAddSet: () -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = exercise.exerciseName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = exercise.exerciseName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
             if (exercise.targetReps != null) {
                 Text(
                     text = "Target: ${exercise.targetReps} reps",
@@ -158,6 +252,12 @@ fun ExerciseCard(
                     onRepsChange = { r -> onInputChange(exercise.exerciseId, index, set.weight, r) },
                     onCheck = { onSetToggle(set) }
                 )
+            }
+            
+            TextButton(onClick = onAddSet, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Add Set")
             }
         }
     }

@@ -2,10 +2,11 @@ package com.ziro.fit.data.remote
 
 import com.ziro.fit.model.ApiResponse
 import com.ziro.fit.model.CalendarResponse
-import com.ziro.fit.model.ServerLiveSessionResponse
+import com.ziro.fit.model.GetExercisesResponse
 import com.ziro.fit.model.LogSetRequest
 import com.ziro.fit.model.LoginRequest
 import com.ziro.fit.model.LoginResponse
+import com.ziro.fit.model.ServerLiveSessionResponse
 import com.ziro.fit.model.StartWorkoutRequest
 import com.ziro.fit.model.StartWorkoutResponse
 import com.ziro.fit.model.User
@@ -38,5 +39,10 @@ interface ZiroApi {
 
     @POST("api/workout-sessions/finish")
     suspend fun finishSession(@Body body: Map<String, String>): ApiResponse<Any>
+    
+    @GET("api/exercises")
+    suspend fun getExercises(
+        @Query("search") search: String? = null,
+        @Query("limit") limit: Int = 50
+    ): ApiResponse<GetExercisesResponse>
 }
-      

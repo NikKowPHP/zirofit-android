@@ -1,6 +1,7 @@
 package com.ziro.fit.data.repository
 
 import com.ziro.fit.data.remote.ZiroApi
+import com.ziro.fit.model.Exercise
 import com.ziro.fit.model.LiveWorkoutUiModel
 import com.ziro.fit.model.LogSetRequest
 import com.ziro.fit.model.ServerLiveSessionResponse
@@ -26,11 +27,8 @@ class LiveWorkoutRepository @Inject constructor(
     }
 
     suspend fun startWorkout(clientId: String?, templateId: String?, plannedSessionId: String?): Result<LiveWorkoutUiModel> {
-        println("StartWorkoutResponse and request: and $clientId, $templateId, $plannedSessionId")
         return try {
             val response = api.startWorkout(StartWorkoutRequest(clientId, templateId, plannedSessionId))
-            // log to console
-
             Result.success(mapResponseToUiModel(response.data.session))
         } catch (e: Exception) {
             Result.failure(e)
@@ -50,6 +48,15 @@ class LiveWorkoutRepository @Inject constructor(
         return try {
             api.finishSession(mapOf("workoutSessionId" to sessionId, "notes" to (notes ?: "")))
             Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+    
+    suspend fun getExercises(query: String?): Result<List<Exercise>> {
+        return try {
+            val response = api.getExercises(search = query)
+            Result.success(response.data.exercises)
         } catch (e: Exception) {
             Result.failure(e)
         }
