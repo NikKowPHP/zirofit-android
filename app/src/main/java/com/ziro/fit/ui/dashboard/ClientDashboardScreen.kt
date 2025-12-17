@@ -10,8 +10,11 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClientDashboardScreen(
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    viewModel: com.ziro.fit.viewmodel.ClientDashboardViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
+    val uiState = viewModel.uiState
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -24,24 +27,65 @@ fun ClientDashboardScreen(
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = "Welcome to your Client Dashboard!",
-                style = MaterialTheme.typography.headlineMedium
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "See your linked trainer and information here.",
-                style = MaterialTheme.typography.bodyLarge
-            )
-            // TODO: Fetch and display actual client data and linked trainer
+            when (uiState) {
+                is com.ziro.fit.viewmodel.ClientDashboardUiState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+                is com.ziro.fit.viewmodel.ClientDashboardUiState.Error -> {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(text = "Error: ${uiState.message}", color = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.fetchDashboard() }) {
+                            Text("Retry")
+                        }
+                    }
+                }
+                is com.ziro.fit.viewmodel.ClientDashboardUiState.Success -> {
+                    val data = uiState.data
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Welcome, ${data.name}!",
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = "Your Trainer",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                if (data.trainer != null) {
+                                    Text(text = "Name: ${data.trainer.name ?: "N/A"}", style = MaterialTheme.typography.bodyLarge)
+                                    Text(text = "Email: ${data.trainer.email}", style = MaterialTheme.typography.bodyMedium)
+                                    Text(text = "Username: ${data.trainer.username}", style = MaterialTheme.typography.bodyMedium)
+                                } else {
+                                    Text(text = "No trainer linked.", style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                        }
+                        // Add more dashboard sections here (e.g., sessions, measurements)
+                    }
+                }
+            }
         }
     }
 }

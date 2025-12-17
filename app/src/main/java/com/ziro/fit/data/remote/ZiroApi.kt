@@ -234,4 +234,6 @@ interface ZiroApi {
         @retrofit2.http.Path("id") id: String,
         @Body request: ReviewCheckInRequest
     ): ApiResponse<Any>
+    @GET("api/client/dashboard")
+    suspend fun getClientDashboard(): ApiResponse<ClientDashboardResponse>
 }
