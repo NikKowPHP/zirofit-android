@@ -58,7 +58,13 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
         when (state) {
             is AuthState.Loading -> LoadingScreen()
             is AuthState.Unauthenticated -> LoginScreen(onLogin = authViewModel::login, error = (state as? AuthState.Error)?.message)
-            is AuthState.Authenticated -> MainAppScreen(onLogout = authViewModel::logout)
+            is AuthState.Authenticated -> {
+                if (state.role == "client") {
+                    com.ziro.fit.ui.dashboard.ClientDashboardScreen(onLogout = authViewModel::logout)
+                } else {
+                    MainAppScreen(onLogout = authViewModel::logout)
+                }
+            }
             is AuthState.Error -> LoginScreen(onLogin = authViewModel::login, error = state.message)
         }
     }

@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 sealed class AuthState {
     object Loading : AuthState()
-    object Authenticated : AuthState()
+    data class Authenticated(val role: String) : AuthState()
     object Unauthenticated : AuthState()
     data class Error(val message: String) : AuthState()
 }
@@ -29,9 +29,30 @@ class AuthViewModel @Inject constructor(
         private set
 
     init {
-        // Check if we have a token saved
+        checkAuthStatus()
+    }
+    
+    private fun checkAuthStatus() {
         if (tokenManager.getToken() != null) {
-            authState = AuthState.Authenticated
+            viewModelScope.launch {
+                authState = AuthState.Loading
+                try {
+                    val userResponse = api.getMe()
+                    val user = userResponse.data
+                    if (user != null) {
+                        authState = AuthState.Authenticated(user.role ?: "trainer")
+                    } else {
+                        // Token might be valid but can't get user? Treat as error or unauth
+                        authState = AuthState.Unauthenticated
+                        tokenManager.clearToken()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // If we can't get user details (e.g. 401), assume unauthenticated
+                    authState = AuthState.Unauthenticated
+                    tokenManager.clearToken()
+                }
+            }
         } else {
             authState = AuthState.Unauthenticated
         }
@@ -43,8 +64,13 @@ class AuthViewModel @Inject constructor(
             try {
                 val response = api.login(LoginRequest(email, pass))
                 // Save the token from the response
-                tokenManager.saveToken(response.data!!.accessToken)
-                authState = AuthState.Authenticated
+                val loginData = response.data
+                if (loginData != null) {
+                    tokenManager.saveToken(loginData.accessToken)
+                    authState = AuthState.Authenticated(loginData.role)
+                } else {
+                   authState = AuthState.Error("Login failed: No data received") 
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
                 authState = AuthState.Error("Login failed: ${e.message}")
