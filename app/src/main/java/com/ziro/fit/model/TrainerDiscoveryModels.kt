@@ -16,13 +16,16 @@ data class TrainerSummary(
 data class TrainerProfileSummary(
     val profilePhotoPath: String?,
     val certifications: String?, // Comma separated string in JSON
+    val averageRating: Double?,
     val locations: List<TrainerLocationSummary>?,
     val services: List<TrainerServiceSummary>?
 )
 
 data class TrainerLocationSummary(
     val id: String,
-    val address: String
+    val address: String,
+    val latitude: Double? = null,
+    val longitude: Double? = null
 )
 
 data class TrainerServiceSummary(

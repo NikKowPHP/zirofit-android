@@ -8,7 +8,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +35,7 @@ fun TrainerDiscoveryScreen(
 ) {
     val uiState = viewModel.uiState
     var searchQuery by remember { mutableStateOf("") }
+    var isMapView by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -43,6 +47,14 @@ fun TrainerDiscoveryScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { isMapView = !isMapView }) {
+                Icon(
+                    imageVector = if (isMapView) Icons.Default.List else Icons.Default.Map,
+                    contentDescription = if (isMapView) "Show List" else "Show Map"
+                )
+            }
         }
     ) { padding ->
         Column(
@@ -65,25 +77,34 @@ fun TrainerDiscoveryScreen(
                 singleLine = true
             )
 
-            when (uiState) {
-                is TrainerDiscoveryUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+            Box(modifier = Modifier.weight(1f)) {
+                when (uiState) {
+                    is TrainerDiscoveryUiState.Loading -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
+                        }
                     }
-                }
-                is TrainerDiscoveryUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "Error: ${uiState.message}", color = MaterialTheme.colorScheme.error)
+                    is TrainerDiscoveryUiState.Error -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(text = "Error: ${uiState.message}", color = MaterialTheme.colorScheme.error)
+                        }
                     }
-                }
-                is TrainerDiscoveryUiState.Success -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(uiState.trainers) { trainer ->
-                            TrainerItem(trainer = trainer, onClick = { onTrainerClick(trainer.id) })
+                    is TrainerDiscoveryUiState.Success -> {
+                        if (isMapView) {
+                            TrainerMapScreen(
+                                trainers = uiState.trainers,
+                                onTrainerClick = onTrainerClick
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(uiState.trainers) { trainer ->
+                                    TrainerItem(trainer = trainer, onClick = { onTrainerClick(trainer.id) })
+                                }
+                            }
                         }
                     }
                 }
@@ -132,6 +153,25 @@ fun TrainerItem(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
+                }
+                
+                // Rating
+                if (trainer.profile?.averageRating != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Rating",
+                            tint = MaterialTheme.colorScheme.primary, // Or a specific gold/yellow color
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = String.format("%.1f", trainer.profile.averageRating),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
 
                 // Certifications
