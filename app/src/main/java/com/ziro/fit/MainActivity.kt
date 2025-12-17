@@ -60,12 +60,149 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
             is AuthState.Unauthenticated -> LoginScreen(onLogin = authViewModel::login, error = (state as? AuthState.Error)?.message)
             is AuthState.Authenticated -> {
                 if (state.role == "client") {
-                    com.ziro.fit.ui.dashboard.ClientDashboardScreen(onLogout = authViewModel::logout)
+                    ClientAppScreen(authViewModel = authViewModel)
                 } else {
                     MainAppScreen(onLogout = authViewModel::logout)
                 }
             }
             is AuthState.Error -> LoginScreen(onLogin = authViewModel::login, error = state.message)
+        }
+    }
+}
+
+@Composable
+fun ClientAppScreen(authViewModel: AuthViewModel) {
+    val navController = rememberNavController()
+    // Shared workout viewmodel for client too
+    val workoutViewModel: WorkoutViewModel = hiltViewModel()
+    val workoutState by workoutViewModel.uiState.collectAsState()
+
+    // Refresh active session on load
+    LaunchedEffect(Unit) {
+        workoutViewModel.refreshActiveSession()
+    }
+    
+    // Handle session completion navigation
+    LaunchedEffect(workoutState.isSessionCompleted) {
+        if (workoutState.isSessionCompleted) {
+            workoutViewModel.onSessionCompletedNavigated()
+            // Could navigate to a summary screen here?
+             navController.popBackStack() // If we were in live workout 
+        }
+    }
+
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    var offsetX by remember { mutableStateOf(0f) }
+    var offsetY by remember { mutableStateOf(0f) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        Scaffold(
+            bottomBar = {
+                if (currentRoute != "live_workout") {
+                    NavigationBar {
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.Menu, contentDescription = null) }, // Using generic icon for dashboard
+                            label = { Text("Dashboard") },
+                            selected = currentRoute == "client_dashboard",
+                            onClick = {
+                                navController.navigate("client_dashboard") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.DateRange, contentDescription = null) }, // Using DateRange as placeholder for Exercises/History
+                            label = { Text("Exercises") },
+                            selected = currentRoute == "client_exercises",
+                            onClick = {
+                                navController.navigate("client_exercises") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                        // Add Profile?
+                    }
+                }
+            }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = "client_dashboard",
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable("client_dashboard") {
+                    com.ziro.fit.ui.dashboard.ClientDashboardScreen(
+                        onLogout = authViewModel::logout,
+                        onNavigateToDiscovery = { navController.navigate("trainer_discovery") }
+                    )
+                }
+                composable("trainer_discovery") {
+                    com.ziro.fit.ui.discovery.TrainerDiscoveryScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onTrainerClick = { trainerId -> navController.navigate("trainer_profile/$trainerId") }
+                    )
+                }
+                composable(
+                    "trainer_profile/{trainerId}",
+                    arguments = listOf(navArgument("trainerId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val trainerId = backStackEntry.arguments?.getString("trainerId") ?: ""
+                    com.ziro.fit.ui.discovery.TrainerPublicProfileScreen(
+                        trainerId = trainerId,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable("client_exercises") {
+                    com.ziro.fit.ui.exercises.ExercisesScreen(
+                        onStartFreestyleWorkout = {
+                            workoutViewModel.startWorkout(null, null, null)
+                            navController.navigate("live_workout")
+                        }
+                    )
+                }
+                composable("live_workout") {
+                    LiveWorkoutScreen(
+                        viewModel = workoutViewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
+        }
+        
+         // Floating Mini Player (Client)
+        val isMiniPlayerVisible = workoutState.activeSession != null && currentRoute != "live_workout"
+        if (isMiniPlayerVisible) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 80.dp) // Initial position above nav bar
+                    .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+                    .pointerInput(Unit) {
+                        detectDragGestures { change, dragAmount ->
+                            change.consume()
+                            offsetX += dragAmount.x
+                            offsetY += dragAmount.y
+                        }
+                    }
+            ) {
+                LiveWorkoutMiniPlayer(
+                    isVisible = true,
+                    sessionTitle = workoutState.activeSession?.title ?: "Active Workout",
+                    elapsedSeconds = workoutState.elapsedSeconds,
+                    onExpand = {
+                        navController.navigate("live_workout") {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
         }
     }
 }

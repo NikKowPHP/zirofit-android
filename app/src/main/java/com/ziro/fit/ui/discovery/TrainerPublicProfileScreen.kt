@@ -1,0 +1,326 @@
+package com.ziro.fit.ui.discovery
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
+import com.ziro.fit.model.PublicTrainerProfileResponse
+import com.ziro.fit.viewmodel.TrainerPublicProfileViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TrainerPublicProfileScreen(
+    trainerId: String,
+    onNavigateBack: () -> Unit,
+    viewModel: TrainerPublicProfileViewModel = hiltViewModel()
+) {
+    LaunchedEffect(trainerId) {
+        viewModel.loadTrainerProfile(trainerId)
+    }
+
+    val uiState by viewModel.uiState.collectAsState()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Trainer Profile") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            } else if (uiState.error != null) {
+                Text(
+                    text = uiState.error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else if (uiState.profile != null) {
+                TrainerProfileContent(profile = uiState.profile!!)
+            }
+        }
+    }
+}
+
+@Composable
+fun TrainerProfileContent(profile: PublicTrainerProfileResponse) {
+    val details = profile.profile
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        // Header
+        item {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                AsyncImage(
+                    model = details.images.profilePhoto,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = profile.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                if (profile.username != null) {
+                    Text(
+                        text = "@${profile.username}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = profile.role,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                if (!details.bio.aboutMe.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = details.bio.aboutMe,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                // Professional Stats
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(), 
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    if (details.professional.averageRating != null) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Star, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text(text = "${details.professional.averageRating}", style = MaterialTheme.typography.titleMedium)
+                            Text(text = "Rating", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    if (details.professional.minServicePrice != null) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = "$${details.professional.minServicePrice}+", style = MaterialTheme.typography.titleMedium)
+                            Text(text = "Starting Price", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Philosophy & Methodology
+        if (!details.bio.philosophy.isNullOrBlank() || !details.bio.methodology.isNullOrBlank()) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        if (!details.bio.philosophy.isNullOrBlank()) {
+                            Text(text = "Philosophy", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(text = details.bio.philosophy, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        if (!details.bio.methodology.isNullOrBlank()) {
+                            Text(text = "Methodology", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            Text(text = details.bio.methodology, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Specialties & Certifications
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (details.professional.specialties.isNotEmpty()) {
+                    Text(text = "Specialties", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(details.professional.specialties) { specialty ->
+                            SuggestionChip(onClick = {}, label = { Text(specialty) })
+                        }
+                    }
+                }
+                
+                if (!details.professional.certifications.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "Certifications", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(text = details.professional.certifications, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        }
+        
+        // Locations
+        if (details.locations.isNotEmpty()) {
+            item {
+                Text(text = "Locations", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    details.locations.forEach { location ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Place, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = location.address, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Services
+        if (details.services.isNotEmpty()) {
+            item {
+                Text(text = "Services", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    details.services.forEach { service ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Text(text = service.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    if (service.price != null) {
+                                        Text(
+                                            text = "${service.currency ?: "$"} ${service.price}",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                if (!service.description.isNullOrBlank()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(text = service.description, style = MaterialTheme.typography.bodySmall)
+                                }
+                                if (service.duration != null && service.duration > 0) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(text = "${service.duration.toInt()} mins", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Transformations
+        if (details.transformations.isNotEmpty()) {
+            item {
+                Text(text = "Transformations", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(details.transformations) { trans ->
+                        Card(modifier = Modifier.width(200.dp)) {
+                            Column {
+                                AsyncImage(
+                                    model = trans.imagePath,
+                                    contentDescription = "Transformation",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(150.dp),
+                                    contentScale = ContentScale.Crop
+                                )
+                                if (!trans.caption.isNullOrBlank()) {
+                                    Text(
+                                        text = trans.caption, 
+                                        modifier = Modifier.padding(8.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 2
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Testimonials
+        if (details.testimonials.isNotEmpty()) {
+            item {
+                Text(text = "Testimonials", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    details.testimonials.forEach { testimonial ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(text = "\"${testimonial.text}\"", style = MaterialTheme.typography.bodyLarge, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(text = "- ${testimonial.clientName}", style = MaterialTheme.typography.titleSmall)
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    if (testimonial.rating != null) {
+                                        Text(text = "★ ${testimonial.rating}", color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Benefits
+        if (details.benefits.isNotEmpty()) {
+            item {
+                Text(text = "Benefits", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    details.benefits.forEach { benefit ->
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text(text = "• ", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                            Column {
+                                Text(text = benefit.title, style = MaterialTheme.typography.titleMedium)
+                                if (benefit.description != null) {
+                                    Text(text = benefit.description, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Socials
+        if (details.socials.isNotEmpty()) {
+            item {
+                Text(text = "Connect", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    details.socials.forEach { social ->
+                        // Just displaying text for now as we don't have icons for all platforms
+                        AssistChip(
+                            onClick = { /* Open URL */ },
+                            label = { Text(social.platform) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

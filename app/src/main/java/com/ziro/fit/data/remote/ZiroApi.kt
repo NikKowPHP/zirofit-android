@@ -236,4 +236,13 @@ interface ZiroApi {
     ): ApiResponse<Any>
     @GET("api/client/dashboard")
     suspend fun getClientDashboard(): ApiResponse<ClientDashboardResponse>
+
+    // Trainer Discovery
+    @GET("api/trainers")
+    suspend fun getTrainers(
+        @Query("search") search: String? = null
+    ): ApiResponse<GetTrainersResponse>
+
+    @GET("api/trainers/{id}/public")
+    suspend fun getPublicTrainerProfile(@retrofit2.http.Path("id") id: String): ApiResponse<PublicTrainerProfileResponse>
 }

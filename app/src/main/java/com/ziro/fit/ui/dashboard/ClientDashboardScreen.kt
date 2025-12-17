@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ClientDashboardScreen(
     onLogout: () -> Unit,
+    onNavigateToDiscovery: () -> Unit,
     viewModel: com.ziro.fit.viewmodel.ClientDashboardViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val uiState = viewModel.uiState
@@ -79,6 +80,10 @@ fun ClientDashboardScreen(
                                     Text(text = "Username: ${data.trainer.username}", style = MaterialTheme.typography.bodyMedium)
                                 } else {
                                     Text(text = "No trainer linked.", style = MaterialTheme.typography.bodyLarge)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Button(onClick = onNavigateToDiscovery) {
+                                        Text("Find a Trainer")
+                                    }
                                 }
                             }
                         }
