@@ -25,6 +25,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.ziro.fit.model.PublicTrainerProfileResponse
 import com.ziro.fit.viewmodel.TrainerPublicProfileViewModel
+import com.ziro.fit.viewmodel.TrainerPublicProfileUiState
+import com.ziro.fit.ui.components.BookingDialog
+import com.ziro.fit.ui.components.MonthlyCalendarView
+import com.ziro.fit.ui.components.TimeSlotPicker
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +44,15 @@ fun TrainerPublicProfileScreen(
     }
 
     val uiState by viewModel.uiState.collectAsState()
+    
+    // Show booking success snackbar
+    LaunchedEffect(uiState.bookingSuccess) {
+        if (uiState.bookingSuccess) {
+            // Reset after showing
+            kotlinx.coroutines.delay(2000)
+            viewModel.resetBookingState()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -49,6 +64,15 @@ fun TrainerPublicProfileScreen(
                     }
                 }
             )
+        },
+        snackbarHost = {
+            if (uiState.bookingSuccess) {
+                Snackbar(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text("Booking request sent successfully!")
+                }
+            }
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
@@ -61,14 +85,38 @@ fun TrainerPublicProfileScreen(
                     modifier = Modifier.align(Alignment.Center)
                 )
             } else if (uiState.profile != null) {
-                TrainerProfileContent(profile = uiState.profile!!)
+                TrainerProfileContent(
+                    profile = uiState.profile!!,
+                    uiState = uiState,
+                    viewModel = viewModel
+                )
             }
         }
+    }
+    
+    // Booking dialog
+    uiState.selectedTimeSlot?.let { timeSlot ->
+        BookingDialog(
+            timeSlot = timeSlot,
+            trainerName = uiState.profile?.name ?: "Trainer",
+            isLoading = uiState.isCreatingBooking,
+            error = uiState.bookingError,
+            onConfirm = { notes ->
+                uiState.profile?.id?.let { trainerId ->
+                    viewModel.createBooking(trainerId, notes)
+                }
+            },
+            onDismiss = { viewModel.resetBookingState() }
+        )
     }
 }
 
 @Composable
-fun TrainerProfileContent(profile: PublicTrainerProfileResponse) {
+fun TrainerProfileContent(
+    profile: PublicTrainerProfileResponse,
+    uiState: TrainerPublicProfileUiState,
+    viewModel: TrainerPublicProfileViewModel
+) {
     val details = profile.profile
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -163,7 +211,10 @@ fun TrainerProfileContent(profile: PublicTrainerProfileResponse) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (details.professional.specialties.isNotEmpty()) {
                     Text(text = "Specialties", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.height(48.dp)
+                    ) {
                         items(details.professional.specialties) { specialty ->
                             SuggestionChip(onClick = {}, label = { Text(specialty) })
                         }
@@ -229,12 +280,119 @@ fun TrainerProfileContent(profile: PublicTrainerProfileResponse) {
             }
         }
 
+        // Book a Session
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Book a Session",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Check if trainer has availability configured
+                    val hasAvailability = uiState.schedule?.availability?.isNotEmpty() == true
+                    
+                    if (!hasAvailability && uiState.schedule != null) {
+                        // Show message when no availability is set
+                        Text(
+                            text = "This trainer hasn't set their availability yet. Please check back later or contact them directly.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    } else {
+                        Text(
+                            text = "Select a date and time to book a session",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+        }
+
+        // Monthly Calendar (only show if trainer has availability configured)
+        if (uiState.schedule != null && uiState.schedule.availability.isNotEmpty()) {
+            item {
+                com.ziro.fit.ui.components.MonthlyCalendarView(
+                    selectedDate = uiState.selectedDate,
+                    bookedSlots = uiState.schedule.bookings,
+                    onDateSelected = { date ->
+                        viewModel.selectDate(date)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        } else if (uiState.isLoadingSchedule) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        } else if (uiState.scheduleError != null) {
+            item {
+                Text(
+                    text = uiState.scheduleError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+
+        // Time Slot Picker (shown when date is selected and availability exists)
+        if (uiState.selectedDate != null && uiState.schedule != null && uiState.schedule.availability.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                com.ziro.fit.ui.components.TimeSlotPicker(
+                    selectedDate = uiState.selectedDate,
+                    availability = uiState.schedule.availability,
+                    bookedSlots = uiState.schedule.bookings,
+                    selectedTimeSlot = uiState.selectedTimeSlot,
+                    onTimeSlotSelected = { timeSlot ->
+                        viewModel.selectTimeSlot(timeSlot)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // Book Now Button
+        if (uiState.selectedTimeSlot != null) {
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { /* Dialog will open automatically via selectedTimeSlot */ },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isCreatingBooking
+                ) {
+                    Text("Book This Time Slot")
+                }
+            }
+        }
+
         // Transformations
+
         if (details.transformations.isNotEmpty()) {
             item {
                 Text(text = "Transformations", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.height(230.dp)
+                ) {
                     items(details.transformations) { trans ->
                         Card(modifier = Modifier.width(200.dp)) {
                             Column {

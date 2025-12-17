@@ -159,16 +159,18 @@ fun CalendarScreen(
                 // Main Content
                 when (state.viewMode) {
                     CalendarViewMode.WEEK -> {
-                        WeekViewPager(
-                            pagerState = pagerState, // Note: Pager state logic in VM/Screen might need update to handle distinct view pagers if needed. 
-                            // For simplicity, reusing pagerState for week navigation. 
-                            // Ideally we'd separate month/week pager states.
-                            selectedDate = state.selectedDate,
-                            clientSummaries = state.clientSummaries,
-                            onDateSelected = viewModel::onDateSelected
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        EventsListWithLoading(state, viewModel)
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            WeekViewPager(
+                                pagerState = pagerState,
+                                selectedDate = state.selectedDate,
+                                clientSummaries = state.clientSummaries,
+                                onDateSelected = viewModel::onDateSelected
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Box(modifier = Modifier.weight(1f)) {
+                                EventsListWithLoading(state, viewModel)
+                            }
+                        }
                     }
                     CalendarViewMode.MONTH -> {
                         // We need a separate pager state for month view or reset/handle it.
@@ -183,14 +185,18 @@ fun CalendarScreen(
                              viewModel.onMonthChanged(offset)
                         }
 
-                        MonthViewPager(
-                            pagerState = monthPagerState,
-                            selectedDate = state.selectedDate,
-                            clientSummaries = state.clientSummaries,
-                            onDateSelected = viewModel::onDateSelected
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        EventsListWithLoading(state, viewModel)
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            MonthViewPager(
+                                pagerState = monthPagerState,
+                                selectedDate = state.selectedDate,
+                                clientSummaries = state.clientSummaries,
+                                onDateSelected = viewModel::onDateSelected
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Box(modifier = Modifier.weight(1f)) {
+                                EventsListWithLoading(state, viewModel)
+                            }
+                        }
                     }
                     CalendarViewMode.DAY -> {
                         DayCalendarView(

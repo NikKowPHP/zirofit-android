@@ -245,4 +245,7 @@ interface ZiroApi {
 
     @GET("api/trainers/{id}/public")
     suspend fun getPublicTrainerProfile(@retrofit2.http.Path("id") id: String): ApiResponse<PublicTrainerProfileResponse>
+
+    @GET("api/trainers/{username}/schedule")
+    suspend fun getTrainerSchedule(@retrofit2.http.Path("username") username: String): ApiResponse<TrainerScheduleResponse>
 }

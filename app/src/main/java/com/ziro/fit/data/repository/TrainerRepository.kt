@@ -33,4 +33,18 @@ class TrainerRepository @Inject constructor(
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
+
+    suspend fun getTrainerSchedule(username: String): Result<TrainerScheduleResponse> {
+        return try {
+            val response = api.getTrainerSchedule(username)
+            if (response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception("Schedule not found"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
 }
