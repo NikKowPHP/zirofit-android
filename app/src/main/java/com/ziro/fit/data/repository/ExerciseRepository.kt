@@ -3,6 +3,7 @@ package com.ziro.fit.data.repository
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.CreateExerciseRequest
 import com.ziro.fit.model.Exercise
+import com.ziro.fit.model.GetExercisesResponse
 import com.ziro.fit.util.ApiErrorParser
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -11,10 +12,10 @@ import javax.inject.Singleton
 class ExerciseRepository @Inject constructor(
     private val api: ZiroApi
 ) {
-    suspend fun getExercises(query: String?): Result<List<Exercise>> {
+    suspend fun getExercises(query: String?, page: Int = 1): Result<GetExercisesResponse> {
         return try {
-            val response = api.getExercises(search = query)
-            Result.success(response.data!!.exercises)
+            val response = api.getExercises(search = query, page = page)
+            Result.success(response.data!!)
         } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))

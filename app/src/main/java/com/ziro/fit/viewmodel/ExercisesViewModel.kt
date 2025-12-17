@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ziro.fit.data.repository.LiveWorkoutRepository
 import com.ziro.fit.model.Exercise
+import com.ziro.fit.model.GetExercisesResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,14 +30,49 @@ class ExercisesViewModel @Inject constructor(
         loadExercises()
     }
 
+    private var currentPage = 1
+    private var hasMore = true
+    // Keep track of the current query to know if we need to reset
+    private var currentQuery: String? = null
+
     fun loadExercises(query: String? = null) {
+        // If query changed, reset everything
+        if (query != currentQuery) {
+            currentPage = 1
+            hasMore = true
+            currentQuery = query
+            _uiState.value = _uiState.value.copy(exercises = emptyList(), isLoading = true, error = null)
+        } else {
+             // If just refreshing or initial load with same query
+             if (currentPage == 1) {
+                  _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+             }
+        }
+
+        fetchExercisesInternal()
+    }
+
+    fun loadNextPage() {
+        if (!uiState.value.isLoading && hasMore) {
+             fetchExercisesInternal()
+        }
+    }
+
+    private fun fetchExercisesInternal() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
-            repository.getExercises(query)
-                .onSuccess { exercises ->
+            repository.getExercises(currentQuery, currentPage)
+                .onSuccess { response ->
+                    val currentList = if (currentPage == 1) emptyList() else _uiState.value.exercises
+                    val updatedList = currentList + response.exercises
+                    
+                    hasMore = response.hasMore
+                    if (hasMore) {
+                        currentPage++
+                    }
+
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        exercises = exercises
+                        exercises = updatedList
                     )
                 }
                 .onFailure { error ->

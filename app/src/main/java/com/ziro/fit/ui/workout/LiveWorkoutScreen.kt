@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -21,9 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.ziro.fit.model.Exercise
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
@@ -54,11 +58,15 @@ fun LiveWorkoutScreen(
         topBar = {
             LiveWorkoutHeader(
                 templateName = state.activeSession?.title ?: "Workout",
-                elapsedSeconds = state.elapsedSeconds,
-                onFinish = { viewModel.finishWorkout() },
-                onMinimize = onNavigateBack,
-                isFinishing = state.isFinishing
+                elapsedSeconds = state.elapsedSeconds
             )
+        },
+        bottomBar = {
+             LiveWorkoutBottomBar(
+                 onFinish = { viewModel.finishWorkout() },
+                 onMinimize = onNavigateBack,
+                 isFinishing = state.isFinishing
+             )
         }
     ) { padding ->
         // Swipe to dismiss/minimize gesture
@@ -82,16 +90,23 @@ fun LiveWorkoutScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 80.dp) // Add padding for Fab/Sheet overlap if needed, or just visual
             ) {
                 items(state.activeSession?.exercises ?: emptyList()) { exercise ->
+                    val isResting = state.isRestActive && state.restingExerciseId == exercise.exerciseId
+                    
                     ExerciseCard(
                         exercise = exercise,
+                        isResting = isResting,
+                        restSecondsRemaining = state.restSecondsRemaining,
+                        restTotalSeconds = state.restTotalSeconds,
                         onInputChange = viewModel::updateSetInput,
                         onSetToggle = { set -> viewModel.logSet(exercise.exerciseId, set) },
-                        onAddSet = { viewModel.addSetToExercise(exercise.exerciseId) }
+                        onAddSet = { viewModel.addSetToExercise(exercise.exerciseId) },
+                        onAddRestTime = { viewModel.adjustRestTime(30) },
+                        onSkipRest = { viewModel.stopRestTimer() }
                     )
                 }
                 
@@ -106,10 +121,6 @@ fun LiveWorkoutScreen(
                         Text("Add Exercise")
                     }
                 }
-                
-                item {
-                    Spacer(Modifier.height(32.dp))
-                }
             }
         }
         
@@ -120,144 +131,21 @@ fun LiveWorkoutScreen(
                     exercises = state.availableExercises,
                     isLoading = state.isExercisesLoading,
                     onSearch = viewModel::loadExercises,
-                    onSelect = { exercise ->
-                        viewModel.addExerciseToSession(exercise)
+                    onAddExercises = { exercises ->
+                        viewModel.addExercisesToSession(exercises)
                         showExerciseSheet = false
                     }
                 )
             }
         }
-        
-        // Rest Timer Overlay
-        if (state.isRestActive) {
-            RestTimerOverlay(
-                remainingSeconds = state.restSecondsRemaining,
-                totalSeconds = state.restTotalSeconds,
-                onAdd30 = { viewModel.adjustRestTime(30) },
-                onSkip = { viewModel.stopRestTimer() }
-            )
-        }
     }
 }
-}
-
-@Composable
-fun RestTimerOverlay(
-    remainingSeconds: Int,
-    totalSeconds: Int,
-    onAdd30: () -> Unit,
-    onSkip: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.85f))
-            .clickable(enabled = false) {}, // Intercept clicks
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Rest",
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White
-            )
-            
-            Spacer(Modifier.height(16.dp))
-            
-            Box(contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(
-                    progress = { if (totalSeconds > 0) remainingSeconds.toFloat() / totalSeconds else 0f },
-                    modifier = Modifier.size(200.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 12.dp,
-                )
-                Text(
-                    text = "$remainingSeconds",
-                    style = MaterialTheme.typography.displayLarge,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            
-            Spacer(Modifier.height(32.dp))
-            
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Button(
-                    onClick = onAdd30,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
-                ) {
-                    Text("+30s")
-                }
-                
-                Button(
-                    onClick = onSkip,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Skip")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ExerciseBrowserContent(
-    exercises: List<Exercise>,
-    isLoading: Boolean,
-    onSearch: (String) -> Unit,
-    onSelect: (Exercise) -> Unit
-) {
-    var searchQuery by remember { mutableStateOf("") }
-    
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { 
-                searchQuery = it
-                onSearch(it) 
-            },
-            label = { Text("Search Exercises") },
-            leadingIcon = { Icon(Icons.Default.Search, null) },
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(Modifier.height(16.dp))
-        
-        if (isLoading) {
-            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(exercises) { exercise ->
-                    ListItem(
-                        headlineContent = { Text(exercise.name) },
-                        supportingContent = { Text("${exercise.muscleGroup ?: ""} • ${exercise.equipment ?: ""}") },
-                        modifier = Modifier
-                            .clickable { onSelect(exercise) }
-                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
-                    )
-                }
-                if (exercises.isEmpty()) {
-                    item {
-                        Text("No exercises found", modifier = Modifier.padding(16.dp), color = Color.Gray)
-                    }
-                }
-            }
-        }
-    }
 }
 
 @Composable
 fun LiveWorkoutHeader(
     templateName: String,
-    elapsedSeconds: Long,
-    onFinish: () -> Unit,
-    onMinimize: () -> Unit,
-    isFinishing: Boolean
+    elapsedSeconds: Long
 ) {
     // Format seconds to MM:SS
     val timeString = String.format("%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
@@ -265,21 +153,12 @@ fun LiveWorkoutHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            .height(56.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onMinimize) {
-             Icon(
-                 imageVector = androidx.compose.material.icons.Icons.Default.KeyboardArrowDown,
-                 contentDescription = "Minimize"
-             )
-        }
-        
-        Spacer(Modifier.width(8.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = templateName, style = MaterialTheme.typography.titleMedium)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = templateName, style = MaterialTheme.typography.titleSmall, color = Color.Gray)
             Text(
                 text = timeString,
                 style = MaterialTheme.typography.headlineMedium,
@@ -287,16 +166,48 @@ fun LiveWorkoutHeader(
                 fontWeight = FontWeight.Bold
             )
         }
-        
-        Button(
-            onClick = onFinish,
-            enabled = !isFinishing,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+    }
+}
+
+@Composable
+fun LiveWorkoutBottomBar(
+    onFinish: () -> Unit,
+    onMinimize: () -> Unit,
+    isFinishing: Boolean
+) {
+    Surface(
+        tonalElevation = 8.dp,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (isFinishing) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
-            } else {
-                Text("FINISH")
+            OutlinedButton(
+                onClick = onMinimize,
+                modifier = Modifier.weight(1f)
+            ) {
+                 Icon(
+                     imageVector = Icons.Default.KeyboardArrowDown,
+                     contentDescription = null
+                 )
+                 Spacer(Modifier.width(8.dp))
+                 Text("Minimize")
+            }
+            
+            Button(
+                onClick = onFinish,
+                enabled = !isFinishing,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                if (isFinishing) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
+                } else {
+                    Text("Finish Workout")
+                }
             }
         }
     }
@@ -305,9 +216,14 @@ fun LiveWorkoutHeader(
 @Composable
 fun ExerciseCard(
     exercise: WorkoutExerciseUi,
+    isResting: Boolean,
+    restSecondsRemaining: Int,
+    restTotalSeconds: Int,
     onInputChange: (String, Int, String, String) -> Unit, // exerciseId, index, weight, reps
     onSetToggle: (WorkoutSetUi) -> Unit,
-    onAddSet: () -> Unit
+    onAddSet: () -> Unit,
+    onAddRestTime: () -> Unit,
+    onSkipRest: () -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -355,6 +271,34 @@ fun ExerciseCard(
                 )
             }
             
+            // Inline Rest Timer
+            if (isResting) {
+                Spacer(Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Resting: ${restSecondsRemaining}s",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    LinearProgressIndicator(
+                        progress = { if (restTotalSeconds > 0) restSecondsRemaining.toFloat() / restTotalSeconds else 0f },
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        TextButton(onClick = onAddRestTime) { Text("+30s") }
+                        TextButton(onClick = onSkipRest) { Text("Skip") }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+            
             TextButton(onClick = onAddSet, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
@@ -371,7 +315,11 @@ fun SetRow(
     onRepsChange: (String) -> Unit,
     onCheck: () -> Unit
 ) {
-    val backgroundColor = if (set.isCompleted) Color(0xFFE8F5E9) else Color.Transparent // Light Green if done
+    // Dark mode compatible background color (Green with transparency)
+    val backgroundColor = if (set.isCompleted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent
+    
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     Row(
         modifier = Modifier
@@ -401,11 +349,14 @@ fun SetRow(
             value = set.weight,
             onValueChange = onWeightChange,
             modifier = Modifier.weight(1f).padding(end = 4.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = ImeAction.Next
+            ),
             singleLine = true,
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color.White,
-                focusedContainerColor = Color.White
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedContainerColor = MaterialTheme.colorScheme.surface
             )
         )
 
@@ -413,17 +364,31 @@ fun SetRow(
             value = set.reps,
             onValueChange = onRepsChange,
             modifier = Modifier.weight(1f).padding(end = 4.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Go // Or Done, but user asked for "Next submit logs exercise" which implies a distinct action
+            ),
+            keyboardActions = KeyboardActions(
+                onGo = {
+                    onCheck()
+                    keyboardController?.hide()
+                    focusManager.clearFocus() 
+                }
+            ),
             singleLine = true,
              colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color.White,
-                focusedContainerColor = Color.White
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedContainerColor = MaterialTheme.colorScheme.surface
             )
         )
 
         // Check Button
         IconButton(
-            onClick = onCheck,
+            onClick = {
+                onCheck()
+                keyboardController?.hide()
+                focusManager.clearFocus()
+            },
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
@@ -432,6 +397,101 @@ fun SetRow(
                 tint = if (set.isCompleted) Color(0xFF4CAF50) else Color.Gray,
                 modifier = Modifier.size(28.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun ExerciseBrowserContent(
+    exercises: List<Exercise>,
+    isLoading: Boolean,
+    onSearch: (String) -> Unit,
+    onAddExercises: (List<Exercise>) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val selectedExercises = remember { mutableStateListOf<Exercise>() }
+    
+    // Clear selection when search changes or list reloads? 
+    // Usually better to keep selection.
+    
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .padding(16.dp)) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { 
+                searchQuery = it
+                onSearch(it) 
+            },
+            label = { Text("Search Exercises") },
+            leadingIcon = { Icon(Icons.Default.Search, null) },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        Spacer(Modifier.height(16.dp))
+        
+        if (isLoading) {
+            Box(Modifier
+                .fillMaxWidth()
+                .weight(1f), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(exercises) { exercise ->
+                    val isSelected = selectedExercises.any { it.id == exercise.id }
+                    ListItem(
+                        headlineContent = { Text(exercise.name) },
+                        supportingContent = { Text("${exercise.muscleGroup ?: ""} • ${exercise.equipment ?: ""}") },
+                        leadingContent = {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = { checked ->
+                                    if (checked) {
+                                        selectedExercises.add(exercise)
+                                    } else {
+                                        selectedExercises.removeAll { it.id == exercise.id }
+                                    }
+                                }
+                            )
+                        },
+                        modifier = Modifier
+                            .clickable {
+                                if (isSelected) {
+                                    selectedExercises.removeAll { it.id == exercise.id }
+                                } else {
+                                    selectedExercises.add(exercise)
+                                }
+                            }
+                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                    )
+                }
+                if (exercises.isEmpty()) {
+                    item {
+                        Text("No exercises found", modifier = Modifier.padding(16.dp), color = Color.Gray)
+                    }
+                }
+            }
+            
+            // Add Button Footer
+            if (selectedExercises.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shadowElevation = 8.dp
+                ) {
+                    Button(
+                        onClick = { onAddExercises(selectedExercises.toList()) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp)
+                    ) {
+                        Text("Add (${selectedExercises.size}) Exercises")
+                    }
+                }
+            }
         }
     }
 }

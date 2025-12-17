@@ -79,7 +79,8 @@ interface ZiroApi {
     @GET("api/exercises")
     suspend fun getExercises(
         @Query("search") search: String? = null,
-        @Query("limit") limit: Int = 50
+        @Query("limit") limit: Int = 50,
+        @Query("page") page: Int = 1
     ): ApiResponse<GetExercisesResponse>
 
     @POST("api/exercises")

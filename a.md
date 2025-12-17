@@ -1,201 +1,330 @@
 <response>
   <reasoning>
-    I will address the timezone mismatch and race condition issues identified.
-    1.  **Timezone Mismatch:** In `CalendarEvent.kt`, I will update the `startTime` and `endTime` helpers to parse the UTC string using `Instant` and convert it to the system default `ZoneId`. This ensures the time is displayed correctly in the user's local time.
-    2.  **Race Condition:** In `CalendarViewModel.kt`, I will implement job cancellation logic. I'll add a `fetchJob` variable to track the active network request and cancel it before starting a new one in the `refresh` method. I will also optimize the loading state to prevent flickering when data is already present.
-    3.  **Tasks:** I will add an entry to `TASKS.md` for this fix.
+    The user is reporting that the timer starts at "60 min" immediately in client mode.
+    This persists because my previous fix still had a fallback path or logic that wasn't robust enough for the specific timestamp format returned by the server.
+    
+    The issue is almost certainly a Timezone interpretation mismatch:
+    - Server sends a time string (e.g., "12:00").
+    - The app (in Poland/CET, UTC+1) interprets "12:00" as "12:00 Local Time" (which is 11:00 UTC).
+    - But the server meant "12:00 UTC".
+    - `Now` is "13:00 Local" (12:00 UTC).
+    - The difference calculated was: `Now (12:00 UTC)` - `Start (11:00 UTC)` = 1 Hour (60 mins).
+
+    My previous fix tried to use `Instant` but likely fell back to the `catch` block which used `atZone(ZoneId.systemDefault())`, perpetuating the error.
+
+    I will modify `app/src/main/java/com/ziro/fit/viewmodel/WorkoutViewModel.kt` again.
+    This time, I will enforce **UTC interpretation**. If the string doesn't have a timezone indicator ('Z'), I will append 'Z' or explicitly parse it as UTC, avoiding `ZoneId.systemDefault()` entirely for the server timestamp.
   </reasoning>
   <modifications>
-    <file path="app/src/main/java/com/ziro/fit/model/CalendarEvent.kt">
+    <file path="app/src/main/java/com/ziro/fit/viewmodel/WorkoutViewModel.kt">
       <![CDATA[
-package com.ziro.fit.model
-
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-
-data class CalendarEvent(
-    val id: String,
-    val title: String,
-    val start: String, // Keep as String for GSON/Serialization
-    val end: String,
-    val type: EventType,
-    val clientName: String?,
-    val notes: String?
-) {
-    // Helper for UI logic
-    val startTime: LocalDateTime get() = try {
-        Instant.parse(start)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDateTime()
-    } catch (e: Exception) {
-        // Fallback for non-standard formats
-        LocalDateTime.parse(start.removeSuffix("Z"))
-    }
-
-    val endTime: LocalDateTime get() = try {
-        Instant.parse(end)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDateTime()
-    } catch (e: Exception) {
-        LocalDateTime.parse(end.removeSuffix("Z"))
-    }
-}
-
-data class CalendarResponse(
-    val events: List<CalendarEvent>
-)
-
-enum class EventType {
-    booking,
-    session_planned,
-    session_completed,
-    session_in_progress
-}
-      ]]>
-    </file>
-    <file path="app/src/main/java/com/ziro/fit/ui/calendar/CalendarViewModel.kt">
-      <![CDATA[
-package com.ziro.fit.ui.calendar
+package com.ziro.fit.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ziro.fit.data.repository.CalendarRepository
-import com.ziro.fit.model.CalendarEvent
+import com.ziro.fit.data.repository.LiveWorkoutRepository
+import com.ziro.fit.model.Exercise
+import com.ziro.fit.model.LiveWorkoutUiModel
+import com.ziro.fit.model.WorkoutExerciseUi
+import com.ziro.fit.model.WorkoutSetUi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import java.time.LocalDate
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
 import javax.inject.Inject
+import kotlin.math.max
 
-data class CalendarUiState(
-    val selectedDate: LocalDate = LocalDate.now(),
-    val currentWeekOffset: Int = 0, // 0 = current week, -1 = previous week, +1 = next week
-    val events: List<CalendarEvent> = emptyList(),
+data class WorkoutUiState(
+    val activeSession: LiveWorkoutUiModel? = null,
+    val elapsedSeconds: Long = 0,
     val isLoading: Boolean = false,
-    val isRefreshing: Boolean = false,
     val error: String? = null,
-    val selectedEvent: CalendarEvent? = null // New: Track selected event for bottom sheet
-) {
-    // Derived property: Filter events for the selected date on the UI side
-    // This makes the UI snappy as switching days doesn't always need a network call
-    val selectedDateEvents: List<CalendarEvent>
-        get() = events.filter { 
-            it.startTime.toLocalDate().isEqual(selectedDate) 
-        }.sortedBy { it.startTime }
-    
-    // Get the start of the current week being displayed
-    val currentWeekStart: LocalDate
-        get() {
-            val today = LocalDate.now()
-            val startOfThisWeek = today.minusDays(today.dayOfWeek.value.toLong() - 1)
-            return startOfThisWeek.plusWeeks(currentWeekOffset.toLong())
-        }
-}
+    val isFinishing: Boolean = false,
+    val isSessionCompleted: Boolean = false,
+    // Exercise Library State
+    val availableExercises: List<Exercise> = emptyList(),
+    val isExercisesLoading: Boolean = false,
+    // Rest Timer State
+    val isRestActive: Boolean = false,
+    val restSecondsRemaining: Int = 0,
+    val restTotalSeconds: Int = 60
+)
 
 @HiltViewModel
-class CalendarViewModel @Inject constructor(
-    private val repository: CalendarRepository
+class WorkoutViewModel @Inject constructor(
+    private val repository: LiveWorkoutRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(CalendarUiState())
-    val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(WorkoutUiState())
+    val uiState: StateFlow<WorkoutUiState> = _uiState.asStateFlow()
 
-    private var fetchJob: Job? = null
+    private var timerJob: Job? = null
+    private var restTimerJob: Job? = null
 
     init {
-        fetchEvents()
+        refreshActiveSession()
     }
 
-    fun onDateSelected(date: LocalDate) {
-        _uiState.update { it.copy(selectedDate = date) }
-        // Optional: If date is outside current cache range, fetch more
-        // For now, we fetch every time date changes or we could optimize
-        // to only fetch if close to the edge of the buffer
-        fetchEvents() 
-    }
-    
-    fun onWeekChanged(weekOffset: Int) {
-        _uiState.update { it.copy(currentWeekOffset = weekOffset) }
-        // Optionally fetch events for the new week range
-        fetchEvents()
-    }
-    
-    fun navigateToNextWeek() {
-        _uiState.update { it.copy(currentWeekOffset = it.currentWeekOffset + 1) }
-        fetchEvents()
-    }
-    
-    fun navigateToPreviousWeek() {
-        _uiState.update { it.copy(currentWeekOffset = it.currentWeekOffset - 1) }
-        fetchEvents()
-    }
-
-    fun onEventSelected(event: CalendarEvent) {
-        _uiState.update { it.copy(selectedEvent = event) }
-    }
-
-    fun onEventDismissed() {
-        _uiState.update { it.copy(selectedEvent = null) }
-    }
-    
-    fun onStartSession(event: CalendarEvent) {
-        // TODO: Navigate to live workout screen with event.id
-        println("Starting session for ${event.title}")
-    }
-
-    fun onUpdateSession(event: CalendarEvent) {
-        // TODO: Open edit dialog
-        println("Updating session ${event.id}")
-    }
-
-    fun retry() {
-        refresh()
-    }
-
-    fun refresh(isPullToRefresh: Boolean = false) {
-        fetchJob?.cancel()
-
-        fetchJob = viewModelScope.launch {
-            if (isPullToRefresh) {
-                _uiState.update { it.copy(isRefreshing = true, error = null) }
-            } else {
-                // Do NOT set isLoading = true if we already have events (prevents flickering)
-                if (_uiState.value.events.isEmpty()) {
-                    _uiState.update { it.copy(isLoading = true, error = null) }
-                }
-            }
-            
-            repository.getEvents(_uiState.value.selectedDate)
-                .onSuccess { fetchedEvents ->
-                    _uiState.update { it.copy(events = fetchedEvents, isLoading = false, isRefreshing = false) }
-                }
-                .onFailure { error ->
-                    if (isActive) {
-                        _uiState.update { it.copy(error = error.message, isLoading = false, isRefreshing = false) }
+    fun refreshActiveSession() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            repository.getActiveSession()
+                .onSuccess { session ->
+                    if (session.id.isNotEmpty()) {
+                        _uiState.update { it.copy(activeSession = session, isLoading = false) }
+                        startTimer(session.startTime)
+                    } else {
+                        _uiState.update { it.copy(activeSession = null, isLoading = false) }
                     }
+                }
+                .onFailure {
+                    _uiState.update { it.copy(activeSession = null, isLoading = false) }
                 }
         }
     }
 
-    private fun fetchEvents() {
-        refresh()
+    fun startWorkout(clientId: String?, templateId: String?, plannedSessionId: String?) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            repository.startWorkout(clientId, templateId, plannedSessionId)
+                .onSuccess { session ->
+                    _uiState.update { it.copy(activeSession = session, isLoading = false, isSessionCompleted = false) }
+                    startTimer(session.startTime)
+                }
+                .onFailure { error ->
+                    _uiState.update { it.copy(error = error.localizedMessage, isLoading = false) }
+                }
+        }
+    }
+
+    fun loadExercises(query: String? = null) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExercisesLoading = true) }
+            repository.getExercises(query)
+                .onSuccess { exercises ->
+                    _uiState.update { it.copy(availableExercises = exercises, isExercisesLoading = false) }
+                }
+                .onFailure {
+                    _uiState.update { it.copy(isExercisesLoading = false) } // Silent fail for now
+                }
+        }
+    }
+
+    fun addExerciseToSession(exercise: Exercise) {
+        val currentSession = _uiState.value.activeSession ?: return
+        
+        // Create a new UI exercise with one empty ghost set
+        val newExerciseUi = WorkoutExerciseUi(
+            exerciseId = exercise.id,
+            exerciseName = exercise.name,
+            targetReps = null,
+            restSeconds = null,
+            sets = listOf(
+                WorkoutSetUi(
+                    logId = null,
+                    setNumber = 1,
+                    weight = "",
+                    reps = "",
+                    isCompleted = false,
+                    order = 0
+                )
+            )
+        )
+        
+        // Check if exercise already exists to avoid duplicates (optional, usually we allow duplicates in workout)
+        // For simplicity, we just append it.
+        val updatedExercises = currentSession.exercises + newExerciseUi
+        _uiState.update { it.copy(activeSession = currentSession.copy(exercises = updatedExercises)) }
+    }
+
+    private fun startTimer(startTimeIso: String) {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            try {
+                // FORCE UTC INTERPRETATION
+                // The server sends UTC time. If we parse it as "System Default" (Local) when 'Z' is missing,
+                // we get a timezone offset error (e.g. +1h in Poland results in 60min elapsed immediately).
+                
+                val startInstant = try {
+                    // 1. Try parsing strictly as Instant (handles "2023-10-01T12:00:00Z")
+                    if (startTimeIso.endsWith("Z")) {
+                        Instant.parse(startTimeIso)
+                    } else {
+                        // 2. If missing 'Z', parse as LocalDateTime then force UTC zone
+                        LocalDateTime.parse(startTimeIso)
+                            .atZone(ZoneOffset.UTC)
+                            .toInstant()
+                    }
+                } catch (e: Exception) {
+                    // 3. Fallback: try appending Z blindly if LocalDateTime parse failed (maybe it was just a format quirk)
+                    Instant.parse("${startTimeIso}Z")
+                }
+
+                while (isActive) {
+                    val now = Instant.now()
+                    val seconds = Duration.between(startInstant, now).seconds
+                    // Ensure we don't show negative time if client clock is slightly behind server
+                    _uiState.update { it.copy(elapsedSeconds = maxOf(0, seconds)) }
+                    delay(1000)
+                }
+            } catch (e: Exception) {
+                // If parsing completely fails, start from 0 to avoid showing weird values like "60 min"
+                _uiState.update { it.copy(elapsedSeconds = 0) }
+            }
+        }
+    }
+
+    fun updateSetInput(exerciseId: String, setIndex: Int, weight: String, reps: String) {
+        val currentSession = _uiState.value.activeSession ?: return
+        
+        val updatedExercises = currentSession.exercises.map { ex ->
+            if (ex.exerciseId == exerciseId) {
+                val updatedSets = ex.sets.toMutableList()
+                if (setIndex in updatedSets.indices) {
+                    val targetSet = updatedSets[setIndex]
+                    updatedSets[setIndex] = targetSet.copy(weight = weight, reps = reps)
+                    ex.copy(sets = updatedSets)
+                } else ex
+            } else ex
+        }
+        
+        _uiState.update { it.copy(activeSession = currentSession.copy(exercises = updatedExercises)) }
+    }
+    
+    fun addSetToExercise(exerciseId: String) {
+        val currentSession = _uiState.value.activeSession ?: return
+        
+        val updatedExercises = currentSession.exercises.map { ex ->
+             if (ex.exerciseId == exerciseId) {
+                 val nextSetNumber = ex.sets.size + 1
+                 val nextOrder = ex.sets.maxOfOrNull { it.order }?.plus(1) ?: 0
+                 
+                 val newSet = WorkoutSetUi(
+                    logId = null,
+                    setNumber = nextSetNumber,
+                    weight = ex.sets.lastOrNull()?.weight ?: "", // Carry over weight
+                    reps = "",
+                    isCompleted = false,
+                    order = nextOrder
+                 )
+                 ex.copy(sets = ex.sets + newSet)
+             } else ex
+        }
+         _uiState.update { it.copy(activeSession = currentSession.copy(exercises = updatedExercises)) }
+    }
+
+    fun logSet(exerciseId: String, set: WorkoutSetUi) {
+        val session = _uiState.value.activeSession ?: return
+        val weightVal = set.weight.toDoubleOrNull()
+        val repsVal = set.reps.toIntOrNull()
+
+        if (weightVal == null || repsVal == null) return
+
+        // 1. Optimistic Update
+        val updatedExercises = session.exercises.map { ex ->
+            if (ex.exerciseId == exerciseId) {
+                val updatedSets = ex.sets.map { s ->
+                    if (s.order == set.order) s.copy(isCompleted = true) else s
+                }
+                ex.copy(sets = updatedSets)
+            } else ex
+        }
+        _uiState.update { it.copy(activeSession = session.copy(exercises = updatedExercises)) }
+        
+        // Trigger Rest Timer
+        val exercise = session.exercises.find { it.exerciseId == exerciseId }
+        val restTime = exercise?.restSeconds ?: 60 // Default 60s if not specified (e.g. freestyle)
+        startRestTimer(restTime)
+
+        // 2. API Call
+        viewModelScope.launch {
+            repository.logSet(session.id, exerciseId, repsVal, weightVal, set.order)
+                .onSuccess {
+                    repository.getActiveSession().onSuccess { refreshed ->
+                        _uiState.update { it.copy(activeSession = refreshed) }
+                    }
+                }
+                .onFailure {
+                    _uiState.update { it.copy(error = "Failed to save set") }
+                }
+        }
+    }
+    
+    fun startRestTimer(seconds: Int) {
+        restTimerJob?.cancel()
+        _uiState.update { 
+            it.copy(
+                isRestActive = true,
+                restTotalSeconds = seconds,
+                restSecondsRemaining = seconds
+            ) 
+        }
+        
+        restTimerJob = viewModelScope.launch {
+            var remaining = seconds
+            while (remaining > 0 && isActive) {
+                delay(1000)
+                remaining--
+                _uiState.update { it.copy(restSecondsRemaining = remaining) }
+            }
+            stopRestTimer()
+        }
+    }
+    
+    fun stopRestTimer() {
+        restTimerJob?.cancel()
+        _uiState.update { it.copy(isRestActive = false) }
+    }
+    
+    fun adjustRestTime(secondsToAdd: Int) {
+        _uiState.update { 
+            val newTotal = it.restTotalSeconds + secondsToAdd
+            val newRemaining = it.restSecondsRemaining + secondsToAdd
+            it.copy(
+                restTotalSeconds = maxOf(0, newTotal), 
+                restSecondsRemaining = maxOf(0, newRemaining)
+            )
+        }
+    }
+
+    fun finishWorkout(notes: String? = null) {
+        val sessionId = _uiState.value.activeSession?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isFinishing = true) }
+            repository.finishSession(sessionId, notes)
+                .onSuccess {
+                    timerJob?.cancel()
+                    _uiState.update { it.copy(
+                        isFinishing = false, 
+                        activeSession = null, 
+                        isSessionCompleted = true 
+                    ) }
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(isFinishing = false, error = e.localizedMessage) }
+                }
+        }
+    }
+    
+    fun onSessionCompletedNavigated() {
+        _uiState.update { it.copy(isSessionCompleted = false) }
     }
 }
       ]]>
     </file>
     <file path="TASKS.md">
       <![CDATA[
-- [x] Implement event detail bottom sheet
-- [x] Implement Live Workout Feature (API, Repository, ViewModel, UI, Navigation)
-- [x] Fix mismatch between Android Live Workout implementation and Server API
-- [x] Implement robust merging of Workout Template and Logs for Live Workout
-- [x] Fix calendar timezone parsing and network race conditions
+- [x] Fix timer starting at 60min for freestyle workouts (forced UTC parsing)
       ]]>
     </file>
   </modifications>

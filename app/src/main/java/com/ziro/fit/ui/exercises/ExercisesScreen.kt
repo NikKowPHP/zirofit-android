@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
@@ -59,11 +60,12 @@ fun ExercisesScreen(
                 singleLine = true
             )
 
-            if (uiState.isLoading) {
+            // We only show full screen loading if we have NO data yet
+            if (uiState.isLoading && uiState.exercises.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-            } else if (uiState.error != null) {
+            } else if (uiState.error != null && uiState.exercises.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(text = "Error: ${uiState.error}", color = MaterialTheme.colorScheme.error)
                 }
@@ -72,7 +74,14 @@ fun ExercisesScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 80.dp) // Space for FAB
                 ) {
-                    items(uiState.exercises) { exercise ->
+                    itemsIndexed(uiState.exercises) { index, exercise ->
+                        // Trigger next page load when we reach the end
+                        if (index == uiState.exercises.lastIndex && !uiState.isLoading) {
+                            LaunchedEffect(Unit) {
+                                viewModel.loadNextPage()
+                            }
+                        }
+
                         ListItem(
                             headlineContent = { Text(exercise.name) },
                             supportingContent = { 
@@ -82,7 +91,21 @@ fun ExercisesScreen(
                         )
                         HorizontalDivider()
                     }
-                    if (uiState.exercises.isEmpty()) {
+                    
+                    if (uiState.isLoading && uiState.exercises.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        }
+                    }
+
+                    if (uiState.exercises.isEmpty() && !uiState.isLoading) {
                          item {
                             Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                                 Text("No exercises found", color = MaterialTheme.colorScheme.onSurfaceVariant)

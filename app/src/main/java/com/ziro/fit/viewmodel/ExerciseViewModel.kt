@@ -44,9 +44,9 @@ class ExerciseViewModel @Inject constructor(
             
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val result = exerciseRepository.getExercises(query)
-            result.onSuccess { exercises ->
+            result.onSuccess { response ->
                 _uiState.value = _uiState.value.copy(
-                    exercises = exercises,
+                    exercises = response.exercises,
                     isLoading = false
                 )
             }.onFailure { e ->

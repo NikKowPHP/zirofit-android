@@ -2,6 +2,7 @@ package com.ziro.fit.data.repository
 
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.Exercise
+import com.ziro.fit.model.GetExercisesResponse
 import com.ziro.fit.model.LiveWorkoutUiModel
 import com.ziro.fit.model.LogSetRequest
 import com.ziro.fit.model.ServerLiveSessionResponse
@@ -17,15 +18,15 @@ import kotlin.math.max
 class LiveWorkoutRepository @Inject constructor(
     private val api: ZiroApi
 ) {
-    suspend fun getActiveSession(): Result<LiveWorkoutUiModel> {
+    suspend fun getActiveSession(): Result<LiveWorkoutUiModel?> {
         return try {
             val response = api.getActiveSession()
             val data = response.data!!
             if (data.session != null) {
                 Result.success(mapResponseToUiModel(data.session))
             } else {
-                // Return empty/null session representation
-                Result.success(LiveWorkoutUiModel(id = "", title = "", startTime = "", exercises = emptyList()))
+                // Return null when no session is active
+                Result.success(null)
             }
         } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)
@@ -63,10 +64,10 @@ class LiveWorkoutRepository @Inject constructor(
         }
     }
     
-    suspend fun getExercises(query: String?): Result<List<Exercise>> {
+    suspend fun getExercises(query: String?, page: Int = 1): Result<GetExercisesResponse> {
         return try {
-            val response = api.getExercises(search = query)
-            Result.success(response.data!!.exercises)
+            val response = api.getExercises(search = query, page = page)
+            Result.success(response.data!!)
         } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
