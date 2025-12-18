@@ -15,7 +15,12 @@ sealed class ClientDashboardUiState {
     object Loading : ClientDashboardUiState()
     data class Success(
         val data: ClientDashboardData,
-        val linkedTrainer: com.ziro.fit.model.LinkedTrainer? = null
+        val linkedTrainer: com.ziro.fit.model.LinkedTrainer? = null,
+        val history: List<com.ziro.fit.model.HistorySession> = emptyList(),
+        val historyCursor: String? = null,
+        val isHistoryLoading: Boolean = false,
+        val progress: com.ziro.fit.model.ClientProgressResponse? = null,
+        val isProgressLoading: Boolean = false
     ) : ClientDashboardUiState()
     data class Error(val message: String) : ClientDashboardUiState()
 }
@@ -89,6 +94,51 @@ class ClientDashboardViewModel @Inject constructor(
                 .onFailure { e ->
                     // Optionally handle error in UI
                     uiState = ClientDashboardUiState.Error(e.message ?: "Failed to unlink trainer")
+                }
+        }
+    }
+
+    fun fetchHistory(loadMore: Boolean = false) {
+        val currentState = uiState as? ClientDashboardUiState.Success ?: return
+        if (currentState.isHistoryLoading) return
+
+        viewModelScope.launch {
+            uiState = currentState.copy(isHistoryLoading = true)
+            
+            val cursor = if (loadMore) currentState.historyCursor else null
+            
+            repository.getWorkoutHistory(cursor = cursor)
+                .onSuccess { response ->
+                    val newState = uiState as? ClientDashboardUiState.Success ?: return@onSuccess
+                    val newSessions = if (loadMore) newState.history + response.sessions.sessions else response.sessions.sessions
+                    uiState = newState.copy(
+                        history = newSessions,
+                        historyCursor = response.sessions.nextCursor,
+                        isHistoryLoading = false
+                    )
+                }
+                .onFailure {
+                     val newState = uiState as? ClientDashboardUiState.Success ?: return@onFailure
+                     uiState = newState.copy(isHistoryLoading = false)
+                }
+        }
+    }
+
+    fun fetchProgress() {
+        val currentState = uiState as? ClientDashboardUiState.Success ?: return
+        viewModelScope.launch {
+            uiState = currentState.copy(isProgressLoading = true)
+            repository.getClientProgress()
+                .onSuccess { response ->
+                    val newState = uiState as? ClientDashboardUiState.Success ?: return@onSuccess
+                    uiState = newState.copy(
+                        progress = response,
+                        isProgressLoading = false
+                    )
+                }
+                .onFailure {
+                     val newState = uiState as? ClientDashboardUiState.Success ?: return@onFailure
+                     uiState = newState.copy(isProgressLoading = false)
                 }
         }
     }

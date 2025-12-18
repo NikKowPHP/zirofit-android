@@ -9,6 +9,8 @@ import com.ziro.fit.model.ServerLiveSessionResponse
 import com.ziro.fit.model.StartWorkoutRequest
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
+import com.ziro.fit.model.FinishWorkoutRequest
+import com.ziro.fit.model.FinishWorkoutResponse
 import com.ziro.fit.util.ApiErrorParser
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -54,10 +56,18 @@ class LiveWorkoutRepository @Inject constructor(
         }
     }
 
-    suspend fun finishSession(sessionId: String, notes: String?): Result<Unit> {
+    suspend fun finishSession(sessionId: String, notes: String?): Result<FinishWorkoutResponse> {
         return try {
-            api.finishSession(mapOf("workoutSessionId" to sessionId, "notes" to (notes ?: "")))
-            Result.success(Unit)
+            val response = api.finishWorkout(
+                request = FinishWorkoutRequest(
+                    workoutSessionId = sessionId,
+                    notes = notes
+                )
+            )
+            val session = response.data!!.session
+            val stats = response.data!!.stats ?: calculateStats(session)
+            
+            Result.success(FinishWorkoutResponse(session, stats))
         } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
@@ -72,6 +82,38 @@ class LiveWorkoutRepository @Inject constructor(
             val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
+    }
+
+    private fun calculateStats(session: ServerLiveSessionResponse): com.ziro.fit.model.WorkoutStats {
+        val durationSeconds = try {
+            val start = java.time.Instant.parse(session.startTime)
+            val end = session.endTime?.let { java.time.Instant.parse(it) } ?: java.time.Instant.now()
+            java.time.Duration.between(start, end).seconds.toInt()
+        } catch (e: Exception) {
+            0
+        }
+
+        val volumeKg = session.exerciseLogs.sumOf { (it.weight ?: 0.0) * it.reps }
+        val setsCompleted = session.exerciseLogs.size
+        
+        val exerciseSummaries = session.exerciseLogs
+            .groupBy { it.exercise.id }
+            .map { (id, logs) ->
+                val name = logs.first().exercise.name
+                val sets = logs.size
+                val repsCount = logs.sumOf { it.reps }
+                val maxWeight = logs.mapNotNull { it.weight }.maxOrNull() ?: 0.0
+                com.ziro.fit.model.ExerciseSummary(id, name, sets, repsCount, maxWeight)
+            }
+
+        return com.ziro.fit.model.WorkoutStats(
+            durationSeconds = durationSeconds,
+            volumeKg = volumeKg,
+            setsCompleted = setsCompleted,
+            recordsBroken = 0, // Cannot calculate records locally without history
+            message = "Workout Summary",
+            exerciseSummaries = exerciseSummaries
+        )
     }
 
     private fun mapResponseToUiModel(data: ServerLiveSessionResponse): LiveWorkoutUiModel {

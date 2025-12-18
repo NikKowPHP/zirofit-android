@@ -28,4 +28,31 @@ class ClientDashboardRepository @Inject constructor(
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
+    suspend fun getWorkoutHistory(limit: Int = 20, cursor: String? = null): Result<com.ziro.fit.model.WorkoutHistoryResponse> {
+        return try {
+            val response = api.getWorkoutHistory(limit = limit, cursor = cursor)
+             if (response.success != false && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception("Failed to load workout history"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
+
+    suspend fun getClientProgress(): Result<com.ziro.fit.model.ClientProgressResponse> {
+        return try {
+            val response = api.getClientProgress()
+            if (response.success != false && response.data != null) {
+                 Result.success(response.data)
+            } else {
+                Result.failure(Exception("Failed to load client progress"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
 }

@@ -7,6 +7,7 @@ import com.ziro.fit.model.Exercise
 import com.ziro.fit.model.LiveWorkoutUiModel
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
+import com.ziro.fit.model.WorkoutStats
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -31,6 +32,7 @@ data class WorkoutUiState(
     val error: String? = null,
     val isFinishing: Boolean = false,
     val isSessionCompleted: Boolean = false,
+    val workoutSuccessStats: WorkoutStats? = null,
     // Exercise Library State
     val availableExercises: List<Exercise> = emptyList(),
     val isExercisesLoading: Boolean = false,
@@ -299,12 +301,13 @@ class WorkoutViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isFinishing = true) }
             repository.finishSession(sessionId, notes)
-                .onSuccess {
+                .onSuccess { response ->
                     timerJob?.cancel()
                     _uiState.update { it.copy(
                         isFinishing = false, 
                         activeSession = null, 
-                        isSessionCompleted = true 
+                        isSessionCompleted = true,
+                        workoutSuccessStats = response.stats
                     ) }
                 }
                 .onFailure { e ->
@@ -331,7 +334,7 @@ class WorkoutViewModel @Inject constructor(
     }
     
     fun onSessionCompletedNavigated() {
-        _uiState.update { it.copy(isSessionCompleted = false) }
+        _uiState.update { it.copy(isSessionCompleted = false, workoutSuccessStats = null) }
     }
 }
       

@@ -105,11 +105,41 @@
                           },
                           "name": {
                             "type": "string"
+                          },
+                          "username": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "profile": {
+                            "type": "object",
+                            "properties": {
+                              "profilePhotoPath": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "certifications": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "averageRating": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "profilePhotoPath",
+                              "certifications",
+                              "averageRating"
+                            ],
+                            "nullable": true
                           }
                         },
                         "required": [
                           "id",
-                          "name"
+                          "name",
+                          "username",
+                          "profile"
                         ]
                       }
                     },
@@ -274,13 +304,18 @@
                           "equipment": {
                             "type": "string",
                             "nullable": true
+                          },
+                          "category": {
+                            "type": "string",
+                            "nullable": true
                           }
                         },
                         "required": [
                           "id",
                           "name",
                           "muscleGroup",
-                          "equipment"
+                          "equipment",
+                          "category"
                         ]
                       }
                     },
@@ -700,7 +735,7 @@
       },
       "post": {
         "summary": "POST /api/bookings",
-        "description": "Create a new booking request.",
+        "description": "Create a new booking request. Requires client authentication.",
         "tags": [
           "bookings"
         ],
@@ -721,13 +756,6 @@
                   "endTime": {
                     "type": "string",
                     "format": "datetime"
-                  },
-                  "clientName": {
-                    "type": "string"
-                  },
-                  "clientEmail": {
-                    "type": "string",
-                    "format": "email"
                   },
                   "clientNotes": {
                     "type": "string"
@@ -806,8 +834,11 @@
               }
             }
           },
-          "400": {
-            "description": "Invalid input or missing fields for guest booking."
+          "401": {
+            "description": "Unauthorized - authentication required."
+          },
+          "403": {
+            "description": "Forbidden - only clients can create bookings."
           },
           "409": {
             "description": "Slot unavailable."
@@ -1415,6 +1446,191 @@
           },
           "401": {
             "description": "Unauthorized."
+          }
+        }
+      }
+    },
+    "/api/trainers/specialties": {
+      "get": {
+        "summary": "GET /api/trainers/specialties",
+        "description": "Get list of available specialties.",
+        "tags": [
+          "trainers"
+        ],
+        "responses": {
+          "200": {
+            "description": "Specialties retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "specialties": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "specialties"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trainers/{username}": {
+      "get": {
+        "summary": "GET /api/trainers/{username}",
+        "description": "Get public profile details for a trainer.",
+        "tags": [
+          "trainers"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trainer profile retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "username": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "profile": {},
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "clientsCoached": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "reviewCount": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "averageRating": {
+                          "type": "number",
+                          "example": 0,
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "clientsCoached",
+                        "reviewCount",
+                        "averageRating"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "username",
+                    "profile",
+                    "stats"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Trainer not found."
+          }
+        }
+      }
+    },
+    "/api/sync/push": {
+      "post": {
+        "summary": "POST /api/sync/push",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "200 response."
+          },
+          "400": {
+            "description": "400 response."
+          }
+        }
+      }
+    },
+    "/api/sync/pull": {
+      "get": {
+        "summary": "GET /api/sync/pull",
+        "description": "Pull changes for WatermelonDB sync.",
+        "tags": [
+          "sync"
+        ],
+        "parameters": [
+          {
+            "name": "last_pulled_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "migration",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Changes retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "changes": {},
+                    "timestamp": {
+                      "type": "number",
+                      "example": 0
+                    }
+                  },
+                  "required": [
+                    "changes",
+                    "timestamp"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -2144,191 +2360,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "/api/sync/push": {
-      "post": {
-        "summary": "POST /api/sync/push",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "sync"
-        ],
-        "responses": {
-          "200": {
-            "description": "200 response."
-          },
-          "400": {
-            "description": "400 response."
-          }
-        }
-      }
-    },
-    "/api/sync/pull": {
-      "get": {
-        "summary": "GET /api/sync/pull",
-        "description": "Pull changes for WatermelonDB sync.",
-        "tags": [
-          "sync"
-        ],
-        "parameters": [
-          {
-            "name": "last_pulled_at",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaVersion",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "migration",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Changes retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "changes": {},
-                    "timestamp": {
-                      "type": "number",
-                      "example": 0
-                    }
-                  },
-                  "required": [
-                    "changes",
-                    "timestamp"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/trainers/specialties": {
-      "get": {
-        "summary": "GET /api/trainers/specialties",
-        "description": "Get list of available specialties.",
-        "tags": [
-          "trainers"
-        ],
-        "responses": {
-          "200": {
-            "description": "Specialties retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "specialties": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "required": [
-                    "specialties"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/trainers/{username}": {
-      "get": {
-        "summary": "GET /api/trainers/{username}",
-        "description": "Get public profile details for a trainer.",
-        "tags": [
-          "trainers"
-        ],
-        "parameters": [
-          {
-            "name": "username",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Trainer profile retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "username": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "profile": {},
-                    "stats": {
-                      "type": "object",
-                      "properties": {
-                        "clientsCoached": {
-                          "type": "number",
-                          "example": 0
-                        },
-                        "reviewCount": {
-                          "type": "number",
-                          "example": 0
-                        },
-                        "averageRating": {
-                          "type": "number",
-                          "example": 0,
-                          "nullable": true
-                        }
-                      },
-                      "required": [
-                        "clientsCoached",
-                        "reviewCount",
-                        "averageRating"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "username",
-                    "profile",
-                    "stats"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Trainer not found."
           }
         }
       }
@@ -4378,6 +4409,600 @@
         }
       }
     },
+    "/api/trainers/{username}/transformation-photos": {
+      "get": {
+        "summary": "GET /api/trainers/{username}/transformation-photos",
+        "description": "Get transformation photos for a trainer.",
+        "tags": [
+          "trainers"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Photos retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "photos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "imagePath": {
+                            "type": "string"
+                          },
+                          "caption": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "clientName": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "publicUrl": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "imagePath",
+                          "caption",
+                          "clientName",
+                          "publicUrl"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "photos"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trainers/{username}/testimonials": {
+      "get": {
+        "summary": "GET /api/trainers/{username}/testimonials",
+        "description": "Get testimonials for a trainer.",
+        "tags": [
+          "trainers"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Testimonials retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "testimonials": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "clientName": {
+                            "type": "string"
+                          },
+                          "testimonialText": {
+                            "type": "string"
+                          },
+                          "rating": {
+                            "type": "number",
+                            "example": 0,
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "clientName",
+                          "testimonialText",
+                          "rating"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "testimonials"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trainers/{username}/schedule": {
+      "get": {
+        "summary": "GET /api/trainers/{username}/schedule",
+        "description": "Get public schedule for a trainer.",
+        "tags": [
+          "trainers"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schedule retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "availability": {},
+                    "bookings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "startTime": {
+                            "type": "string"
+                          },
+                          "endTime": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "startTime",
+                          "endTime"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "availability",
+                    "bookings"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Trainer not found."
+          }
+        }
+      }
+    },
+    "/api/trainers/{username}/public": {
+      "get": {
+        "summary": "GET /api/trainers/{id}/public",
+        "description": "Retrieve public profile details for a specific trainer.",
+        "tags": [
+          "Trainers"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved trainer public details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "username": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "role": {
+                      "type": "string"
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "bio": {
+                          "type": "object",
+                          "properties": {
+                            "aboutMe": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "philosophy": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "methodology": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "branding": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "aboutMe",
+                            "philosophy",
+                            "methodology",
+                            "branding"
+                          ]
+                        },
+                        "images": {
+                          "type": "object",
+                          "properties": {
+                            "profilePhoto": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "bannerImage": {
+                              "type": "string",
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "profilePhoto",
+                            "bannerImage"
+                          ]
+                        },
+                        "professional": {
+                          "type": "object",
+                          "properties": {
+                            "specialties": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "trainingTypes": {
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "enum": [
+                                  "IN_PERSON",
+                                  "ONLINE"
+                                ]
+                              }
+                            },
+                            "certifications": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "averageRating": {
+                              "type": "number",
+                              "example": 0,
+                              "nullable": true
+                            },
+                            "minServicePrice": {
+                              "type": "number",
+                              "example": 0,
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "specialties",
+                            "trainingTypes",
+                            "certifications",
+                            "averageRating",
+                            "minServicePrice"
+                          ]
+                        },
+                        "locations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "address": {
+                                "type": "string"
+                              },
+                              "latitude": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              },
+                              "longitude": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "address",
+                              "latitude",
+                              "longitude"
+                            ]
+                          }
+                        },
+                        "services": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              },
+                              "price": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "currency": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "duration": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "title",
+                              "description",
+                              "price",
+                              "currency",
+                              "duration"
+                            ]
+                          }
+                        },
+                        "testimonials": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "clientName": {
+                                "type": "string"
+                              },
+                              "text": {
+                                "type": "string"
+                              },
+                              "rating": {
+                                "type": "number",
+                                "example": 0,
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "clientName",
+                              "text",
+                              "rating"
+                            ]
+                          }
+                        },
+                        "transformations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "imagePath": {
+                                "type": "string"
+                              },
+                              "caption": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "clientName": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "imagePath",
+                              "caption",
+                              "clientName"
+                            ]
+                          }
+                        },
+                        "socials": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "platform": {
+                                "type": "string"
+                              },
+                              "username": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "platform",
+                              "username",
+                              "url"
+                            ]
+                          }
+                        },
+                        "benefits": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "iconName": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "title",
+                              "description",
+                              "iconName"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "bio",
+                        "images",
+                        "professional",
+                        "locations",
+                        "services",
+                        "testimonials",
+                        "transformations",
+                        "socials",
+                        "benefits"
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "username",
+                    "role",
+                    "profile"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Trainer ID is required."
+          },
+          "404": {
+            "description": "Trainer not found."
+          }
+        }
+      }
+    },
+    "/api/trainers/{username}/packages": {
+      "get": {
+        "summary": "GET /api/trainers/{username}/packages",
+        "description": "Get packages for a specific trainer by username.",
+        "tags": [
+          "trainers"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Packages retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "packages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "price": {
+                            "type": "string"
+                          },
+                          "numberOfSessions": {
+                            "type": "number",
+                            "example": 0
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "price",
+                          "numberOfSessions"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "packages"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Username required."
+          }
+        }
+      }
+    },
     "/api/trainer/programs/templates": {
       "post": {
         "summary": "POST /api/trainer/programs/templates",
@@ -4958,6 +5583,101 @@
         }
       }
     },
+    "/api/public/workout-summary/{sessionId}": {
+      "get": {
+        "summary": "GET /api/public/workout-summary/{sessionId}",
+        "description": "Get a public summary of a completed workout session.",
+        "tags": [
+          "public"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workout summary retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "session": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "client": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "trainer": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "nullable": true
+                                }
+                              },
+                              "required": [
+                                "name"
+                              ],
+                              "nullable": true
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "trainer"
+                          ]
+                        },
+                        "exerciseLogs": {
+                          "type": "array",
+                          "items": {}
+                        },
+                        "personalRecords": {
+                          "type": "array",
+                          "items": {}
+                        },
+                        "startTime": {
+                          "type": "string"
+                        },
+                        "endTime": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "client",
+                        "exerciseLogs",
+                        "personalRecords",
+                        "startTime",
+                        "endTime"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "session"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found or not completed."
+          }
+        }
+      }
+    },
     "/api/trainer/calendar/{sessionId}": {
       "put": {
         "summary": "PUT /api/trainer/calendar/{sessionId}",
@@ -5056,695 +5776,6 @@
           },
           "404": {
             "description": "Session not found."
-          }
-        }
-      }
-    },
-    "/api/trainers/{username}/transformation-photos": {
-      "get": {
-        "summary": "GET /api/trainers/{username}/transformation-photos",
-        "description": "Get transformation photos for a trainer.",
-        "tags": [
-          "trainers"
-        ],
-        "parameters": [
-          {
-            "name": "username",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Photos retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "photos": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "imagePath": {
-                            "type": "string"
-                          },
-                          "caption": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "clientName": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "publicUrl": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "imagePath",
-                          "caption",
-                          "clientName",
-                          "publicUrl"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "photos"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/trainers/{username}/testimonials": {
-      "get": {
-        "summary": "GET /api/trainers/{username}/testimonials",
-        "description": "Get testimonials for a trainer.",
-        "tags": [
-          "trainers"
-        ],
-        "parameters": [
-          {
-            "name": "username",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Testimonials retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "testimonials": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "clientName": {
-                            "type": "string"
-                          },
-                          "testimonialText": {
-                            "type": "string"
-                          },
-                          "rating": {
-                            "type": "number",
-                            "example": 0,
-                            "nullable": true
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "clientName",
-                          "testimonialText",
-                          "rating"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "testimonials"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/trainers/{username}/schedule": {
-      "get": {
-        "summary": "GET /api/trainers/{username}/schedule",
-        "description": "Get public schedule for a trainer.",
-        "tags": [
-          "trainers"
-        ],
-        "parameters": [
-          {
-            "name": "username",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Schedule retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "availability": {},
-                    "bookings": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "startTime": {
-                            "type": "string"
-                          },
-                          "endTime": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "startTime",
-                          "endTime"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "availability",
-                    "bookings"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Trainer not found."
-          }
-        }
-      }
-    },
-    "/api/trainers/{username}/packages": {
-      "get": {
-        "summary": "GET /api/trainers/{username}/packages",
-        "description": "Get packages for a specific trainer by username.",
-        "tags": [
-          "trainers"
-        ],
-        "parameters": [
-          {
-            "name": "username",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Packages retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "packages": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "price": {
-                            "type": "string"
-                          },
-                          "numberOfSessions": {
-                            "type": "number",
-                            "example": 0
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name",
-                          "description",
-                          "price",
-                          "numberOfSessions"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "packages"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Username required."
-          }
-        }
-      }
-    },
-    "/api/trainers/{id}/public": {
-      "get": {
-        "summary": "GET /api/trainers/{id}/public",
-        "description": "Retrieve public profile details for a specific trainer.",
-        "tags": [
-          "Trainers"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully retrieved trainer public details.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "username": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "role": {
-                      "type": "string"
-                    },
-                    "profile": {
-                      "type": "object",
-                      "properties": {
-                        "bio": {
-                          "type": "object",
-                          "properties": {
-                            "aboutMe": {
-                              "type": "string",
-                              "nullable": true
-                            },
-                            "philosophy": {
-                              "type": "string",
-                              "nullable": true
-                            },
-                            "methodology": {
-                              "type": "string",
-                              "nullable": true
-                            },
-                            "branding": {
-                              "type": "string",
-                              "nullable": true
-                            }
-                          },
-                          "required": [
-                            "aboutMe",
-                            "philosophy",
-                            "methodology",
-                            "branding"
-                          ]
-                        },
-                        "images": {
-                          "type": "object",
-                          "properties": {
-                            "profilePhoto": {
-                              "type": "string",
-                              "nullable": true
-                            },
-                            "bannerImage": {
-                              "type": "string",
-                              "nullable": true
-                            }
-                          },
-                          "required": [
-                            "profilePhoto",
-                            "bannerImage"
-                          ]
-                        },
-                        "professional": {
-                          "type": "object",
-                          "properties": {
-                            "specialties": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "trainingTypes": {
-                              "type": "array",
-                              "items": {
-                                "type": "string",
-                                "enum": [
-                                  "IN_PERSON",
-                                  "ONLINE"
-                                ]
-                              }
-                            },
-                            "certifications": {
-                              "type": "string",
-                              "nullable": true
-                            },
-                            "averageRating": {
-                              "type": "number",
-                              "example": 0,
-                              "nullable": true
-                            },
-                            "minServicePrice": {
-                              "type": "number",
-                              "example": 0,
-                              "nullable": true
-                            }
-                          },
-                          "required": [
-                            "specialties",
-                            "trainingTypes",
-                            "certifications",
-                            "averageRating",
-                            "minServicePrice"
-                          ]
-                        },
-                        "locations": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "address": {
-                                "type": "string"
-                              },
-                              "latitude": {
-                                "type": "number",
-                                "example": 0,
-                                "nullable": true
-                              },
-                              "longitude": {
-                                "type": "number",
-                                "example": 0,
-                                "nullable": true
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "address",
-                              "latitude",
-                              "longitude"
-                            ]
-                          }
-                        },
-                        "services": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "title": {
-                                "type": "string"
-                              },
-                              "description": {
-                                "type": "string"
-                              },
-                              "price": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "currency": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "duration": {
-                                "type": "number",
-                                "example": 0,
-                                "nullable": true
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "title",
-                              "description",
-                              "price",
-                              "currency",
-                              "duration"
-                            ]
-                          }
-                        },
-                        "testimonials": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "clientName": {
-                                "type": "string"
-                              },
-                              "text": {
-                                "type": "string"
-                              },
-                              "rating": {
-                                "type": "number",
-                                "example": 0,
-                                "nullable": true
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "clientName",
-                              "text",
-                              "rating"
-                            ]
-                          }
-                        },
-                        "transformations": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "imagePath": {
-                                "type": "string"
-                              },
-                              "caption": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "clientName": {
-                                "type": "string",
-                                "nullable": true
-                              }
-                            },
-                            "required": [
-                              "id",
-                              "imagePath",
-                              "caption",
-                              "clientName"
-                            ]
-                          }
-                        },
-                        "socials": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "platform": {
-                                "type": "string"
-                              },
-                              "username": {
-                                "type": "string"
-                              },
-                              "url": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "platform",
-                              "username",
-                              "url"
-                            ]
-                          }
-                        },
-                        "benefits": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "title": {
-                                "type": "string"
-                              },
-                              "description": {
-                                "type": "string",
-                                "nullable": true
-                              },
-                              "iconName": {
-                                "type": "string",
-                                "nullable": true
-                              }
-                            },
-                            "required": [
-                              "title",
-                              "description",
-                              "iconName"
-                            ]
-                          }
-                        }
-                      },
-                      "required": [
-                        "bio",
-                        "images",
-                        "professional",
-                        "locations",
-                        "services",
-                        "testimonials",
-                        "transformations",
-                        "socials",
-                        "benefits"
-                      ],
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "username",
-                    "role",
-                    "profile"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Trainer ID is required."
-          },
-          "404": {
-            "description": "Trainer not found."
-          }
-        }
-      }
-    },
-    "/api/public/workout-summary/{sessionId}": {
-      "get": {
-        "summary": "GET /api/public/workout-summary/{sessionId}",
-        "description": "Get a public summary of a completed workout session.",
-        "tags": [
-          "public"
-        ],
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Workout summary retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "session": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "client": {
-                          "type": "object",
-                          "properties": {
-                            "name": {
-                              "type": "string"
-                            },
-                            "trainer": {
-                              "type": "object",
-                              "properties": {
-                                "name": {
-                                  "type": "string",
-                                  "nullable": true
-                                }
-                              },
-                              "required": [
-                                "name"
-                              ],
-                              "nullable": true
-                            }
-                          },
-                          "required": [
-                            "name",
-                            "trainer"
-                          ]
-                        },
-                        "exerciseLogs": {
-                          "type": "array",
-                          "items": {}
-                        },
-                        "personalRecords": {
-                          "type": "array",
-                          "items": {}
-                        },
-                        "startTime": {
-                          "type": "string"
-                        },
-                        "endTime": {
-                          "type": "string",
-                          "nullable": true
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "client",
-                        "exerciseLogs",
-                        "personalRecords",
-                        "startTime",
-                        "endTime"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "session"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Session not found or not completed."
           }
         }
       }
@@ -8358,30 +8389,6 @@
         }
       }
     },
-    "/api/workout-sessions/{id}/rest/start": {
-      "post": {
-        "summary": "POST /api/workout-sessions/{id}/rest/start",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "workout-sessions"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "200 response."
-          }
-        }
-      }
-    },
     "/api/workout-sessions/{id}/rest/end": {
       "post": {
         "summary": "POST /api/workout-sessions/{id}/rest/end",
@@ -8405,6 +8412,30 @@
           },
           "403": {
             "description": "403 response."
+          }
+        }
+      }
+    },
+    "/api/workout-sessions/{id}/rest/start": {
+      "post": {
+        "summary": "POST /api/workout-sessions/{id}/rest/start",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "workout-sessions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 response."
           }
         }
       }
@@ -10440,12 +10471,12 @@
       "description": "User endpoints."
     },
     {
-      "name": "trainer",
-      "description": "Trainer endpoints."
-    },
-    {
       "name": "sync",
       "description": "Sync endpoints."
+    },
+    {
+      "name": "trainer",
+      "description": "Trainer endpoints."
     },
     {
       "name": "profile",
@@ -10476,5 +10507,5 @@
       "description": "Public endpoints."
     }
   ],
-  "x-generated-at": "2025-12-17T08:28:19.532Z"
+  "x-generated-at": "2025-12-17T13:44:48.012Z"
 }

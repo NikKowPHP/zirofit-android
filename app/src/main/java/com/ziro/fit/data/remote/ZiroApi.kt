@@ -74,7 +74,13 @@ interface ZiroApi {
     suspend fun logSet(@Body request: LogSetRequest): ApiResponse<Any>
 
     @POST("api/workout-sessions/finish")
-    suspend fun finishSession(@Body body: Map<String, String>): ApiResponse<Any>
+    suspend fun finishWorkout(@Body request: FinishWorkoutRequest): ApiResponse<FinishWorkoutResponse>
+
+    @retrofit2.http.PUT("api/workout-sessions/{id}")
+    suspend fun updateWorkoutSession(
+        @retrofit2.http.Path("id") id: String,
+        @Body request: UpdateSessionRequest
+    ): ApiResponse<Any>
     
     @GET("api/exercises")
     suspend fun getExercises(
@@ -258,4 +264,14 @@ interface ZiroApi {
 
     @GET("api/client/trainer")
     suspend fun getLinkedTrainer(): ApiResponse<LinkedTrainerResponse>
+
+    @GET("api/workout-sessions/history")
+    suspend fun getWorkoutHistory(
+        @Query("limit") limit: Int = 20,
+        @Query("cursor") cursor: String? = null,
+        @Query("clientId") clientId: String? = null
+    ): ApiResponse<WorkoutHistoryResponse>
+
+    @GET("api/client/progress")
+    suspend fun getClientProgress(): ApiResponse<ClientProgressResponse>
 }

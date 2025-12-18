@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.ziro.fit.model.Exercise
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
+import com.ziro.fit.ui.workouts.WorkoutSuccessContent
 import com.ziro.fit.viewmodel.WorkoutViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,7 +44,8 @@ fun LiveWorkoutScreen(
     var showExerciseSheet by remember { mutableStateOf(false) }
 
     // Handle back navigation if session is gone
-    if (state.activeSession == null && !state.isLoading) {
+    // Handle back navigation if session is gone AND we are not showing success screen
+    if (state.activeSession == null && !state.isLoading && state.workoutSuccessStats == null) {
         LaunchedEffect(Unit) {
             onNavigateBack()
         }
@@ -134,6 +136,25 @@ fun LiveWorkoutScreen(
                     onAddExercises = { exercises ->
                         viewModel.addExercisesToSession(exercises)
                         showExerciseSheet = false
+                    }
+                )
+            }
+        }
+
+        // Success Sheet
+        if (state.workoutSuccessStats != null) {
+            ModalBottomSheet(
+                onDismissRequest = { 
+                    viewModel.onSessionCompletedNavigated()
+                    onNavigateBack() 
+                },
+                dragHandle = null
+            ) {
+                WorkoutSuccessContent(
+                    stats = state.workoutSuccessStats!!,
+                    onDone = {
+                        viewModel.onSessionCompletedNavigated()
+                        onNavigateBack()
                     }
                 )
             }
