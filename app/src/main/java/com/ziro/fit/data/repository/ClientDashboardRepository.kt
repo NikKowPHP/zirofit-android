@@ -16,10 +16,16 @@ class ClientDashboardRepository @Inject constructor(
             } else {
                 Result.failure(Exception("Failed to load dashboard data"))
             }
+        } catch (e: retrofit2.HttpException) {
+            if (e.code() == 404) {
+                Result.failure(Exception("ProfileNotFound"))
+            } else {
+                val apiError = ApiErrorParser.parse(e)
+                Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+            }
         } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
-
     }
 }

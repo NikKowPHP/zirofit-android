@@ -1,11 +1,16 @@
 package com.ziro.fit.ui.dashboard
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,10 +79,52 @@ fun ClientDashboardScreen(
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                if (data.trainer != null) {
-                                    Text(text = "Name: ${data.trainer.name ?: "N/A"}", style = MaterialTheme.typography.bodyLarge)
-                                    Text(text = "Email: ${data.trainer.email}", style = MaterialTheme.typography.bodyMedium)
-                                    Text(text = "Username: ${data.trainer.username}", style = MaterialTheme.typography.bodyMedium)
+                                if (uiState.linkedTrainer != null || data.trainer != null) {
+                                    val trainer = uiState.linkedTrainer
+                                    val dashboardTrainer = data.trainer
+                                    
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (trainer?.profile?.profilePhotoPath != null) {
+                                            coil.compose.AsyncImage(
+                                                model = trainer.profile.profilePhotoPath,
+                                                contentDescription = "Trainer Photo",
+                                                modifier = Modifier
+                                                    .size(64.dp)
+                                                    .clip(androidx.compose.foundation.shape.CircleShape),
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                            )
+                                            Spacer(modifier = Modifier.width(16.dp))
+                                        }
+                                        Column {
+                                            Text(
+                                                text = "Name: ${trainer?.name ?: dashboardTrainer?.name ?: "N/A"}",
+                                                style = MaterialTheme.typography.bodyLarge
+                                            )
+                                            Text(
+                                                text = "Email: ${trainer?.email ?: dashboardTrainer?.email ?: "N/A"}",
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
+                                    }
+                                    
+                                    if (trainer?.profile?.aboutMe != null) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = trainer.profile.aboutMe,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            maxLines = 3,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    OutlinedButton(
+                                        onClick = { viewModel.unlinkTrainer() },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                    ) {
+                                        Text("Unlink Trainer")
+                                    }
                                 } else {
                                     Text(text = "No trainer linked.", style = MaterialTheme.typography.bodyLarge)
                                     Spacer(modifier = Modifier.height(8.dp))

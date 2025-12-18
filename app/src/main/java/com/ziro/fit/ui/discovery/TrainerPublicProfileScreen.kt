@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,10 +55,53 @@ fun TrainerPublicProfileScreen(
         }
     }
 
+    // Show link success/error snackbar
+    LaunchedEffect(uiState.linkSuccess, uiState.linkError, uiState.unlinkSuccess, uiState.unlinkError) {
+        if (uiState.linkSuccess || uiState.linkError != null || uiState.unlinkSuccess || uiState.unlinkError != null) {
+            kotlinx.coroutines.delay(3000)
+            viewModel.resetLinkState()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Trainer Profile") },
+                actions = {
+                    val profile = uiState.profile
+                    if (profile != null) {
+                        val isCurrentlyLinkedToThis = uiState.linkedTrainerId == profile.id
+                        val isNotLinkedToAnyone = uiState.linkedTrainerId == null
+
+                        if (uiState.isLinking || uiState.isUnlinking) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        } else if (isCurrentlyLinkedToThis) {
+                            OutlinedButton(
+                                onClick = { viewModel.unlinkFromTrainer() },
+                                modifier = Modifier.padding(end = 8.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                            ) {
+                                Text("Unlink")
+                            }
+                        } else if (isNotLinkedToAnyone) {
+                            Button(
+                                onClick = { 
+                                    profile.username?.let { viewModel.linkWithTrainer(it) }
+                                },
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Text("Link")
+                            }
+                        } else {
+                            // Linked to someone else
+                            AssistChip(
+                                onClick = { /* Could allow switching here */ },
+                                label = { Text("Already Linked") },
+                                modifier = Modifier.padding(end = 8.dp)
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -66,13 +110,15 @@ fun TrainerPublicProfileScreen(
             )
         },
         snackbarHost = {
-            if (uiState.bookingSuccess) {
-                Snackbar(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text("Booking request sent successfully!")
+            SnackbarHost(hostState = remember { SnackbarHostState() }.apply {
+                LaunchedEffect(uiState.bookingSuccess, uiState.linkSuccess, uiState.unlinkSuccess, uiState.linkError, uiState.unlinkError) {
+                    if (uiState.bookingSuccess) showSnackbar("Booking request sent successfully!")
+                    if (uiState.linkSuccess) showSnackbar("You have shared your training data with ${uiState.profile?.name ?: "your trainer"}.")
+                    if (uiState.unlinkSuccess) showSnackbar("Successfully unlinked from trainer!")
+                    uiState.linkError?.let { showSnackbar("Error: $it") }
+                    uiState.unlinkError?.let { showSnackbar("Error: $it") }
                 }
-            }
+            })
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {

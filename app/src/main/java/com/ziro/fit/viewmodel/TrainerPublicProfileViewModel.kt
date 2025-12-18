@@ -23,7 +23,14 @@ data class TrainerPublicProfileUiState(
     val selectedTimeSlot: TimeSlot? = null,
     val isCreatingBooking: Boolean = false,
     val bookingError: String? = null,
-    val bookingSuccess: Boolean = false
+    val bookingSuccess: Boolean = false,
+    val isLinking: Boolean = false,
+    val linkError: String? = null,
+    val linkSuccess: Boolean = false,
+    val isUnlinking: Boolean = false,
+    val unlinkError: String? = null,
+    val unlinkSuccess: Boolean = false,
+    val linkedTrainerId: String? = null
 )
 
 data class TimeSlot(
@@ -42,6 +49,7 @@ class TrainerPublicProfileViewModel @Inject constructor(
     val uiState: StateFlow<TrainerPublicProfileUiState> = _uiState.asStateFlow()
 
     fun loadTrainerProfile(trainerId: String) {
+        checkLinkStatus()
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val result = trainerRepository.getPublicTrainerProfile(trainerId)
@@ -130,5 +138,66 @@ class TrainerPublicProfileViewModel @Inject constructor(
             bookingError = null,
             selectedTimeSlot = null
         )
+    }
+
+    fun linkWithTrainer(username: String) {
+        val currentProfileId = _uiState.value.profile?.id
+        val previousLinkedId = _uiState.value.linkedTrainerId
+        
+        viewModelScope.launch {
+            // Optimistic update
+            _uiState.value = _uiState.value.copy(
+                isLinking = true, 
+                linkError = null, 
+                linkSuccess = false,
+                linkedTrainerId = currentProfileId
+            )
+            
+            val result = trainerRepository.linkTrainer(username)
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(isLinking = false, linkSuccess = true)
+                // Rehydrate to ensure we have the latest true state
+                checkLinkStatus()
+            }.onFailure { error ->
+                // Revert optimistic update
+                _uiState.value = _uiState.value.copy(
+                    isLinking = false, 
+                    linkError = error.message,
+                    linkedTrainerId = previousLinkedId
+                )
+            }
+        }
+    }
+
+    fun unlinkFromTrainer() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isUnlinking = true, unlinkError = null, unlinkSuccess = false)
+            val result = trainerRepository.unlinkTrainer()
+            result.onSuccess {
+                _uiState.value = _uiState.value.copy(isUnlinking = false, unlinkSuccess = true)
+            }.onFailure { error ->
+                _uiState.value = _uiState.value.copy(isUnlinking = false, unlinkError = error.message)
+            }
+        }
+    }
+
+    fun resetLinkState() {
+        _uiState.value = _uiState.value.copy(
+            linkSuccess = false,
+            linkError = null,
+            unlinkSuccess = false,
+            unlinkError = null
+        )
+    }
+
+    private fun checkLinkStatus() {
+        viewModelScope.launch {
+            trainerRepository.getLinkedTrainer()
+                .onSuccess { trainer ->
+                    _uiState.value = _uiState.value.copy(
+                        linkedTrainerId = trainer?.id
+                    )
+                }
+        }
     }
 }

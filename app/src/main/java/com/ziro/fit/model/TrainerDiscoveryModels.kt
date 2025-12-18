@@ -115,3 +115,27 @@ data class TrainerBenefit(
     val description: String?,
     val iconName: String?
 )
+
+data class LinkTrainerRequest(
+    val trainerUsername: String
+)
+
+data class LinkActionResponse(
+    val message: String
+)
+
+data class LinkedTrainerResponse(
+    val trainer: LinkedTrainer?
+)
+
+data class LinkedTrainer(
+    val id: String,
+    val name: String,
+    val email: String,
+    val profile: LinkedTrainerProfile?
+)
+
+data class LinkedTrainerProfile(
+    val profilePhotoPath: String?,
+    val aboutMe: String?
+)

@@ -249,4 +249,13 @@ interface ZiroApi {
 
     @GET("api/trainers/{username}/schedule")
     suspend fun getTrainerSchedule(@retrofit2.http.Path("username") username: String): ApiResponse<TrainerScheduleResponse>
+
+    @POST("api/client/trainer/link")
+    suspend fun linkTrainer(@Body request: LinkTrainerRequest): ApiResponse<LinkActionResponse>
+
+    @retrofit2.http.DELETE("api/client/trainer/link")
+    suspend fun unlinkTrainer(): ApiResponse<LinkActionResponse>
+
+    @GET("api/client/trainer")
+    suspend fun getLinkedTrainer(): ApiResponse<LinkedTrainerResponse>
 }
