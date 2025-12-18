@@ -85,15 +85,6 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
     LaunchedEffect(Unit) {
         workoutViewModel.refreshActiveSession()
     }
-    
-    // Handle session completion navigation
-    LaunchedEffect(workoutState.isSessionCompleted) {
-        if (workoutState.isSessionCompleted) {
-            workoutViewModel.onSessionCompletedNavigated()
-            // Could navigate to a summary screen here?
-             navController.popBackStack() // If we were in live workout 
-        }
-    }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -225,17 +216,6 @@ fun MainAppScreen(onLogout: () -> Unit) {
     
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
-    // Handle session completion navigation
-    LaunchedEffect(workoutState.isSessionCompleted) {
-        if (workoutState.isSessionCompleted) {
-            // If completed, ensure we aren't stuck on the live workout screen
-            if (currentRoute == "live_workout") {
-                navController.popBackStack()
-            }
-            workoutViewModel.onSessionCompletedNavigated()
-        }
-    }
 
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }

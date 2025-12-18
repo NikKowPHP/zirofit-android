@@ -43,10 +43,9 @@ fun LiveWorkoutScreen(
     val state by viewModel.uiState.collectAsState()
     var showExerciseSheet by remember { mutableStateOf(false) }
 
-    // Handle back navigation if session is gone
     // Handle back navigation if session is gone AND we are not showing success screen
-    if (state.activeSession == null && !state.isLoading && state.workoutSuccessStats == null) {
-        LaunchedEffect(Unit) {
+    LaunchedEffect(state.activeSession, state.isLoading, state.workoutSuccessStats) {
+        if (state.activeSession == null && !state.isLoading && state.workoutSuccessStats == null) {
             onNavigateBack()
         }
     }
