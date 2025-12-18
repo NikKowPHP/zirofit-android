@@ -135,7 +135,8 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
                 composable("client_dashboard") {
                     com.ziro.fit.ui.dashboard.ClientDashboardScreen(
                         onLogout = authViewModel::logout,
-                        onNavigateToDiscovery = { navController.navigate("trainer_discovery") }
+                        onNavigateToDiscovery = { navController.navigate("trainer_discovery") },
+                        onNavigateToCheckIns = { navController.navigate("client_checkins") }
                     )
                 }
                 composable("trainer_discovery") {
@@ -165,6 +166,33 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
                 composable("live_workout") {
                     LiveWorkoutScreen(
                         viewModel = workoutViewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable("client_checkins") {
+                    com.ziro.fit.ui.checkins.ClientCheckInListScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToDetail = { id -> navController.navigate("client_checkins_detail/$id") },
+                        onNavigateToSubmit = { navController.navigate("client_checkins_submit") }
+                    )
+                }
+                composable("client_checkins_submit") {
+                    com.ziro.fit.ui.checkins.CheckInSubmissionScreen(
+                        onNavigateBack = { 
+                            navController.popBackStack()
+                            // Maybe pop back to list to refresh? Default behavior should handle it?
+                            // Actually CheckInSubmissionScreen calls onNavigateBack on success. 
+                            // Ideally it goes back to list which refreshes on launch effect.
+                        }
+                    )
+                }
+                composable(
+                    route = "client_checkins_detail/{checkInId}",
+                    arguments = listOf(navArgument("checkInId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val checkInId = backStackEntry.arguments?.getString("checkInId") ?: ""
+                    com.ziro.fit.ui.checkins.ClientCheckInDetailScreen(
+                        checkInId = checkInId,
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }

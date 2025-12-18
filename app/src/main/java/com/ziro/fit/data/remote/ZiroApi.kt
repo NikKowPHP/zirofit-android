@@ -34,8 +34,12 @@ import com.ziro.fit.model.CreateExerciseRequest
 import com.ziro.fit.model.CreateExerciseResponse
 import com.ziro.fit.model.*
 import com.ziro.fit.data.model.CheckInContext
+import com.ziro.fit.data.model.CheckInDetailWrapper
 import com.ziro.fit.data.model.CheckInPendingItem
 import com.ziro.fit.data.model.ReviewCheckInRequest
+import com.ziro.fit.data.model.CheckInConfig
+import com.ziro.fit.data.model.CheckInSubmissionRequest
+import com.ziro.fit.data.model.CheckInHistoryItem
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -274,4 +278,17 @@ interface ZiroApi {
 
     @GET("api/client/progress")
     suspend fun getClientProgress(): ApiResponse<ClientProgressResponse>
+
+    // Client Check-ins
+    @GET("api/client/check-in/config")
+    suspend fun getCheckInConfig(): ApiResponse<CheckInConfig>
+
+    @POST("api/client/check-in")
+    suspend fun submitCheckIn(@Body request: CheckInSubmissionRequest): ApiResponse<Any>
+
+    @GET("api/client/check-ins")
+    suspend fun getClientCheckInHistory(): ApiResponse<List<CheckInHistoryItem>>
+
+    @GET("api/client/check-ins/{id}")
+    suspend fun getClientCheckInDetails(@retrofit2.http.Path("id") id: String): ApiResponse<CheckInDetailWrapper>
 }

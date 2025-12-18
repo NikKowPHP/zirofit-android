@@ -72,3 +72,57 @@ data class CheckInPhoto(
 data class ReviewCheckInRequest(
     val trainerResponse: String
 )
+
+data class CheckInConfig(
+    val checkInDay: Int? = null,
+    val checkInHour: Int? = null,
+    @SerializedName("nextCheckInDueAt")
+    val nextCheckInDate: String? = null
+) {
+    val isCheckInDue: Boolean
+        get() {
+            if (nextCheckInDate == null) return false
+            return try {
+                val dueDate = java.time.Instant.parse(nextCheckInDate)
+                val now = java.time.Instant.now()
+                !now.isBefore(dueDate)
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+    val overdue: Boolean
+        get() {
+            if (nextCheckInDate == null) return false
+            return try {
+                val dueDate = java.time.Instant.parse(nextCheckInDate)
+                val now = java.time.Instant.now()
+                // Consider overdue if more than 24 hours past due
+                now.isAfter(dueDate.plusSeconds(24 * 3600))
+            } catch (e: Exception) {
+                false
+            }
+        }
+}
+
+data class CheckInSubmissionRequest(
+    val weight: Double?,
+    val waistCm: Double?,
+    val sleepHours: Double?,
+    val energyLevel: Double?,
+    val stressLevel: Double?,
+    val hungerLevel: Double?,
+    val digestionLevel: Double?,
+    val nutritionCompliance: String?,
+    val clientNotes: String?,
+    val photos: List<CheckInPhoto>?
+)
+
+data class CheckInHistoryItem(
+    val id: String,
+    val status: String,
+    val date: String,
+    val hasFeedback: Boolean,
+    val photoCount: Int,
+    val reviewedAt: String?
+)

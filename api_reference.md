@@ -1297,6 +1297,43 @@
         }
       }
     },
+    "/api/webhooks/stripe": {
+      "post": {
+        "summary": "POST /api/webhooks/stripe",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "Stripe-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "text/plain": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "200 response."
+          },
+          "400": {
+            "description": "400 response."
+          }
+        }
+      }
+    },
     "/api/workout/log": {
       "post": {
         "summary": "POST /api/workout/log",
@@ -1353,43 +1390,6 @@
           },
           "422": {
             "description": "422 response."
-          }
-        }
-      }
-    },
-    "/api/webhooks/stripe": {
-      "post": {
-        "summary": "POST /api/webhooks/stripe",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "webhooks"
-        ],
-        "parameters": [
-          {
-            "name": "Stripe-Signature",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "text/plain": {
-              "schema": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "200 response."
-          },
-          "400": {
-            "description": "400 response."
           }
         }
       }
@@ -1556,81 +1556,6 @@
           },
           "404": {
             "description": "Trainer not found."
-          }
-        }
-      }
-    },
-    "/api/sync/push": {
-      "post": {
-        "summary": "POST /api/sync/push",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "sync"
-        ],
-        "responses": {
-          "200": {
-            "description": "200 response."
-          },
-          "400": {
-            "description": "400 response."
-          }
-        }
-      }
-    },
-    "/api/sync/pull": {
-      "get": {
-        "summary": "GET /api/sync/pull",
-        "description": "Pull changes for WatermelonDB sync.",
-        "tags": [
-          "sync"
-        ],
-        "parameters": [
-          {
-            "name": "last_pulled_at",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaVersion",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "migration",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Changes retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "changes": {},
-                    "timestamp": {
-                      "type": "number",
-                      "example": 0
-                    }
-                  },
-                  "required": [
-                    "changes",
-                    "timestamp"
-                  ]
-                }
-              }
-            }
           }
         }
       }
@@ -2138,6 +2063,102 @@
         }
       }
     },
+    "/api/trainer/check-ins": {
+      "get": {
+        "summary": "List Trainer's Check-ins",
+        "description": "Retrieves a list of check-ins for the authenticated trainer, filtered by status.",
+        "tags": [
+          "trainer"
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUBMITTED",
+                "REVIEWED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of check-ins with basic client info.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "clientId": {
+                        "type": "string"
+                      },
+                      "date": {},
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "SUBMITTED",
+                          "REVIEWED"
+                        ]
+                      },
+                      "trainerResponse": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "reviewedAt": {
+                        "nullable": true
+                      },
+                      "client": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "avatarPath": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "avatarPath"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "clientId",
+                      "date",
+                      "status",
+                      "trainerResponse",
+                      "reviewedAt",
+                      "client"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Missing or invalid token."
+          },
+          "403": {
+            "description": "Forbidden - User is not a trainer."
+          }
+        }
+      }
+    },
     "/api/trainer/calendar": {
       "get": {
         "summary": "GET /api/trainer/calendar",
@@ -2356,6 +2377,81 @@
                   },
                   "required": [
                     "assessments"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sync/push": {
+      "post": {
+        "summary": "POST /api/sync/push",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "sync"
+        ],
+        "responses": {
+          "200": {
+            "description": "200 response."
+          },
+          "400": {
+            "description": "400 response."
+          }
+        }
+      }
+    },
+    "/api/sync/pull": {
+      "get": {
+        "summary": "GET /api/sync/pull",
+        "description": "Pull changes for WatermelonDB sync.",
+        "tags": [
+          "sync"
+        ],
+        "parameters": [
+          {
+            "name": "last_pulled_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "migration",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Changes retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "changes": {},
+                    "timestamp": {
+                      "type": "number",
+                      "example": 0
+                    }
+                  },
+                  "required": [
+                    "changes",
+                    "timestamp"
                   ]
                 }
               }
@@ -3271,29 +3367,134 @@
                   "properties": {
                     "weight": {
                       "type": "array",
-                      "items": {}
-                    },
-                    "bodyFat": {
-                      "type": "array",
-                      "items": {}
-                    },
-                    "volume": {
-                      "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
-                          "date": {
-                            "type": "string",
-                            "nullable": true
-                          },
-                          "volume": {
+                          "date": {},
+                          "value": {
                             "type": "number",
                             "example": 0
                           }
                         },
                         "required": [
                           "date",
-                          "volume"
+                          "value"
+                        ]
+                      }
+                    },
+                    "bodyFat": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {},
+                          "value": {
+                            "type": "number",
+                            "example": 0
+                          }
+                        },
+                        "required": [
+                          "date",
+                          "value"
+                        ]
+                      }
+                    },
+                    "volume": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {},
+                          "value": {
+                            "type": "number",
+                            "example": 0
+                          }
+                        },
+                        "required": [
+                          "date",
+                          "value"
+                        ]
+                      }
+                    },
+                    "exercisePerformance": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "exerciseId": {
+                            "type": "string"
+                          },
+                          "exerciseName": {
+                            "type": "string"
+                          },
+                          "maxWeight": {
+                            "type": "number",
+                            "example": 0
+                          },
+                          "maxReps": {
+                            "type": "number",
+                            "example": 0
+                          },
+                          "maxVolume": {
+                            "type": "number",
+                            "example": 0
+                          },
+                          "lastPerformed": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "exerciseId",
+                          "exerciseName",
+                          "maxWeight",
+                          "maxReps",
+                          "maxVolume",
+                          "lastPerformed"
+                        ]
+                      }
+                    },
+                    "favoriteExercises": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "exerciseId": {
+                            "type": "string"
+                          },
+                          "exerciseName": {
+                            "type": "string"
+                          },
+                          "frequency": {
+                            "type": "number",
+                            "example": 0
+                          }
+                        },
+                        "required": [
+                          "exerciseId",
+                          "exerciseName",
+                          "frequency"
+                        ]
+                      }
+                    },
+                    "worstPerformingExercises": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "exerciseId": {
+                            "type": "string"
+                          },
+                          "exerciseName": {
+                            "type": "string"
+                          },
+                          "issue": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "exerciseId",
+                          "exerciseName",
+                          "issue"
                         ]
                       }
                     }
@@ -3301,7 +3502,10 @@
                   "required": [
                     "weight",
                     "bodyFat",
-                    "volume"
+                    "volume",
+                    "exercisePerformance",
+                    "favoriteExercises",
+                    "worstPerformingExercises"
                   ]
                 }
               }
@@ -3474,6 +3678,63 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Client profile not found."
+          }
+        }
+      }
+    },
+    "/api/client/check-ins": {
+      "get": {
+        "summary": "GET /api/client/check-ins",
+        "description": "List past check-ins for the authenticated client.",
+        "tags": [
+          "client"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of check-in summaries.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "date": {},
+                      "status": {
+                        "type": "string"
+                      },
+                      "hasFeedback": {
+                        "type": "boolean"
+                      },
+                      "photoCount": {
+                        "type": "number",
+                        "example": 0
+                      },
+                      "reviewedAt": {
+                        "nullable": true
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "date",
+                      "status",
+                      "hasFeedback",
+                      "photoCount",
+                      "reviewedAt"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized."
           },
           "404": {
             "description": "Client profile not found."
@@ -5493,6 +5754,108 @@
         }
       }
     },
+    "/api/trainer/calendar/{sessionId}": {
+      "put": {
+        "summary": "PUT /api/trainer/calendar/{sessionId}",
+        "description": "Update a planned session in the calendar.",
+        "tags": [
+          "trainer"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "startTime": {
+                    "type": "string",
+                    "format": "datetime"
+                  },
+                  "endTime": {
+                    "type": "string",
+                    "format": "datetime"
+                  },
+                  "notes": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "templateId": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "startTime",
+                  "endTime"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session updated successfully."
+          },
+          "404": {
+            "description": "Session not found."
+          },
+          "409": {
+            "description": "Conflict detected."
+          }
+        }
+      },
+      "delete": {
+        "summary": "DELETE /api/trainer/calendar/{sessionId}",
+        "description": "Delete (cancel) a planned session.",
+        "tags": [
+          "trainer"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deletedId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "deletedId"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found."
+          }
+        }
+      }
+    },
     "/api/trainer/calendar/clients-summary": {
       "get": {
         "summary": "Get calendar clients summary",
@@ -5674,108 +6037,6 @@
           },
           "404": {
             "description": "Session not found or not completed."
-          }
-        }
-      }
-    },
-    "/api/trainer/calendar/{sessionId}": {
-      "put": {
-        "summary": "PUT /api/trainer/calendar/{sessionId}",
-        "description": "Update a planned session in the calendar.",
-        "tags": [
-          "trainer"
-        ],
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "startTime": {
-                    "type": "string",
-                    "format": "datetime"
-                  },
-                  "endTime": {
-                    "type": "string",
-                    "format": "datetime"
-                  },
-                  "notes": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "templateId": {
-                    "type": "string",
-                    "nullable": true
-                  }
-                },
-                "required": [
-                  "startTime",
-                  "endTime"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Session updated successfully."
-          },
-          "404": {
-            "description": "Session not found."
-          },
-          "409": {
-            "description": "Conflict detected."
-          }
-        }
-      },
-      "delete": {
-        "summary": "DELETE /api/trainer/calendar/{sessionId}",
-        "description": "Delete (cancel) a planned session.",
-        "tags": [
-          "trainer"
-        ],
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Session deleted successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "deletedId": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "deletedId"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Session not found."
           }
         }
       }
@@ -7550,6 +7811,59 @@
         }
       }
     },
+    "/api/clients/{id}/insights": {
+      "post": {
+        "summary": "POST /api/clients/{id}/insights",
+        "description": "Generate AI-powered insights for a client based on their history.",
+        "tags": [
+          "clients"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully generated insights.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "recommendations": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "analysis": {}
+                  },
+                  "required": [
+                    "summary",
+                    "recommendations"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Client not found."
+          },
+          "500": {
+            "description": "Failed to generate insights."
+          }
+        }
+      }
+    },
     "/api/clients/{id}/measurements": {
       "get": {
         "summary": "GET /api/clients/{id}/measurements",
@@ -7751,59 +8065,6 @@
           },
           "422": {
             "description": "Validation failed."
-          }
-        }
-      }
-    },
-    "/api/clients/{id}/insights": {
-      "post": {
-        "summary": "POST /api/clients/{id}/insights",
-        "description": "Generate AI-powered insights for a client based on their history.",
-        "tags": [
-          "clients"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successfully generated insights.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "summary": {
-                      "type": "string"
-                    },
-                    "recommendations": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "analysis": {}
-                  },
-                  "required": [
-                    "summary",
-                    "recommendations"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Client not found."
-          },
-          "500": {
-            "description": "Failed to generate insights."
           }
         }
       }
@@ -8275,6 +8536,294 @@
         }
       }
     },
+    "/api/client/stats/exercise": {
+      "get": {
+        "summary": "GET /api/client/stats/exercise",
+        "description": "Get performance history for a specific exercise.",
+        "tags": [
+          "client"
+        ],
+        "parameters": [
+          {
+            "name": "exerciseId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "e1rm",
+                "volume",
+                "bestSetVolume"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exercise stats retrieved successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "exerciseId": {
+                      "type": "string"
+                    },
+                    "metric": {
+                      "type": "string"
+                    },
+                    "history": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "date": {},
+                          "value": {
+                            "type": "number",
+                            "example": 0
+                          }
+                        },
+                        "required": [
+                          "date",
+                          "value"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "exerciseId",
+                    "metric",
+                    "history"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters."
+          },
+          "404": {
+            "description": "Client or exercise not found."
+          }
+        }
+      }
+    },
+    "/api/client/check-ins/{id}": {
+      "get": {
+        "summary": "GET /api/client/check-ins/{id}",
+        "description": "Get detailed information for a specific check-in.",
+        "tags": [
+          "client"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Detailed check-in information including photos and feedback.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "date": {},
+                    "status": {
+                      "type": "string"
+                    },
+                    "weight": {
+                      "type": "number",
+                      "example": 0,
+                      "nullable": true
+                    },
+                    "waistCm": {
+                      "type": "number",
+                      "example": 0,
+                      "nullable": true
+                    },
+                    "sleepHours": {
+                      "type": "number",
+                      "example": 0,
+                      "nullable": true
+                    },
+                    "energyLevel": {
+                      "type": "number",
+                      "example": 0,
+                      "nullable": true
+                    },
+                    "stressLevel": {
+                      "type": "number",
+                      "example": 0,
+                      "nullable": true
+                    },
+                    "hungerLevel": {
+                      "type": "number",
+                      "example": 0,
+                      "nullable": true
+                    },
+                    "digestionLevel": {
+                      "type": "number",
+                      "example": 0,
+                      "nullable": true
+                    },
+                    "nutritionCompliance": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "clientNotes": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "trainerResponse": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "reviewedAt": {
+                      "nullable": true
+                    },
+                    "photos": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "imageUrl": {
+                            "type": "string"
+                          },
+                          "caption": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "photoDate": {}
+                        },
+                        "required": [
+                          "id",
+                          "imageUrl",
+                          "caption",
+                          "photoDate"
+                        ]
+                      }
+                    },
+                    "reviewedBy": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "photoUrl": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "photoUrl"
+                      ],
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "date",
+                    "status",
+                    "weight",
+                    "waistCm",
+                    "sleepHours",
+                    "energyLevel",
+                    "stressLevel",
+                    "hungerLevel",
+                    "digestionLevel",
+                    "nutritionCompliance",
+                    "clientNotes",
+                    "trainerResponse",
+                    "reviewedAt",
+                    "photos",
+                    "reviewedBy"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Check-in ID is required."
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "403": {
+            "description": "Forbidden (Check-in belongs to another client)."
+          },
+          "404": {
+            "description": "Check-in not found."
+          }
+        }
+      }
+    },
+    "/api/client/check-in/config": {
+      "get": {
+        "summary": "GET /api/client/check-in/config",
+        "description": "Get check-in configuration and next due date.",
+        "tags": [
+          "client"
+        ],
+        "responses": {
+          "200": {
+            "description": "Configuration and schedule info.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "checkInDay": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "checkInHour": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "nextCheckInDueAt": {
+                      "type": "string",
+                      "format": "datetime"
+                    }
+                  },
+                  "required": [
+                    "checkInDay",
+                    "checkInHour",
+                    "nextCheckInDueAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "404": {
+            "description": "Client profile not found."
+          }
+        }
+      }
+    },
     "/api/bookings/{bookingId}/decline": {
       "put": {
         "summary": "PUT /api/bookings/{bookingId}/decline",
@@ -8389,6 +8938,30 @@
         }
       }
     },
+    "/api/workout-sessions/{id}/rest/start": {
+      "post": {
+        "summary": "POST /api/workout-sessions/{id}/rest/start",
+        "description": "Auto-generated from Next.js route handler.",
+        "tags": [
+          "workout-sessions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "200 response."
+          }
+        }
+      }
+    },
     "/api/workout-sessions/{id}/rest/end": {
       "post": {
         "summary": "POST /api/workout-sessions/{id}/rest/end",
@@ -8412,30 +8985,6 @@
           },
           "403": {
             "description": "403 response."
-          }
-        }
-      }
-    },
-    "/api/workout-sessions/{id}/rest/start": {
-      "post": {
-        "summary": "POST /api/workout-sessions/{id}/rest/start",
-        "description": "Auto-generated from Next.js route handler.",
-        "tags": [
-          "workout-sessions"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "200 response."
           }
         }
       }
@@ -9380,59 +9929,6 @@
         }
       }
     },
-    "/api/profile/me/benefits/order": {
-      "put": {
-        "summary": "PUT /api/profile/me/benefits/order",
-        "description": "Update the order of benefits.",
-        "tags": [
-          "profile"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "ids": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": [
-                  "ids"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Order updated successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid payload."
-          }
-        }
-      }
-    },
     "/api/profile/me/benefits/{benefitId}": {
       "put": {
         "summary": "PUT /api/profile/me/benefits/{benefitId}",
@@ -9559,6 +10055,59 @@
           },
           "404": {
             "description": "Benefit or profile not found."
+          }
+        }
+      }
+    },
+    "/api/profile/me/benefits/order": {
+      "put": {
+        "summary": "PUT /api/profile/me/benefits/order",
+        "description": "Update the order of benefits.",
+        "tags": [
+          "profile"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "ids"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload."
           }
         }
       }
@@ -10459,24 +11008,24 @@
       "description": "Workout-sessions endpoints."
     },
     {
-      "name": "workout",
-      "description": "Workout endpoints."
-    },
-    {
       "name": "webhooks",
       "description": "Webhooks endpoints."
+    },
+    {
+      "name": "workout",
+      "description": "Workout endpoints."
     },
     {
       "name": "user",
       "description": "User endpoints."
     },
     {
-      "name": "sync",
-      "description": "Sync endpoints."
-    },
-    {
       "name": "trainer",
       "description": "Trainer endpoints."
+    },
+    {
+      "name": "sync",
+      "description": "Sync endpoints."
     },
     {
       "name": "profile",
@@ -10507,5 +11056,5 @@
       "description": "Public endpoints."
     }
   ],
-  "x-generated-at": "2025-12-17T13:44:48.012Z"
+  "x-generated-at": "2025-12-18T11:54:38.774Z"
 }

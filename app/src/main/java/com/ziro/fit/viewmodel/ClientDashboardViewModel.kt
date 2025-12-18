@@ -37,6 +37,11 @@ class ClientDashboardViewModel @Inject constructor(
 
     init {
         fetchDashboard()
+        viewModelScope.launch {
+            trainerRepository.linkEvents.collect {
+                fetchDashboard()
+            }
+        }
     }
 
     fun fetchDashboard() {

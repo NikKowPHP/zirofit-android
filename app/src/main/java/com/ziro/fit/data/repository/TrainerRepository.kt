@@ -3,6 +3,7 @@ package com.ziro.fit.data.repository
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.*
 import com.ziro.fit.util.ApiErrorParser
+import kotlinx.coroutines.flow.asSharedFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -52,6 +53,7 @@ class TrainerRepository @Inject constructor(
         return try {
             val response = api.linkTrainer(LinkTrainerRequest(username))
             if (response.success != false && response.data != null) {
+                _linkEvents.emit(Unit)
                 Result.success(response.data.message)
             } else {
                 Result.failure(Exception(response.message ?: "Failed to link with trainer"))
@@ -66,6 +68,7 @@ class TrainerRepository @Inject constructor(
         return try {
             val response = api.unlinkTrainer()
             if (response.success != false && response.data != null) {
+                _linkEvents.emit(Unit)
                 Result.success(response.data.message)
             } else {
                 Result.failure(Exception(response.message ?: "Failed to unlink from trainer"))
@@ -75,6 +78,9 @@ class TrainerRepository @Inject constructor(
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
+
+    private val _linkEvents = kotlinx.coroutines.flow.MutableSharedFlow<Unit>()
+    val linkEvents: kotlinx.coroutines.flow.SharedFlow<Unit> = _linkEvents.asSharedFlow()
 
     suspend fun getLinkedTrainer(): Result<LinkedTrainer?> {
         return try {

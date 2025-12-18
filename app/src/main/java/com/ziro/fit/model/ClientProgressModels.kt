@@ -35,10 +35,34 @@ data class HistoryTemplate(
 )
 
 data class ClientProgressResponse(
-    val volumeHistory: List<VolumeDataPoint>
+    val volumeHistory: List<VolumeDataPoint>,
+    val exercisePerformance: List<ExercisePerformance>? = null,
+    val favoriteExercises: List<FavoriteExercise>? = null,
+    val worstPerformingExercises: List<WorstPerformingExercise>? = null
 )
 
 data class VolumeDataPoint(
     val date: String,
     val totalVolume: Double
+)
+
+data class ExercisePerformance(
+    val exerciseId: String,
+    val exerciseName: String,
+    val maxWeight: Double?,
+    val maxReps: Int?,
+    val maxVolume: Double?,
+    val lastPerformed: String?
+)
+
+data class FavoriteExercise(
+    val exerciseId: String,
+    val exerciseName: String,
+    val frequency: Int
+)
+
+data class WorstPerformingExercise(
+    val exerciseId: String,
+    val exerciseName: String,
+    val issue: String
 )

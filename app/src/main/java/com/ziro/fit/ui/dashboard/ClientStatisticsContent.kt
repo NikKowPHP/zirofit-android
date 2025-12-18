@@ -4,6 +4,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -17,6 +19,9 @@ import androidx.compose.ui.unit.dp
 import com.ziro.fit.model.ClientProgressResponse
 import com.ziro.fit.model.Measurement
 import com.ziro.fit.model.VolumeDataPoint
+import com.ziro.fit.model.ExercisePerformance
+import com.ziro.fit.model.FavoriteExercise
+import com.ziro.fit.model.WorstPerformingExercise
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -57,7 +62,47 @@ fun ClientStatisticsContent(
                 )
             }
 
-            // 2. Volume Chart
+            // 2. Favorite Exercises
+            if (progress?.favoriteExercises?.isNotEmpty() == true) {
+                Text(
+                    text = "Favorite Exercises",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    progress.favoriteExercises.forEach { exercise ->
+                        FavoriteExerciseItem(exercise)
+                    }
+                }
+            }
+
+            // 3. Worst Performing Exercises
+            if (progress?.worstPerformingExercises?.isNotEmpty() == true) {
+                Text(
+                    text = "Areas for Improvement",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    progress.worstPerformingExercises.forEach { exercise ->
+                        WorstPerformingExerciseItem(exercise)
+                    }
+                }
+            }
+
+            // 4. Exercise Performance
+            if (progress?.exercisePerformance?.isNotEmpty() == true) {
+                Text(
+                    text = "Exercise Performance",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    progress.exercisePerformance.forEach { exercise ->
+                        ExercisePerformanceItem(exercise)
+                    }
+                }
+            }
+
+            // 5. Volume Chart
             if (progress?.volumeHistory?.isNotEmpty() == true) {
                 Text(
                     text = "Volume Progress (Last 30 Sessions)",
@@ -68,7 +113,7 @@ fun ClientStatisticsContent(
                  Text(text = "No volume data available.", style = MaterialTheme.typography.bodyMedium)
             }
 
-            // 3. Weight Chart
+            // 6. Weight Chart
             if (measurements.isNotEmpty()) {
                 Text(
                     text = "Weight Progress",
@@ -113,9 +158,95 @@ fun StatCard(
 }
 
 @Composable
+fun FavoriteExerciseItem(exercise: FavoriteExercise) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = exercise.exerciseName, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = "${exercise.frequency} times",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+fun WorstPerformingExerciseItem(exercise: WorstPerformingExercise) {
+    Card(
+        modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.error.copy(alpha=0.5f), RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = exercise.exerciseName,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = exercise.issue,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
+    }
+}
+
+@Composable
+fun ExercisePerformanceItem(exercise: ExercisePerformance) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = exercise.exerciseName,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                 Column {
+                     Text(text = "Max Wgt", style = MaterialTheme.typography.labelSmall)
+                     Text(text = exercise.maxWeight?.let { "$it kg" } ?: "-", style = MaterialTheme.typography.bodyMedium)
+                 }
+                 Column {
+                     Text(text = "Max Reps", style = MaterialTheme.typography.labelSmall)
+                     Text(text = exercise.maxReps?.let { "$it" } ?: "-", style = MaterialTheme.typography.bodyMedium)
+                 }
+                 Column {
+                     Text(text = "Max Vol", style = MaterialTheme.typography.labelSmall)
+                     Text(text = exercise.maxVolume?.let { "$it kg" } ?: "-", style = MaterialTheme.typography.bodyMedium)
+                 }
+                 Column {
+                     Text(text = "Last", style = MaterialTheme.typography.labelSmall)
+                     Text(text = exercise.lastPerformed?.let { it.take(10) } ?: "-", style = MaterialTheme.typography.bodyMedium)
+                 }
+            }
+        }
+    }
+}
+
+@Composable
 fun VolumeChart(volumeData: List<VolumeDataPoint>) {
     val volumes = volumeData.map { it.totalVolume }
-    
+
     if (volumes.size < 2) {
         Text("Not enough data for chart.", style = MaterialTheme.typography.bodySmall)
         return
@@ -132,23 +263,23 @@ fun VolumeChart(volumeData: List<VolumeDataPoint>) {
                 val maxVolume = volumes.maxOrNull() ?: 100.0
                 val minVolume = volumes.minOrNull() ?: 0.0
                 val range = (maxVolume - minVolume).coerceAtLeast(1.0)
-                
+
                 val width = size.width
                 val height = size.height
-                
+
                 val path = Path()
-                
+
                 volumes.forEachIndexed { index, volume ->
                     val x = index * (width / (volumes.size - 1))
                     val normalizedVolume = (volume - minVolume) / range
                     val y = height - (normalizedVolume * height)
-                    
+
                     if (index == 0) {
                         path.moveTo(x, y.toFloat())
                     } else {
                         path.lineTo(x, y.toFloat())
                     }
-                    
+
                     // Draw points
                     drawCircle(
                         color = Color(0xFF6200EE), // Primary Purple
@@ -156,7 +287,7 @@ fun VolumeChart(volumeData: List<VolumeDataPoint>) {
                         center = Offset(x, y.toFloat())
                     )
                 }
-                
+
                 drawPath(
                     path = path,
                     color = Color(0xFF6200EE),
@@ -171,7 +302,7 @@ fun VolumeChart(volumeData: List<VolumeDataPoint>) {
 fun WeightChart(measurements: List<Measurement>) {
     val sortedMeasurements = measurements.sortedBy { it.measurementDate }
     val weights = sortedMeasurements.mapNotNull { it.weightKg }
-    
+
     if (weights.size < 2) {
         Text("Not enough data for chart.", style = MaterialTheme.typography.bodySmall)
         return
@@ -188,23 +319,23 @@ fun WeightChart(measurements: List<Measurement>) {
                 val maxWeight = weights.maxOrNull() ?: 100.0
                 val minWeight = weights.minOrNull() ?: 0.0
                 val range = (maxWeight - minWeight).coerceAtLeast(1.0)
-                
+
                 val width = size.width
                 val height = size.height
-                
+
                 val path = Path()
-                
+
                 weights.forEachIndexed { index, weight ->
                     val x = index * (width / (weights.size - 1))
                     val normalizedWeight = (weight - minWeight) / range
                     val y = height - (normalizedWeight * height)
-                    
+
                     if (index == 0) {
                         path.moveTo(x, y.toFloat())
                     } else {
                         path.lineTo(x, y.toFloat())
                     }
-                    
+
                     // Draw points
                     drawCircle(
                         color = Color.Blue,
@@ -212,7 +343,7 @@ fun WeightChart(measurements: List<Measurement>) {
                         center = Offset(x, y.toFloat())
                     )
                 }
-                
+
                 drawPath(
                     path = path,
                     color = Color.Blue,

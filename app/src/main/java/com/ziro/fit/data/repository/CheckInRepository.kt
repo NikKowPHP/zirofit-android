@@ -2,8 +2,12 @@ package com.ziro.fit.data.repository
 
 import com.ziro.fit.model.ApiResponse
 import com.ziro.fit.data.model.CheckInContext
+import com.ziro.fit.data.model.CheckInDetailWrapper
 import com.ziro.fit.data.model.CheckInPendingItem
 import com.ziro.fit.data.model.ReviewCheckInRequest
+import com.ziro.fit.data.model.CheckInConfig
+import com.ziro.fit.data.model.CheckInSubmissionRequest
+import com.ziro.fit.data.model.CheckInHistoryItem
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.util.ApiErrorParser
 import javax.inject.Inject
@@ -47,6 +51,63 @@ class CheckInRepository @Inject constructor(
                 Result.success(Unit)
             } else {
                 Result.failure(Exception(response.message ?: "Failed to submit review"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
+
+    // Client Methods
+    suspend fun getCheckInConfig(): Result<CheckInConfig> {
+        return try {
+            val response = api.getCheckInConfig()
+            if (response.success != false && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to fetch check-in config"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
+
+    suspend fun submitCheckIn(request: com.ziro.fit.data.model.CheckInSubmissionRequest): Result<Unit> {
+        return try {
+            val response = api.submitCheckIn(request)
+            if (response.success != false) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to submit check-in"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
+
+    suspend fun getClientCheckInHistory(): Result<List<com.ziro.fit.data.model.CheckInHistoryItem>> {
+        return try {
+            val response = api.getClientCheckInHistory()
+            if (response.success != false && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to fetch check-in history"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
+
+    suspend fun getClientCheckInDetails(id: String): Result<CheckInDetailWrapper> {
+        return try {
+            val response = api.getClientCheckInDetails(id)
+            if (response.success != false && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to fetch check-in details"))
             }
         } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)

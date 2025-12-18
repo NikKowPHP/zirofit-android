@@ -210,6 +210,29 @@ fun TrainerProfileContent(
                     )
                 }
                 
+                // Link/Unlink Action Button (In Body)
+                val isCurrentlyLinkedToThis = uiState.linkedTrainerId == profile.id
+                val isNotLinkedToAnyone = uiState.linkedTrainerId == null
+                
+                if (isCurrentlyLinkedToThis) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedButton(
+                        onClick = { viewModel.unlinkFromTrainer() },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Unlink from Trainer")
+                    }
+                } else if (isNotLinkedToAnyone) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = { 
+                            profile.username?.let { viewModel.linkWithTrainer(it) }
+                        }
+                    ) {
+                        Text("Link with Trainer")
+                    }
+                }
+
                 // Professional Stats
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(

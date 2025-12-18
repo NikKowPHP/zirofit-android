@@ -2,6 +2,7 @@ package com.ziro.fit.ui.dashboard
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,16 +19,19 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ziro.fit.model.ClientDashboardData
 import com.ziro.fit.model.LinkedTrainer
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ClientDashboardScreen(
     onLogout: () -> Unit,
     onNavigateToDiscovery: () -> Unit,
+    onNavigateToCheckIns: () -> Unit,
     viewModel: com.ziro.fit.viewmodel.ClientDashboardViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val uiState = viewModel.uiState
-    var selectedTab by remember { mutableIntStateOf(0) }
+    val pagerState = androidx.compose.foundation.pager.rememberPagerState(pageCount = { 3 })
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val tabs = listOf("Overview", "History", "Stats")
 
     Scaffold(
@@ -47,13 +51,26 @@ fun ClientDashboardScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            TabRow(selectedTabIndex = selectedTab) {
+            TabRow(selectedTabIndex = pagerState.currentPage) {
                 tabs.forEachIndexed { index, title ->
                     Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        selected = pagerState.currentPage == index,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
                         text = { Text(title) }
                     )
+                }
+            }
+
+            // Fetch data based on selected page if needed
+            LaunchedEffect(pagerState.currentPage) {
+                if (pagerState.currentPage == 1 && uiState is com.ziro.fit.viewmodel.ClientDashboardUiState.Success && uiState.history.isEmpty() && !uiState.isHistoryLoading) {
+                    viewModel.fetchHistory()
+                } else if (pagerState.currentPage == 2 && uiState is com.ziro.fit.viewmodel.ClientDashboardUiState.Success && uiState.progress == null && !uiState.isProgressLoading) {
+                    viewModel.fetchProgress()
                 }
             }
 
@@ -79,28 +96,24 @@ fun ClientDashboardScreen(
                     is com.ziro.fit.viewmodel.ClientDashboardUiState.Success -> {
                         val data = uiState.data
                         
-                        // Fetch data based on selected tab if needed
-                        LaunchedEffect(selectedTab) {
-                            if (selectedTab == 1 && uiState.history.isEmpty() && !uiState.isHistoryLoading) {
-                                viewModel.fetchHistory()
-                            } else if (selectedTab == 2 && uiState.progress == null && !uiState.isProgressLoading) {
-                                viewModel.fetchProgress()
+                        androidx.compose.foundation.pager.HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize()
+                        ) { page ->
+                            when (page) {
+                                0 -> ClientDashboardHome(data, uiState.linkedTrainer, viewModel::unlinkTrainer, onNavigateToDiscovery, onNavigateToCheckIns)
+                                1 -> ClientHistoryContent(
+                                    sessions = uiState.history,
+                                    isLoading = uiState.isHistoryLoading,
+                                    canLoadMore = uiState.historyCursor != null,
+                                    onLoadMore = { viewModel.fetchHistory(loadMore = true) }
+                                )
+                                2 -> ClientStatisticsContent(
+                                    progress = uiState.progress,
+                                    measurements = data.measurements ?: emptyList(),
+                                    isLoading = uiState.isProgressLoading
+                                )
                             }
-                        }
-
-                        when (selectedTab) {
-                            0 -> ClientDashboardHome(data, uiState.linkedTrainer, viewModel::unlinkTrainer, onNavigateToDiscovery)
-                            1 -> ClientHistoryContent(
-                                sessions = uiState.history,
-                                isLoading = uiState.isHistoryLoading,
-                                canLoadMore = uiState.historyCursor != null,
-                                onLoadMore = { viewModel.fetchHistory(loadMore = true) }
-                            )
-                            2 -> ClientStatisticsContent(
-                                progress = uiState.progress,
-                                measurements = data.measurements ?: emptyList(),
-                                isLoading = uiState.isProgressLoading
-                            )
                         }
                     }
                 }
@@ -114,11 +127,13 @@ fun ClientDashboardHome(
     data: ClientDashboardData,
     linkedTrainer: LinkedTrainer?,
     onUnlinkTrainer: () -> Unit,
-    onNavigateToDiscovery: () -> Unit
+    onNavigateToDiscovery: () -> Unit,
+    onNavigateToCheckIns: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(androidx.compose.foundation.rememberScrollState())
             .padding(16.dp)
     ) {
         Text(
@@ -126,6 +141,29 @@ fun ClientDashboardHome(
             style = MaterialTheme.typography.headlineMedium
         )
         Spacer(modifier = Modifier.height(24.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Weekly Check-In",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                     text = "Keep your trainer updated with your progress.",
+                     style = MaterialTheme.typography.bodyMedium,
+                     color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                 Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = onNavigateToCheckIns, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)) {
+                    Text("View Check-Ins")
+                }
+            }
+        }
 
         Card(
             modifier = Modifier.fillMaxWidth()
