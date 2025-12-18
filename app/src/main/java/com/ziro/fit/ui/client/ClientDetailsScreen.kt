@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.ziro.fit.model.*
+import com.ziro.fit.util.DateTimeUtils
 import com.ziro.fit.viewmodel.ClientDetailsViewModel
 import java.time.Instant
 import java.time.ZoneId
@@ -394,13 +395,7 @@ fun MeasurementsCard(measurements: List<Measurement>) {
 @Composable
 fun MeasurementItem(measurement: Measurement) {
     val dateFormatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-    val date = try {
-        Instant.parse(measurement.measurementDate)
-            .atZone(ZoneId.systemDefault())
-            .format(dateFormatter)
-    } catch (e: Exception) {
-        measurement.measurementDate
-    }
+    val date = DateTimeUtils.formatDate(measurement.measurementDate)
 
     Column {
         Text(
@@ -470,7 +465,7 @@ fun AssessmentItem(assessment: AssessmentResult) {
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = formatDate(assessment.date),
+                text = DateTimeUtils.formatDate(assessment.date),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
@@ -515,7 +510,7 @@ fun PhotoCard(photo: TransformationPhoto) {
             )
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
-                    text = formatDate(photo.photoDate),
+                    text = DateTimeUtils.formatDate(photo.photoDate),
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.Gray
                 )
@@ -557,7 +552,7 @@ fun SessionCard(session: ClientSession) {
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = formatDate(session.startTime),
+                    text = DateTimeUtils.formatDate(session.startTime),
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
@@ -590,13 +585,4 @@ fun SessionStatusBadge(status: String) {
     }
 }
 
-fun formatDate(dateString: String): String {
-    return try {
-        val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-        Instant.parse(dateString)
-            .atZone(ZoneId.systemDefault())
-            .format(formatter)
-    } catch (e: Exception) {
-        dateString
-    }
-}
+

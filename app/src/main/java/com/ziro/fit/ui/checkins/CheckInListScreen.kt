@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ziro.fit.data.model.CheckInPendingItem
+import com.ziro.fit.util.DateTimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,7 +110,7 @@ fun CheckInListItem(
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Date: ${item.date}",
+                text = "Date: ${DateTimeUtils.formatDate(item.date)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

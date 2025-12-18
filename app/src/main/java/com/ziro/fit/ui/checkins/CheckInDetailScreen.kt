@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ziro.fit.data.model.CheckInDetailWrapper
+import com.ziro.fit.util.DateTimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,7 +72,7 @@ fun CheckInDetailScreen(
                             .padding(16.dp)
                     ) {
                         Text("Client: ${current.client.name}", style = MaterialTheme.typography.titleLarge)
-                        Text("Date: ${current.date}", style = MaterialTheme.typography.labelMedium)
+                        Text("Date: ${DateTimeUtils.formatDate(current.date)}", style = MaterialTheme.typography.labelMedium)
                         Spacer(modifier = Modifier.height(16.dp))
 
                         DetailItem("Weight", "${current.weight ?: "N/A"}")

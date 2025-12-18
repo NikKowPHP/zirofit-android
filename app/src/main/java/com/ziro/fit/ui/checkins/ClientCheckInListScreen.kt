@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ziro.fit.data.model.CheckInHistoryItem
+import com.ziro.fit.util.DateTimeUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +100,7 @@ fun ClientCheckInListScreen(
                         if (uiState.config?.isCheckInDue != true) {
                             Spacer(modifier = Modifier.height(8.dp))
                              Text(
-                                text = "Next check-in: ${uiState.config?.nextCheckInDate ?: "Soon"}",
+                                text = "Next check-in: ${DateTimeUtils.formatDate(uiState.config?.nextCheckInDate)}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -121,7 +122,7 @@ fun ClientCheckInListScreen(
                                     Column(modifier = Modifier.padding(16.dp)) {
                                         Text("Next Check-In", style = MaterialTheme.typography.titleSmall)
                                         Text(
-                                            text = uiState.config!!.nextCheckInDate!!,
+                                            text = DateTimeUtils.formatDate(uiState.config!!.nextCheckInDate!!),
                                             style = MaterialTheme.typography.bodyLarge
                                         )
                                     }
@@ -157,7 +158,7 @@ fun ClientCheckInHistoryItem(
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Check-In: ${item.date}",
+                text = "Check-In: ${DateTimeUtils.formatDate(item.date)}",
                 style = MaterialTheme.typography.titleMedium
             )
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ziro.fit.model.AssessmentResult
+import com.ziro.fit.util.DateTimeUtils
 import com.ziro.fit.viewmodel.ClientAssessmentsViewModel
 import java.time.Instant
 import java.time.ZoneId
@@ -138,7 +139,7 @@ fun AssessmentItemFull(
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = formatDate(assessment.date),
+                text = DateTimeUtils.formatDate(assessment.date),
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
