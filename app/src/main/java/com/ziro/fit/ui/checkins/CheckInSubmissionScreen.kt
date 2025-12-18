@@ -74,6 +74,19 @@ fun CheckInSubmissionScreen(
                     )
                 }
 
+                if (!uiState.isTrainerLinked) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    ) {
+                        Text(
+                            text = "You must be linked with a trainer to submit a check-in.",
+                            modifier = Modifier.padding(16.dp),
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+
                 Text("Physical Metrics", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -149,7 +162,8 @@ fun CheckInSubmissionScreen(
                         )
                         viewModel.submitCheckIn(request)
                     },
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = uiState.isTrainerLinked
                 ) {
                     Text("Submit Check-In")
                 }

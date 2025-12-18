@@ -122,7 +122,18 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
                                 }
                             }
                         )
-                        // Add Profile?
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                            label = { Text("Profile") },
+                            selected = currentRoute == "profile",
+                            onClick = {
+                                navController.navigate("profile") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -194,6 +205,11 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
                     com.ziro.fit.ui.checkins.ClientCheckInDetailScreen(
                         checkInId = checkInId,
                         onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable("profile") {
+                    com.ziro.fit.ui.profile.ClientProfileScreen(
+                        onLogout = { authViewModel.logout() }
                     )
                 }
             }

@@ -7,6 +7,7 @@ import com.ziro.fit.data.model.CheckInContext
 import com.ziro.fit.data.model.CheckInHistoryItem
 import com.ziro.fit.data.model.CheckInSubmissionRequest
 import com.ziro.fit.data.repository.CheckInRepository
+import com.ziro.fit.data.repository.TrainerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,12 +23,14 @@ data class ClientCheckInUiState(
     val selectedCheckIn: com.ziro.fit.data.model.CheckInDetailWrapper? = null,
     val isSubmitting: Boolean = false,
     val submissionSuccess: Boolean = false,
+    val isTrainerLinked: Boolean = true, // Default to true to avoid flashing "not linked" state
     val error: String? = null
 )
 
 @HiltViewModel
 class ClientCheckInViewModel @Inject constructor(
-    private val repository: CheckInRepository
+    private val repository: CheckInRepository,
+    private val trainerRepository: TrainerRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ClientCheckInUiState())
@@ -36,16 +39,28 @@ class ClientCheckInViewModel @Inject constructor(
     fun loadConfig() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
+            checkTrainerLink()
             repository.getCheckInConfig()
                 .onSuccess { config ->
                     _uiState.update { it.copy(isLoading = false, config = config) }
                 }
-                .onFailure { e ->
+                .onFailure { e: Throwable ->
                     // Don't show error for config load failure, maybe just log?
                     // Or set a specific error state if needed.
                     _uiState.update { it.copy(isLoading = false, error = e.message) }
                 }
         }
+    }
+
+    private suspend fun checkTrainerLink() {
+        trainerRepository.getLinkedTrainer()
+            .onSuccess { trainer ->
+                _uiState.update { it.copy(isTrainerLinked = trainer != null) }
+            }
+            .onFailure { _: Throwable ->
+                // If we can't check, assume not linked or handle error?
+                _uiState.update { it.copy(isTrainerLinked = false) }
+            }
     }
 
     fun loadHistory() {
@@ -55,7 +70,7 @@ class ClientCheckInViewModel @Inject constructor(
                 .onSuccess { items ->
                     _uiState.update { it.copy(isLoading = false, history = items) }
                 }
-                .onFailure { e ->
+                .onFailure { e: Throwable ->
                     _uiState.update { it.copy(isLoading = false, error = e.message) }
                 }
         }
@@ -68,7 +83,7 @@ class ClientCheckInViewModel @Inject constructor(
                 .onSuccess { detail ->
                     _uiState.update { it.copy(isLoading = false, selectedCheckIn = detail) }
                 }
-                .onFailure { e ->
+                .onFailure { e: Throwable ->
                     _uiState.update { it.copy(isLoading = false, error = e.message) }
                 }
         }
@@ -84,7 +99,7 @@ class ClientCheckInViewModel @Inject constructor(
                     loadConfig()
                     loadHistory()
                 }
-                .onFailure { e ->
+                .onFailure { e: Throwable ->
                     _uiState.update { it.copy(isSubmitting = false, error = e.message) }
                 }
         }

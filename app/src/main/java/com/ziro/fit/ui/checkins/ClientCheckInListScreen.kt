@@ -55,7 +55,7 @@ fun ClientCheckInListScreen(
         floatingActionButton = {
             // Show FAB if check-in is due? or always allow?
             // Usually restricted to weekly. relying on config.
-            if (uiState.config?.isCheckInDue == true || uiState.config?.overdue == true) {
+            if (uiState.isTrainerLinked && (uiState.config?.isCheckInDue == true || uiState.config?.overdue == true)) {
                 ExtendedFloatingActionButton(
                     onClick = onNavigateToSubmit,
                     icon = { Icon(Icons.Default.Add, "Check-In") },
@@ -112,8 +112,33 @@ fun ClientCheckInListScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(bottom = 80.dp) // Space for FAB
                     ) {
+                        // Display restriction message if not linked
+                        if (!uiState.isTrainerLinked) {
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(Icons.Default.Warning, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Text(
+                                            text = "Weekly check-ins are only available when you are linked with a trainer.",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         // Display next check-in info if not due yet?
-                        if (uiState.config?.isCheckInDue == false && uiState.config?.nextCheckInDate != null) {
+                        if (uiState.isTrainerLinked && uiState.config?.isCheckInDue == false && uiState.config?.nextCheckInDate != null) {
                             item {
                                 Card(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),

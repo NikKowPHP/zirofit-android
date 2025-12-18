@@ -34,18 +34,7 @@ fun ClientDashboardScreen(
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val tabs = listOf("Overview", "History", "Stats")
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Client Dashboard") },
-                actions = {
-                    TextButton(onClick = onLogout) {
-                        Text("Logout")
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    Scaffold { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
