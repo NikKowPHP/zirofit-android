@@ -21,9 +21,9 @@ class LiveWorkoutRepositoryTest {
     @Before
     fun setup() {
         mockkStatic(Log::class)
-        every { Log.e(any(), any()) } returns 0
-        every { Log.e(any(), any(), any()) } returns 0
-        every { Log.w(any(), any()) } returns 0
+        every { Log.e(any<String>(), any<String>()) } returns 0
+        every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
+        every { Log.w(any<String>(), any<String>()) } returns 0
     }
 
     @Test

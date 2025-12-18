@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ziro.fit.model.ClientDashboardData
 import com.ziro.fit.model.LinkedTrainer
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,6 +29,7 @@ fun ClientDashboardScreen(
     onLogout: () -> Unit,
     onNavigateToDiscovery: () -> Unit,
     onNavigateToCheckIns: () -> Unit,
+    onNavigateToLiveWorkout: () -> Unit,
     viewModel: com.ziro.fit.viewmodel.ClientDashboardViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val uiState = viewModel.uiState
@@ -90,7 +93,27 @@ fun ClientDashboardScreen(
                             modifier = Modifier.fillMaxSize()
                         ) { page ->
                             when (page) {
-                                0 -> ClientDashboardHome(data, uiState.linkedTrainer, viewModel::unlinkTrainer, onNavigateToDiscovery, onNavigateToCheckIns)
+                                0 -> {
+                                    /* PullToRefreshBox is M3 1.3+ way */
+                                    val pullRefreshState = rememberPullToRefreshState()
+                                    PullToRefreshBox(
+                                        isRefreshing = uiState.isRefreshing,
+                                        onRefresh = { viewModel.fetchDashboard(forceRefresh = true) },
+                                        state = pullRefreshState,
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+                                        ClientDashboardHome(
+                                            data, 
+                                            uiState.linkedTrainer, 
+                                            viewModel::unlinkTrainer, 
+                                            onNavigateToDiscovery, 
+                                            onNavigateToCheckIns,
+                                            onStartSession = { session ->
+                                                viewModel.startSession(session, onNavigateToLiveWorkout)
+                                            }
+                                        )
+                                    }
+                                }
                                 1 -> ClientHistoryContent(
                                     sessions = uiState.history,
                                     isLoading = uiState.isHistoryLoading,
@@ -117,7 +140,8 @@ fun ClientDashboardHome(
     linkedTrainer: LinkedTrainer?,
     onUnlinkTrainer: () -> Unit,
     onNavigateToDiscovery: () -> Unit,
-    onNavigateToCheckIns: () -> Unit
+    onNavigateToCheckIns: () -> Unit,
+    onStartSession: (com.ziro.fit.model.ClientSession) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -125,11 +149,47 @@ fun ClientDashboardHome(
             .verticalScroll(androidx.compose.foundation.rememberScrollState())
             .padding(16.dp)
     ) {
+        // Welcome message removed
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Upcoming Sessions Section
+        val upcomingSessions = data.workoutSessions?.filter { it.status == "PLANNED" } ?: emptyList()
         Text(
-            text = "Welcome, ${data.name}!",
-            style = MaterialTheme.typography.headlineMedium
+            text = "Upcoming Sessions",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        if (upcomingSessions.isNotEmpty()) {
+            upcomingSessions.forEach { session ->
+                UpcomingSessionCard(session = session, onStartSession = onStartSession)
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Box(modifier = Modifier.padding(16.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Text("No upcoming workouts scheduled", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(24.dp))
+
+        // Recent Activity Section (Last Completed Workout)
+        val recentSessions = data.workoutSessions?.filter { it.status == "COMPLETED" }?.sortedByDescending { it.startTime } ?: emptyList()
+        if (recentSessions.isNotEmpty()) {
+            Text(
+                text = "Recent Activity",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            val lastSession = recentSessions.first()
+            com.ziro.fit.ui.client.SessionCard(session = lastSession)
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         Card(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),

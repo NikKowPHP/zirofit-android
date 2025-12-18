@@ -147,7 +147,12 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
                     com.ziro.fit.ui.dashboard.ClientDashboardScreen(
                         onLogout = authViewModel::logout,
                         onNavigateToDiscovery = { navController.navigate("trainer_discovery") },
-                        onNavigateToCheckIns = { navController.navigate("client_checkins") }
+                        onNavigateToCheckIns = { navController.navigate("client_checkins") },
+                        onNavigateToLiveWorkout = { 
+                            navController.navigate("live_workout") {
+                                launchSingleTop = true 
+                            }
+                        }
                     )
                 }
                 composable("trainer_discovery") {

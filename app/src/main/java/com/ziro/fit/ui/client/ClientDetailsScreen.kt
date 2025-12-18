@@ -547,7 +547,7 @@ fun SessionCard(session: ClientSession) {
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = session.templateName ?: "Freestyle Workout",
+                    text = session.name ?: "Freestyle Workout",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )

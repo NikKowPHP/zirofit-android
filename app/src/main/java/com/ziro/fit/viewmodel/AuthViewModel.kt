@@ -29,9 +29,18 @@ class AuthViewModel @Inject constructor(
         private set
 
     init {
+        setupLogoutCollection()
         checkAuthStatus()
     }
     
+    private fun setupLogoutCollection() {
+        viewModelScope.launch {
+            tokenManager.logoutSignal.collect {
+                authState = AuthState.Unauthenticated
+            }
+        }
+    }
+
     private fun checkAuthStatus() {
         if (tokenManager.getToken() != null) {
             viewModelScope.launch {

@@ -32,7 +32,17 @@ object AppModule {
                 requestBuilder.addHeader("Authorization", "Bearer $token")
             }
 
-            chain.proceed(requestBuilder.build())
+            var response = chain.proceed(requestBuilder.build())
+
+            if (response.code == 401) {
+                // If we get a 401, it means the token is invalid or expired
+                // We should clear the token and trigger a global logout
+                kotlinx.coroutines.runBlocking {
+                    tokenManager.triggerLogout()
+                }
+            }
+            
+            response
         }
     }
 

@@ -119,7 +119,9 @@ data class ClientSession(
     val endTime: String?,
     val status: String,
     val notes: String?,
-    val templateName: String?
+    @SerializedName("name") val name: String?,
+    val plannedDate: String?,
+    val workoutTemplateId: String?
 )
 
 data class GetClientSessionsResponse(

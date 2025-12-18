@@ -67,66 +67,92 @@ fun ClientHistoryContent(
 @Composable
 fun SessionHistoryItem(session: HistorySession) {
     Card(
+        modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = MaterialTheme.shapes.medium
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = formatSessionDate(session.startTime),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "Status: ${session.status}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (session.status.equals("COMPLETED", ignoreCase = true)) Color.Green else Color.Gray
+                    text = formatSessionDate(session.startTime),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                if (session.workoutTemplate?.name != null) {
-                    Spacer(modifier = Modifier.width(16.dp))
+                
+                val isCompleted = session.status.equals("COMPLETED", ignoreCase = true)
+                Surface(
+                    color = if (isCompleted) Color(0xFFE8F5E9) else Color(0xFFF5F5F5),
+                    contentColor = if (isCompleted) Color(0xFF2E7D32) else Color(0xFF616161),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
+                ) {
                     Text(
-                        text = "Template: ${session.workoutTemplate.name}",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = session.status.uppercase(),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            if (!session.exerciseLogs.isNullOrEmpty()) {
+            
+            if (session.workoutTemplate?.name != null) {
                 Text(
-                    text = "Exercises:",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface
+                    text = session.workoutTemplate.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                session.exerciseLogs.forEach { log ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
+            }
+            
+            Divider(modifier = Modifier.padding(vertical = 12.dp), thickness = 0.5.dp)
+            
+            if (!session.exerciseLogs.isNullOrEmpty()) {
+                // Group by exercise name
+                val groupedLogs = session.exerciseLogs.groupBy { it.exercise.name }
+                
+                groupedLogs.forEach { (exerciseName, logs) ->
+                    Column(modifier = Modifier.padding(bottom = 12.dp)) {
                         Text(
-                            text = log.exercise.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = exerciseName,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                        Text(
-                            text = "${log.reps ?: "-"} x ${log.weight ?: "-"}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        // Display sets for this exercise
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            logs.forEachIndexed { index, log ->
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp)
+                                ) {
+                                    Text(
+                                        text = "${log.weight ?: "-"} x ${log.reps ?: "-"}",
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             } else {
                  Text(
-                    text = "No exercises logged.",
+                    text = "No exercises logged",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                 )
             }
         }

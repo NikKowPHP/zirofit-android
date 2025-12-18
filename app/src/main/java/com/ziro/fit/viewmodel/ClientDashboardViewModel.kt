@@ -20,7 +20,8 @@ sealed class ClientDashboardUiState {
         val historyCursor: String? = null,
         val isHistoryLoading: Boolean = false,
         val progress: com.ziro.fit.model.ClientProgressResponse? = null,
-        val isProgressLoading: Boolean = false
+        val isProgressLoading: Boolean = false,
+        val isRefreshing: Boolean = false
     ) : ClientDashboardUiState()
     data class Error(val message: String) : ClientDashboardUiState()
 }
@@ -44,16 +45,21 @@ class ClientDashboardViewModel @Inject constructor(
         }
     }
 
-    fun fetchDashboard() {
+    fun fetchDashboard(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            uiState = ClientDashboardUiState.Loading
+            if (forceRefresh && uiState is ClientDashboardUiState.Success) {
+                uiState = (uiState as ClientDashboardUiState.Success).copy(isRefreshing = true)
+            } else {
+                uiState = ClientDashboardUiState.Loading
+            }
+
             repository.getClientDashboard()
                 .onSuccess { data ->
                     // Fetch dedicated trainer info in parallel
                     viewModelScope.launch {
                         val trainerResult = trainerRepository.getLinkedTrainer()
                         val linkedTrainer = trainerResult.getOrNull()
-                        uiState = ClientDashboardUiState.Success(data, linkedTrainer)
+                        uiState = ClientDashboardUiState.Success(data, linkedTrainer, isRefreshing = false)
                     }
                 }
                 .onFailure { e ->
@@ -75,7 +81,7 @@ class ClientDashboardViewModel @Inject constructor(
                                 viewModelScope.launch {
                                     val trainerResult = trainerRepository.getLinkedTrainer()
                                     val linkedTrainer = trainerResult.getOrNull()
-                                    uiState = ClientDashboardUiState.Success(fallbackData, linkedTrainer)
+                                    uiState = ClientDashboardUiState.Success(fallbackData, linkedTrainer, isRefreshing = false)
                                 }
                             } else {
                                 uiState = ClientDashboardUiState.Error("Profile not found and failed to fetch user info")
@@ -84,7 +90,10 @@ class ClientDashboardViewModel @Inject constructor(
                             uiState = ClientDashboardUiState.Error("Profile not found and failed to fetch user info")
                         }
                     } else {
-                        uiState = ClientDashboardUiState.Error(e.message ?: "Unknown error")
+                        // If refreshing, revert to success state with error message event (simplified here)
+                        // For now we just go to error state to be safe, or we could handle it better.
+                        // But since we are replacing the logic block:
+                         uiState = ClientDashboardUiState.Error(e.message ?: "Unknown error")
                     }
                 }
         }
@@ -145,6 +154,27 @@ class ClientDashboardViewModel @Inject constructor(
                      val newState = uiState as? ClientDashboardUiState.Success ?: return@onFailure
                      uiState = newState.copy(isProgressLoading = false)
                 }
+        }
+    }
+
+    fun startSession(session: com.ziro.fit.model.ClientSession, onSuccess: () -> Unit) {
+        val currentState = uiState as? ClientDashboardUiState.Success ?: return
+        viewModelScope.launch {
+             try {
+                val request = com.ziro.fit.model.StartWorkoutRequest(
+                    clientId = currentState.data.id,
+                    templateId = session.workoutTemplateId,
+                    plannedSessionId = session.id
+                )
+                val response = api.startWorkout(request)
+                if (response.success != false) {
+                     onSuccess()
+                } else {
+                     uiState = ClientDashboardUiState.Error("Failed to start workout")
+                }
+             } catch (e: Exception) {
+                 uiState = ClientDashboardUiState.Error(e.message ?: "Failed to start workout")
+             }
         }
     }
 }
