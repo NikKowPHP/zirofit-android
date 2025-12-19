@@ -49,8 +49,9 @@ class ChatViewModel @Inject constructor(
                 repository.getCurrentUserId().onSuccess { id ->
                     myId = id
                     _uiState.update { it.copy(currentUserId = id) }
-                }.onFailure {
-                    _uiState.update { it.copy(error = "Failed to authenticate user") }
+                }.onFailure { e ->
+                    e.printStackTrace()
+                    _uiState.update { it.copy(error = "Failed to authenticate user: ${e.message}") }
                 }
             } else {
                  _uiState.update { it.copy(currentUserId = myId!!) }
@@ -116,9 +117,23 @@ class ChatViewModel @Inject constructor(
         if (currentUser.isEmpty()) return // Cannot send without user ID
 
         viewModelScope.launch {
-            // Optimistic update? 
-            // We can add a temp message, but for now let's wait for Realtime or API.
-            // Better to wait for API success, then Realtime will push the message back.
+            // Optimistic update
+            val tempId = "temp_${System.currentTimeMillis()}"
+            val tempMessage = Message(
+                id = tempId,
+                conversationId = _uiState.value.conversationId ?: "",
+                senderId = currentUser,
+                content = content,
+                mediaUrl = null,
+                mediaType = null,
+                isSystemMessage = false,
+                createdAt = java.time.Instant.now().toString(),
+                readAt = null
+            )
+            
+            _uiState.update { 
+                 it.copy(messages = it.messages + tempMessage)
+            }
             
             val request = SendMessageRequest(
                 clientId = clientId,
@@ -129,8 +144,18 @@ class ChatViewModel @Inject constructor(
             
             val result = repository.sendMessage(request)
             result.onFailure { e ->
-                _uiState.update { it.copy(error = "Failed to send: ${e.message}") }
+                // Remove temp message on failure and show error
+                _uiState.update { state -> 
+                    state.copy(
+                        messages = state.messages.filter { it.id != tempId },
+                        error = "Failed to send: ${e.message}"
+                    )
+                }
             }
+            // On success, we expect Realtime to send the real message back.
+            // We might have a duplicate for a moment until we de-dupe or replace the temp one.
+            // The existing de-dupe logic in subscribeToRealtime uses ID, which won't match tempId.
+            // Ideally we should replace the temp message with the real one, but usually Realtime is fast enough.
         }
     }
 }

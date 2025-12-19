@@ -53,8 +53,8 @@ class ChatRepository @Inject constructor(
         channel.subscribe()
         
         return channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
-            table = "Message"
-            filter(FilterOperation("conversationId", FilterOperator.EQ, conversationId))
+            table = "messages"
+            filter(FilterOperation("conversation_id", FilterOperator.EQ, conversationId))
         }.map { action ->
              mapToMessage(action.record)
         }
@@ -64,21 +64,22 @@ class ChatRepository @Inject constructor(
         return Message(
             id = data["id"].toString(),
             content = data["content"].toString(),
-            isSystemMessage = data["isSystemMessage"].toString().toBoolean(),
-            senderId = data["senderId"]?.toString(),
-            conversationId = data["conversationId"].toString(),
-            mediaUrl = data["mediaUrl"]?.toString(),
-            mediaType = data["mediaType"]?.toString(),
-            workoutSessionId = data["workoutSessionId"]?.toString(),
-            createdAt = data["createdAt"].toString(),
-            readAt = data["readAt"]?.toString()
+            isSystemMessage = data["is_system_message"].toString().toBoolean(),
+            senderId = data["sender_id"]?.toString(),
+            conversationId = data["conversation_id"].toString(),
+            mediaUrl = data["media_url"]?.toString(),
+            mediaType = data["media_type"]?.toString(),
+            workoutSessionId = data["workout_session_id"]?.toString(),
+            createdAt = data["created_at"].toString(),
+            readAt = data["read_at"]?.toString()
         )
     }
 
     suspend fun getCurrentUserId(): Result<String> {
         return try {
             val response = api.getMe()
-            if (response.success == true && response.data != null) {
+            // api/auth/me might not return success=true explicitly, so we check data
+            if (response.data != null) {
                 Result.success(response.data.id)
             } else {
                 Result.failure(Exception("Failed to get user"))
