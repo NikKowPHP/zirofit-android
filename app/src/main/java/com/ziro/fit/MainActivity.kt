@@ -111,11 +111,11 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
                             }
                         )
                         NavigationBarItem(
-                            icon = { Icon(Icons.Default.DateRange, contentDescription = null) }, // Using DateRange as placeholder for Exercises/History
-                            label = { Text("Exercises") },
-                            selected = currentRoute == "client_exercises",
+                            icon = { Icon(Icons.Default.DateRange, contentDescription = null) }, // Using DateRange as placeholder for Workouts
+                            label = { Text("Workouts") },
+                            selected = currentRoute == "client_workouts",
                             onClick = {
-                                navController.navigate("client_exercises") {
+                                navController.navigate("client_workouts") {
                                     popUpTo(navController.graph.startDestinationId) { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
@@ -171,8 +171,8 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }
-                composable("client_exercises") {
-                    com.ziro.fit.ui.exercises.ExercisesScreen(
+                composable("client_workouts") {
+                    com.ziro.fit.ui.workouts.WorkoutsScreen(
                         onStartFreestyleWorkout = {
                             workoutViewModel.startWorkout(null, null, null)
                             navController.navigate("live_workout")

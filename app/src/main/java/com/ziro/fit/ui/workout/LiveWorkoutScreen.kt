@@ -1,6 +1,8 @@
 package com.ziro.fit.ui.workout
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
@@ -11,26 +13,32 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ziro.fit.model.Exercise
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
+import com.ziro.fit.ui.theme.*
 import com.ziro.fit.ui.workouts.WorkoutSuccessContent
 import com.ziro.fit.viewmodel.WorkoutViewModel
 
@@ -56,18 +64,15 @@ fun LiveWorkoutScreen(
     }
 
     Scaffold(
+        containerColor = StrongBackground, // Strong App Background
         topBar = {
             LiveWorkoutHeader(
                 templateName = state.activeSession?.title ?: "Workout",
-                elapsedSeconds = state.elapsedSeconds
+                elapsedSeconds = state.elapsedSeconds,
+                onMinimize = onNavigateBack,
+                onFinish = { viewModel.finishWorkout() },
+                isFinishing = state.isFinishing
             )
-        },
-        bottomBar = {
-             LiveWorkoutBottomBar(
-                 onFinish = { viewModel.finishWorkout() },
-                 onMinimize = onNavigateBack,
-                 isFinishing = state.isFinishing
-             )
         }
     ) { padding ->
         // Swipe to dismiss/minimize gesture
@@ -84,151 +89,165 @@ fun LiveWorkoutScreen(
                 }
         ) {
             if (state.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 80.dp) // Add padding for Fab/Sheet overlap if needed, or just visual
-            ) {
-                items(state.activeSession?.exercises ?: emptyList()) { exercise ->
-                    val isResting = state.isRestActive && state.restingExerciseId == exercise.exerciseId
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = StrongBlue)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
+                    items(state.activeSession?.exercises ?: emptyList()) { exercise ->
+                        val isResting = state.isRestActive && state.restingExerciseId == exercise.exerciseId
+                        
+                        ExerciseCard(
+                            exercise = exercise,
+                            isResting = isResting,
+                            restSecondsRemaining = state.restSecondsRemaining,
+                            restTotalSeconds = state.restTotalSeconds,
+                            onInputChange = viewModel::updateSetInput,
+                            onSetToggle = { set -> viewModel.logSet(exercise.exerciseId, set) },
+                            onAddSet = { viewModel.addSetToExercise(exercise.exerciseId) },
+                            onAddRestTime = { viewModel.adjustRestTime(30) },
+                            onSkipRest = { viewModel.stopRestTimer() }
+                        )
+                        HorizontalDivider(color = StrongDivider, thickness = 1.dp)
+                    }
                     
-                    ExerciseCard(
-                        exercise = exercise,
-                        isResting = isResting,
-                        restSecondsRemaining = state.restSecondsRemaining,
-                        restTotalSeconds = state.restTotalSeconds,
-                        onInputChange = viewModel::updateSetInput,
-                        onSetToggle = { set -> viewModel.logSet(exercise.exerciseId, set) },
-                        onAddSet = { viewModel.addSetToExercise(exercise.exerciseId) },
-                        onAddRestTime = { viewModel.adjustRestTime(30) },
-                        onSkipRest = { viewModel.stopRestTimer() }
+                    item {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            TextButton(
+                                onClick = { showExerciseSheet = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    "ADD EXERCISE",
+                                    color = StrongBlue,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+                            
+                            TextButton(
+                                onClick = onNavigateBack, // "Cancel" just minimizes/goes back for now, or implement cancel logic
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    "CANCEL WORKOUT",
+                                    color = StrongRed,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        
+            // Exercise Browser Sheet
+            if (showExerciseSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showExerciseSheet = false },
+                    containerColor = StrongSurface
+                ) {
+                    ExerciseBrowserContent(
+                        exercises = state.availableExercises,
+                        isLoading = state.isExercisesLoading,
+                        onSearch = viewModel::loadExercises,
+                        onAddExercises = { exercises ->
+                            viewModel.addExercisesToSession(exercises)
+                            showExerciseSheet = false
+                        }
                     )
                 }
-                
-                item {
-                    Button(
-                        onClick = { showExerciseSheet = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors()
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Add Exercise")
-                    }
-                }
             }
-        }
-        
-        // Exercise Browser Sheet
-        if (showExerciseSheet) {
-            ModalBottomSheet(onDismissRequest = { showExerciseSheet = false }) {
-                ExerciseBrowserContent(
-                    exercises = state.availableExercises,
-                    isLoading = state.isExercisesLoading,
-                    onSearch = viewModel::loadExercises,
-                    onAddExercises = { exercises ->
-                        viewModel.addExercisesToSession(exercises)
-                        showExerciseSheet = false
-                    }
-                )
-            }
-        }
 
-        // Success Sheet
-        if (state.workoutSuccessStats != null) {
-            ModalBottomSheet(
-                onDismissRequest = { 
-                    viewModel.onSessionCompletedNavigated()
-                    onNavigateBack() 
-                },
-                dragHandle = null
-            ) {
-                WorkoutSuccessContent(
-                    stats = state.workoutSuccessStats!!,
-                    onDone = {
+            // Success Sheet
+            if (state.workoutSuccessStats != null) {
+                ModalBottomSheet(
+                    onDismissRequest = { 
                         viewModel.onSessionCompletedNavigated()
-                        onNavigateBack()
-                    }
-                )
+                        onNavigateBack() 
+                    },
+                    dragHandle = null,
+                    containerColor = StrongSurface
+                ) {
+                    WorkoutSuccessContent(
+                        stats = state.workoutSuccessStats!!,
+                        onDone = {
+                            viewModel.onSessionCompletedNavigated()
+                            onNavigateBack()
+                        }
+                    )
+                }
             }
         }
     }
-}
 }
 
 @Composable
 fun LiveWorkoutHeader(
     templateName: String,
-    elapsedSeconds: Long
+    elapsedSeconds: Long,
+    onMinimize: () -> Unit,
+    onFinish: () -> Unit,
+    isFinishing: Boolean
 ) {
-    // Format seconds to MM:SS
-    val timeString = String.format("%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
+    // Format seconds to MM:SS or H:MM:SS
+    val timeString = if (elapsedSeconds >= 3600) {
+        String.format("%d:%02d:%02d", elapsedSeconds / 3600, (elapsedSeconds % 3600) / 60, elapsedSeconds % 60)
+    } else {
+         String.format("%d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.Center,
+            .background(StrongSecondaryBackground)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = templateName, style = MaterialTheme.typography.titleSmall, color = Color.Gray)
-            Text(
-                text = timeString,
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-fun LiveWorkoutBottomBar(
-    onFinish: () -> Unit,
-    onMinimize: () -> Unit,
-    isFinishing: Boolean
-) {
-    Surface(
-        tonalElevation = 8.dp,
-        shadowElevation = 8.dp
-    ) {
-        Row(
+        // Minimize Button (Left)
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = "Minimize",
+            tint = StrongTextSecondary,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            OutlinedButton(
-                onClick = onMinimize,
-                modifier = Modifier.weight(1f)
-            ) {
-                 Icon(
-                     imageVector = Icons.Default.KeyboardArrowDown,
-                     contentDescription = null
-                 )
-                 Spacer(Modifier.width(8.dp))
-                 Text("Minimize")
-            }
-            
-            Button(
-                onClick = onFinish,
-                enabled = !isFinishing,
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) {
-                if (isFinishing) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
-                } else {
-                    Text("Finish Workout")
-                }
-            }
+                .size(32.dp)
+                .clickable(onClick = onMinimize)
+        )
+
+        // Timer (Center) - Only timer shown here based on Strong UI
+        // Or sometimes it's "Timer" + "Finish".
+        // Strong app header: Left Chevron, Center Timer, Right FINISH
+        
+        Text(
+            text = timeString,
+            style = MaterialTheme.typography.titleLarge,
+            color = StrongTextPrimary,
+            fontWeight = FontWeight.Normal
+        )
+
+        // Finish Button (Right)
+        if (isFinishing) {
+            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = StrongBlue, strokeWidth = 2.dp)
+        } else {
+            Text(
+                text = "FINISH",
+                color = StrongBlue,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable(onClick = onFinish)
+            )
         }
     }
 }
@@ -245,84 +264,100 @@ fun ExerciseCard(
     onAddRestTime: () -> Unit,
     onSkipRest: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(StrongBackground)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        // Exercise Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = exercise.exerciseName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = StrongBlue,
+                fontSize = 18.sp
+            )
+            
+            // Options Menu (Placeholder)
+            Icon(
+                imageVector = Icons.Default.MoreHoriz,
+                contentDescription = "Options",
+                tint = StrongBlue
+            )
+        }
+
+        // Table Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("SET", modifier = Modifier.width(40.dp), color = StrongTextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Spacer(Modifier.width(16.dp))
+            Text("PREVIOUS", modifier = Modifier.weight(1f), color = StrongTextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text("KG", modifier = Modifier.weight(1f), color = StrongTextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text("REPS", modifier = Modifier.weight(1f), color = StrongTextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Spacer(Modifier.width(40.dp)) // Checkbox column
+        }
+
+        // Sets
+        exercise.sets.forEachIndexed { index, set ->
+            SetRow(
+                set = set,
+                onWeightChange = { w -> onInputChange(exercise.exerciseId, index, w, set.reps) },
+                onRepsChange = { r -> onInputChange(exercise.exerciseId, index, set.weight, r) },
+                onCheck = { onSetToggle(set) }
+            )
+        }
+
+        // "Add Set" Action
+         Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onAddSet)
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "ADD SET",
+                color = StrongBlue,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp
+            )
+        }
+
+        // Inline Rest Timer (Only if active for this exercise)
+        if (isResting) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(StrongInputBackground) // Slightly lighter
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = exercise.exerciseName,
-                    style = MaterialTheme.typography.titleMedium,
+                 Text(
+                    text = "Resting: ${restSecondsRemaining}s",
+                    color = StrongTextPrimary,
                     fontWeight = FontWeight.Bold
                 )
-            }
-            
-            if (exercise.targetReps != null) {
-                Text(
-                    text = "Target: ${exercise.targetReps} reps",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                LinearProgressIndicator(
+                    progress = { if (restTotalSeconds > 0) restSecondsRemaining.toFloat() / restTotalSeconds else 0f },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    color = StrongBlue,
+                    trackColor = StrongDivider
                 )
-            } else {
-                 Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // Header Row
-            Row(modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                Text("Set", modifier = Modifier.width(40.dp), style = MaterialTheme.typography.labelMedium)
-                Text("Previous", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                Text("kg", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                Text("Reps", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
-                Spacer(Modifier.width(48.dp)) // For Checkbox
-            }
-
-            exercise.sets.forEachIndexed { index, set ->
-                SetRow(
-                    set = set,
-                    onWeightChange = { w -> onInputChange(exercise.exerciseId, index, w, set.reps) },
-                    onRepsChange = { r -> onInputChange(exercise.exerciseId, index, set.weight, r) },
-                    onCheck = { onSetToggle(set) }
-                )
-            }
-            
-            // Inline Rest Timer
-            if (isResting) {
-                Spacer(Modifier.height(16.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
-                        .padding(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Resting: ${restSecondsRemaining}s",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                    LinearProgressIndicator(
-                        progress = { if (restTotalSeconds > 0) restSecondsRemaining.toFloat() / restTotalSeconds else 0f },
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        TextButton(onClick = onAddRestTime) { Text("+30s") }
-                        TextButton(onClick = onSkipRest) { Text("Skip") }
-                    }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    TextButton(onClick = onAddRestTime) { Text("+30s", color = StrongBlue) }
+                    TextButton(onClick = onSkipRest) { Text("Skip", color = StrongTextPrimary) }
                 }
-                Spacer(Modifier.height(8.dp))
-            }
-            
-            TextButton(onClick = onAddSet, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Add Set")
             }
         }
     }
@@ -335,8 +370,7 @@ fun SetRow(
     onRepsChange: (String) -> Unit,
     onCheck: () -> Unit
 ) {
-    // Dark mode compatible background color (Green with transparency)
-    val backgroundColor = if (set.isCompleted) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent
+    val backgroundColor = if (set.isCompleted) StrongGreen.copy(alpha = 0.2f) else Color.Transparent
     
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -344,81 +378,117 @@ fun SetRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(backgroundColor, RoundedCornerShape(4.dp))
-            .padding(vertical = 4.dp),
+            .background(backgroundColor)
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Set Number
         Text(
             text = set.setNumber.toString(),
             modifier = Modifier.width(40.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
+            color = StrongTextSecondary,
             fontWeight = FontWeight.Bold
         )
+        
+        Spacer(Modifier.width(16.dp))
 
-        // Previous data (Ghost text) - Placeholder
+        // Previous Data
         Text(
-            text = "-",
+            text = "-", // Placeholder for "Previous"
             modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodySmall,
-            color = Color.Gray
+            textAlign = TextAlign.Center,
+            color = StrongTextSecondary,
+            fontSize = 14.sp
         )
 
         // Inputs
-        OutlinedTextField(
+        // Weight
+        CompactInput(
             value = set.weight,
             onValueChange = onWeightChange,
-            modifier = Modifier.weight(1f).padding(end = 4.dp),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Decimal,
-                imeAction = ImeAction.Next
-            ),
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedContainerColor = MaterialTheme.colorScheme.surface
-            )
+            modifier = Modifier.weight(1f),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next)
         )
+        
+        Spacer(Modifier.width(8.dp))
 
-        OutlinedTextField(
+        // Reps
+        CompactInput(
             value = set.reps,
             onValueChange = onRepsChange,
-            modifier = Modifier.weight(1f).padding(end = 4.dp),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Go // Or Done, but user asked for "Next submit logs exercise" which implies a distinct action
-            ),
-            keyboardActions = KeyboardActions(
-                onGo = {
-                    onCheck()
-                    keyboardController?.hide()
-                    focusManager.clearFocus() 
-                }
-            ),
-            singleLine = true,
-             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedContainerColor = MaterialTheme.colorScheme.surface
-            )
-        )
-
-        // Check Button
-        IconButton(
-            onClick = {
+            modifier = Modifier.weight(1f),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Go),
+            keyboardActions = KeyboardActions(onGo = {
                 onCheck()
                 keyboardController?.hide()
-                focusManager.clearFocus()
-            },
-            modifier = Modifier.size(48.dp)
+                focusManager.clearFocus() 
+            })
+        )
+
+        Spacer(Modifier.width(16.dp)) // Space before checkbox
+
+        // Custom Checkbox
+        Box(
+            modifier = Modifier
+                .size(24.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(if (set.isCompleted) StrongGreen else Color.Transparent)
+                .border(2.dp, if (set.isCompleted) StrongGreen else StrongTextSecondary.copy(alpha=0.5f), RoundedCornerShape(4.dp))
+                .clickable { 
+                    onCheck()
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                },
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = if (set.isCompleted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                contentDescription = "Log Set",
-                tint = if (set.isCompleted) Color(0xFF4CAF50) else Color.Gray,
-                modifier = Modifier.size(28.dp)
-            )
+            if (set.isCompleted) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
+}
+
+
+
+@Composable
+fun CompactInput(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default
+) {
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier
+            .height(36.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(StrongInputBackground),
+        textStyle = LocalTextStyle.current.copy(
+            color = StrongTextPrimary, 
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp
+        ),
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        singleLine = true,
+        decorationBox = { innerTextField ->
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                innerTextField()
+            }
+        }
+    )
 }
 
 @Composable
@@ -431,21 +501,32 @@ fun ExerciseBrowserContent(
     var searchQuery by remember { mutableStateOf("") }
     val selectedExercises = remember { mutableStateListOf<Exercise>() }
     
-    // Clear selection when search changes or list reloads? 
-    // Usually better to keep selection.
-    
     Column(modifier = Modifier
         .fillMaxSize()
+        .background(StrongBackground)
         .padding(16.dp)) {
+            
+        Text("Add Exercises", style = MaterialTheme.typography.headlineSmall, color = StrongTextPrimary)
+        Spacer(Modifier.height(16.dp))
+        
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { 
                 searchQuery = it
                 onSearch(it) 
             },
-            label = { Text("Search Exercises") },
-            leadingIcon = { Icon(Icons.Default.Search, null) },
-            modifier = Modifier.fillMaxWidth()
+            placeholder = { Text("Search Exercises", color = StrongTextSecondary) },
+            leadingIcon = { Icon(Icons.Default.Search, null, tint = StrongTextSecondary) },
+            modifier = Modifier.fillMaxWidth(),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = StrongTextPrimary,
+                unfocusedTextColor = StrongTextPrimary,
+                focusedContainerColor = StrongInputBackground,
+                unfocusedContainerColor = StrongInputBackground,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent
+            ),
+            shape = RoundedCornerShape(8.dp)
         )
         
         Spacer(Modifier.height(16.dp))
@@ -454,7 +535,7 @@ fun ExerciseBrowserContent(
             Box(Modifier
                 .fillMaxWidth()
                 .weight(1f), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = StrongBlue)
             }
         } else {
             LazyColumn(
@@ -463,22 +544,9 @@ fun ExerciseBrowserContent(
             ) {
                 items(exercises) { exercise ->
                     val isSelected = selectedExercises.any { it.id == exercise.id }
-                    ListItem(
-                        headlineContent = { Text(exercise.name) },
-                        supportingContent = { Text("${exercise.muscleGroup ?: ""} • ${exercise.equipment ?: ""}") },
-                        leadingContent = {
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = { checked ->
-                                    if (checked) {
-                                        selectedExercises.add(exercise)
-                                    } else {
-                                        selectedExercises.removeAll { it.id == exercise.id }
-                                    }
-                                }
-                            )
-                        },
+                    Row(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .clickable {
                                 if (isSelected) {
                                     selectedExercises.removeAll { it.id == exercise.id }
@@ -486,33 +554,47 @@ fun ExerciseBrowserContent(
                                     selectedExercises.add(exercise)
                                 }
                             }
-                            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
-                    )
-                }
-                if (exercises.isEmpty()) {
-                    item {
-                        Text("No exercises found", modifier = Modifier.padding(16.dp), color = Color.Gray)
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Avatar/Image placeholder
+                         Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(StrongSecondaryBackground),
+                            contentAlignment = Alignment.Center
+                         ) {
+                             Text(exercise.name.take(1), color = StrongTextSecondary)
+                         }
+                         
+                         Spacer(Modifier.width(16.dp))
+                         
+                         Column(modifier = Modifier.weight(1f)) {
+                             Text(exercise.name, color = StrongTextPrimary, fontWeight = FontWeight.SemiBold)
+                             Text(exercise.muscleGroup ?: "Cardio", color = StrongTextSecondary, fontSize = 12.sp)
+                         }
+                         
+                         if (isSelected) {
+                             Icon(Icons.Default.Check, null, tint = StrongBlue)
+                         }
                     }
+                    HorizontalDivider(color = StrongDivider)
                 }
             }
             
             // Add Button Footer
             if (selectedExercises.isNotEmpty()) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shadowElevation = 8.dp
+                Button(
+                    onClick = { onAddExercises(selectedExercises.toList()) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = StrongBlue)
                 ) {
-                    Button(
-                        onClick = { onAddExercises(selectedExercises.toList()) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 16.dp)
-                    ) {
-                        Text("Add (${selectedExercises.size}) Exercises")
-                    }
+                    Text("Add (${selectedExercises.size})")
                 }
             }
         }
     }
 }
-      

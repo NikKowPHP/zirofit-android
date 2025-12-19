@@ -291,4 +291,7 @@ interface ZiroApi {
 
     @GET("api/client/check-ins/{id}")
     suspend fun getClientCheckInDetails(@retrofit2.http.Path("id") id: String): ApiResponse<CheckInDetailWrapper>
+
+    @GET("api/client/programs")
+    suspend fun getClientPrograms(): ApiResponse<GetClientProgramsResponse>
 }
