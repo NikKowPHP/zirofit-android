@@ -1,5 +1,10 @@
 package com.ziro.fit.ui.workout
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,6 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -17,16 +23,14 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +39,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.ziro.fit.model.Exercise
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
@@ -50,17 +55,44 @@ fun LiveWorkoutScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var showExerciseSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // Permission Launcher
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { perms ->
+            viewModel.onPermissionsResult()
+        }
+    )
+
+    // Request Notification & Activity Recognition Permission on entry
+    LaunchedEffect(Unit) {
+        val permissionsToRequest = mutableListOf<String>()
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+             if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.ACTIVITY_RECOGNITION)
+            }
+        }
+
+        if (permissionsToRequest.isNotEmpty()) {
+            launcher.launch(permissionsToRequest.toTypedArray())
+        }
+        
+        viewModel.loadExercises()
+    }
 
     // Handle back navigation if session is gone AND we are not showing success screen
     LaunchedEffect(state.activeSession, state.isLoading, state.workoutSuccessStats) {
         if (state.activeSession == null && !state.isLoading && state.workoutSuccessStats == null) {
             onNavigateBack()
         }
-    }
-    
-    // Load exercises initially
-    LaunchedEffect(Unit) {
-        viewModel.loadExercises()
     }
 
     Scaffold(
@@ -137,7 +169,7 @@ fun LiveWorkoutScreen(
                             }
                             
                             TextButton(
-                                onClick = onNavigateBack, // "Cancel" just minimizes/goes back for now, or implement cancel logic
+                                onClick = onNavigateBack, 
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
@@ -194,6 +226,7 @@ fun LiveWorkoutScreen(
     }
 }
 
+// ... Keep existing composables (LiveWorkoutHeader, ExerciseCard, SetRow, etc.) ...
 @Composable
 fun LiveWorkoutHeader(
     templateName: String,
@@ -227,10 +260,6 @@ fun LiveWorkoutHeader(
                 .clickable(onClick = onMinimize)
         )
 
-        // Timer (Center) - Only timer shown here based on Strong UI
-        // Or sometimes it's "Timer" + "Finish".
-        // Strong app header: Left Chevron, Center Timer, Right FINISH
-        
         Text(
             text = timeString,
             style = MaterialTheme.typography.titleLarge,
@@ -453,8 +482,6 @@ fun SetRow(
         }
     }
 }
-
-
 
 @Composable
 fun CompactInput(
