@@ -89,7 +89,7 @@ class ChatViewModel @Inject constructor(
                 // Notify Manager that this chat is open
                 globalChatManager.onChatOpened(response.conversationId)
                 
-                subscribeToRealtime(response.conversationId)
+                response.conversationId?.let { subscribeToRealtime(it) }
             }.onFailure { e ->
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
             }

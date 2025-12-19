@@ -30,6 +30,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.ziro.fit.ui.calendar.CalendarScreen
 import com.ziro.fit.ui.workout.LiveWorkoutScreen
 import com.ziro.fit.ui.workout.LiveWorkoutMiniPlayer
@@ -181,6 +182,22 @@ fun ClientAppScreen(
                              navController.navigate("chat/$clientId/$trainerId")
                         }
                     )
+                }
+                composable(
+                    route = "payment_success",
+                    deepLinks = listOf(navDeepLink { uriPattern = "zirofit://payment/success" })
+                ) {
+                    com.ziro.fit.ui.components.PaymentSuccessDialog(
+                        onDismiss = { navController.navigate("client_dashboard") }
+                    )
+                }
+                composable(
+                    route = "payment_cancel",
+                    deepLinks = listOf(navDeepLink { uriPattern = "zirofit://payment/cancel" })
+                ) {
+                    LaunchedEffect(Unit) {
+                        navController.popBackStack()
+                    }
                 }
                 composable("trainer_discovery") {
                     com.ziro.fit.ui.discovery.TrainerDiscoveryScreen(

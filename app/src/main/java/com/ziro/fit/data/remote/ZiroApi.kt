@@ -310,4 +310,7 @@ interface ZiroApi {
 
     @POST("api/chat")
     suspend fun sendMessage(@Body request: SendMessageRequest): ApiResponse<Any>
+
+    @POST("api/checkout/session")
+    suspend fun createCheckoutSession(@Body request: CreateCheckoutSessionRequest): ApiResponse<CreateCheckoutSessionResponse>
 }

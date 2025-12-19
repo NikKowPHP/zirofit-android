@@ -22,6 +22,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.ui.platform.LocalContext
+import com.ziro.fit.model.ProfilePackage
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.ziro.fit.model.PublicTrainerProfileResponse
@@ -40,6 +44,8 @@ fun TrainerPublicProfileScreen(
     onNavigateBack: () -> Unit,
     viewModel: TrainerPublicProfileViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+
     LaunchedEffect(trainerId) {
         viewModel.loadTrainerProfile(trainerId)
     }
@@ -60,6 +66,24 @@ fun TrainerPublicProfileScreen(
         if (uiState.linkSuccess || uiState.linkError != null || uiState.unlinkSuccess || uiState.unlinkError != null) {
             kotlinx.coroutines.delay(3000)
             viewModel.resetLinkState()
+        }
+    }
+
+    // Handle Checkout Navigation
+    LaunchedEffect(uiState.checkoutUrl) {
+        uiState.checkoutUrl?.let { url ->
+            val intent = CustomTabsIntent.Builder()
+                .setShowTitle(true)
+                .build()
+            try {
+                intent.launchUrl(context, Uri.parse(url))
+                viewModel.onCheckoutLaunched()
+            } catch (e: Exception) {
+                // Fallback to standard browser if Chrome not available
+                val browserIntent = android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))
+                context.startActivity(browserIntent)
+                viewModel.onCheckoutLaunched()
+            }
         }
     }
 
@@ -117,6 +141,7 @@ fun TrainerPublicProfileScreen(
                     if (uiState.unlinkSuccess) showSnackbar("Successfully unlinked from trainer!")
                     uiState.linkError?.let { showSnackbar("Error: $it") }
                     uiState.unlinkError?.let { showSnackbar("Error: $it") }
+                    uiState.checkoutError?.let { showSnackbar("Checkout Error: $it") }
                 }
             })
         }
@@ -278,7 +303,7 @@ fun TrainerProfileContent(
         // Specialties & Certifications
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (details.professional.specialties.isNotEmpty()) {
+                if (details.professional.specialties?.isNotEmpty() == true) {
                     Text(text = "Specialties", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -299,7 +324,7 @@ fun TrainerProfileContent(
         }
         
         // Locations
-        if (details.locations.isNotEmpty()) {
+        if (details.locations?.isNotEmpty() == true) {
             item {
                 Text(text = "Locations", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -316,7 +341,7 @@ fun TrainerProfileContent(
         }
 
         // Services
-        if (details.services.isNotEmpty()) {
+        if (details.services?.isNotEmpty() == true) {
             item {
                 Text(text = "Services", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -344,6 +369,23 @@ fun TrainerProfileContent(
                                 }
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        // Packages Section
+        if (profile.profile.packages?.isNotEmpty() == true) {
+            item {
+                Text(text = "Training Packages", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    profile.profile.packages.forEach { pkg ->
+                        PackageCard(
+                            pkg = pkg,
+                            isCheckingOut = uiState.isCheckingOut,
+                            onBuy = { viewModel.purchasePackage(pkg.id) }
+                        )
                     }
                 }
             }
@@ -454,7 +496,7 @@ fun TrainerProfileContent(
 
         // Transformations
 
-        if (details.transformations.isNotEmpty()) {
+        if (details.transformations?.isNotEmpty() == true) {
             item {
                 Text(text = "Transformations", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -489,7 +531,7 @@ fun TrainerProfileContent(
         }
 
         // Testimonials
-        if (details.testimonials.isNotEmpty()) {
+        if (details.testimonials?.isNotEmpty() == true) {
             item {
                 Text(text = "Testimonials", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -514,7 +556,7 @@ fun TrainerProfileContent(
         }
         
         // Benefits
-        if (details.benefits.isNotEmpty()) {
+        if (details.benefits?.isNotEmpty() == true) {
             item {
                 Text(text = "Benefits", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -535,7 +577,7 @@ fun TrainerProfileContent(
         }
         
         // Socials
-        if (details.socials.isNotEmpty()) {
+        if (details.socials?.isNotEmpty() == true) {
             item {
                 Text(text = "Connect", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -545,6 +587,72 @@ fun TrainerProfileContent(
                             onClick = { /* Open URL */ },
                             label = { Text(social.platform) }
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PackageCard(
+    pkg: com.ziro.fit.model.ProfilePackage,
+    isCheckingOut: Boolean,
+    onBuy: () -> Unit
+) {
+    Card(
+        modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = androidx.compose.ui.Modifier.padding(16.dp)) {
+            Text(
+                text = pkg.name,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            if (!pkg.description.isNullOrBlank()) {
+                Spacer(modifier = androidx.compose.ui.Modifier.height(4.dp))
+                Text(
+                    text = pkg.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            
+            if (pkg.sessionCount != null) {
+                Spacer(modifier = androidx.compose.ui.Modifier.height(4.dp))
+                Text(
+                    text = "${pkg.sessionCount} Sessions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+
+            Spacer(modifier = androidx.compose.ui.Modifier.height(16.dp))
+
+            Row(
+                modifier = androidx.compose.ui.Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "$${pkg.price}",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                Button(
+                    onClick = onBuy,
+                    enabled = !isCheckingOut
+                ) {
+                    if (isCheckingOut) {
+                        CircularProgressIndicator(
+                            modifier = androidx.compose.ui.Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Purchase")
                     }
                 }
             }

@@ -46,12 +46,13 @@ data class PublicTrainerProfileDetails(
     val bio: TrainerBio,
     val images: TrainerImages,
     val professional: TrainerProfessionalInfo,
-    val locations: List<TrainerLocation>,
-    val services: List<TrainerService>,
-    val testimonials: List<TrainerTestimonial>,
-    val transformations: List<TrainerTransformation>,
-    val socials: List<TrainerSocial>,
-    val benefits: List<TrainerBenefit>
+    val locations: List<TrainerLocation>?,
+    val services: List<TrainerService>?,
+    val testimonials: List<TrainerTestimonial>?,
+    val transformations: List<TrainerTransformation>?,
+    val socials: List<TrainerSocial>?,
+    val benefits: List<TrainerBenefit>?,
+    val packages: List<ProfilePackage>? = emptyList()
 )
 
 data class TrainerBio(
@@ -67,8 +68,8 @@ data class TrainerImages(
 )
 
 data class TrainerProfessionalInfo(
-    val specialties: List<String>,
-    val trainingTypes: List<String>,
+    val specialties: List<String>?,
+    val trainingTypes: List<String>?,
     val certifications: String?,
     val averageRating: Double?,
     val minServicePrice: Double?

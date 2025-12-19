@@ -74,7 +74,7 @@ class GlobalChatManager @Inject constructor(
         )
     }
 
-    fun onChatOpened(conversationId: String) {
+    fun onChatOpened(conversationId: String?) {
         activeConversationId = conversationId
     }
 

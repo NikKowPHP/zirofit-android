@@ -26,6 +26,7 @@ mockwebserver = "4.12.0"
 robolectric = "4.13"
 firebaseMessaging = "23.4.0"
 googleServices = "4.4.1"
+browser = "1.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -56,6 +57,7 @@ mockwebserver = { group = "com.squareup.okhttp3", name = "mockwebserver", versio
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx", version.ref = "firebaseMessaging" }
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 
 # Supabase
 supabase-auth = { group = "io.github.jan-tennert.supabase", name = "auth-kt", version.ref = "supabase" }

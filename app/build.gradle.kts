@@ -111,5 +111,8 @@ dependencies {
     
     // Firebase
     implementation(libs.firebase.messaging)
+
+    // Browser
+    implementation(libs.androidx.browser)
 }
       

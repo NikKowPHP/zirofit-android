@@ -14,7 +14,7 @@ data class Message(
 )
 
 data class StartChatResponse(
-    val conversationId: String,
+    val conversationId: String?,
     val messages: List<Message>
 )
 

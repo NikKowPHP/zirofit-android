@@ -30,7 +30,10 @@ data class TrainerPublicProfileUiState(
     val isUnlinking: Boolean = false,
     val unlinkError: String? = null,
     val unlinkSuccess: Boolean = false,
-    val linkedTrainerId: String? = null
+    val linkedTrainerId: String? = null,
+    val isCheckingOut: Boolean = false,
+    val checkoutUrl: String? = null,
+    val checkoutError: String? = null
 )
 
 data class TimeSlot(
@@ -42,7 +45,8 @@ data class TimeSlot(
 @HiltViewModel
 class TrainerPublicProfileViewModel @Inject constructor(
     private val trainerRepository: TrainerRepository,
-    private val bookingsRepository: com.ziro.fit.data.repository.BookingsRepository
+    private val bookingsRepository: com.ziro.fit.data.repository.BookingsRepository,
+    private val billingRepository: com.ziro.fit.data.repository.BillingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrainerPublicProfileUiState())
@@ -199,5 +203,23 @@ class TrainerPublicProfileViewModel @Inject constructor(
                     )
                 }
         }
+    }
+
+    fun purchasePackage(packageId: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isCheckingOut = true, checkoutError = null, checkoutUrl = null)
+            
+            billingRepository.createCheckoutSession(packageId)
+                .onSuccess { url ->
+                    _uiState.value = _uiState.value.copy(isCheckingOut = false, checkoutUrl = url)
+                }
+                .onFailure { e ->
+                    _uiState.value = _uiState.value.copy(isCheckingOut = false, checkoutError = e.message)
+                }
+        }
+    }
+
+    fun onCheckoutLaunched() {
+        _uiState.value = _uiState.value.copy(checkoutUrl = null)
     }
 }

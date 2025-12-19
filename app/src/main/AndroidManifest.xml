@@ -25,6 +25,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:label="@string/app_name"
             android:theme="@style/Theme.Zirofit">
             <intent-filter>
@@ -40,6 +41,14 @@
                 <data
                     android:scheme="zirofit"
                     android:host="chat" />
+            </intent-filter>
+            <!-- NEW: Payment Return Deep Links -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- Handles: zirofit://payment/success and zirofit://payment/cancel -->
+                <data android:scheme="zirofit" android:host="payment" />
             </intent-filter>
         </activity>
 
