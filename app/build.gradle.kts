@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt.android)
+    alias(libs.plugins.google.services)
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
@@ -107,5 +108,8 @@ dependencies {
     implementation(libs.supabase.postgrest)
     implementation(libs.supabase.realtime)
     implementation(libs.ktor.client.okhttp)
+    
+    // Firebase
+    implementation(libs.firebase.messaging)
 }
       

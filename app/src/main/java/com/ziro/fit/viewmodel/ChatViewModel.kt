@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ziro.fit.data.repository.ChatRepository
 import com.ziro.fit.model.Message
 import com.ziro.fit.model.SendMessageRequest
+import com.ziro.fit.service.GlobalChatManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +26,7 @@ data class ChatUiState(
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
+    private val globalChatManager: GlobalChatManager, // Inject Manager
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -84,6 +86,9 @@ class ChatViewModel @Inject constructor(
                         isLoading = false
                     ) 
                 }
+                // Notify Manager that this chat is open
+                globalChatManager.onChatOpened(response.conversationId)
+                
                 subscribeToRealtime(response.conversationId)
             }.onFailure { e ->
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
@@ -157,5 +162,11 @@ class ChatViewModel @Inject constructor(
             // The existing de-dupe logic in subscribeToRealtime uses ID, which won't match tempId.
             // Ideally we should replace the temp message with the real one, but usually Realtime is fast enough.
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Notify manager that chat is closed when ViewModel is cleared
+        globalChatManager.onChatClosed()
     }
 }

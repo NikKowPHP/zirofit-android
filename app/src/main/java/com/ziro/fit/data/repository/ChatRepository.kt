@@ -60,6 +60,20 @@ class ChatRepository @Inject constructor(
         }
     }
 
+    // NEW: Listen to ALL new messages where the user is a participant
+    // Relies on RLS: Supabase only sends rows the user is allowed to see.
+    suspend fun listenToGlobalMessages(): Flow<Message> {
+        val channel = supabase.channel("global_messages")
+        channel.subscribe()
+
+        return channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "messages"
+            // No filter implies "all rows I have permission to see"
+        }.map { action ->
+            mapToMessage(action.record)
+        }
+    }
+
     private fun mapToMessage(data: Map<String, Any>): Message {
         return Message(
             id = data["id"].toString(),

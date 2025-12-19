@@ -156,4 +156,24 @@ class LiveWorkoutRepositoryTest {
         assertTrue(result.isSuccess)
         coVerify { api.logSet(LogSetRequest("sess1", "ex1", 10, 60.0, 0)) }
     }
+
+    @Test
+    fun `cancelActiveWorkout calls api and returns success`() = runBlocking {
+        coEvery { api.cancelActiveWorkout("sess1") } returns ApiResponse(data = Unit, success = true)
+
+        val result = repository.cancelActiveWorkout("sess1")
+
+        assertTrue(result.isSuccess)
+        coVerify { api.cancelActiveWorkout("sess1") }
+    }
+
+    @Test
+    fun `cancelActiveWorkout handles errors`() = runBlocking {
+        coEvery { api.cancelActiveWorkout("sess1") } throws RuntimeException("Network Error")
+
+        val result = repository.cancelActiveWorkout("sess1")
+
+        assertTrue(result.isFailure)
+        assertEquals("Network Error", result.exceptionOrNull()?.message)
+    }
 }

@@ -164,4 +164,17 @@ class ProfileRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun registerPushToken(token: String): Result<Unit> {
+        return try {
+            val response = api.registerPushToken(RegisterPushTokenRequest(token))
+            if (response.success != false) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to register push token"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

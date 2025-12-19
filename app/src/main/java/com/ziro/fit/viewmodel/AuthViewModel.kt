@@ -5,11 +5,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.messaging.FirebaseMessaging
 import com.ziro.fit.data.local.TokenManager
 import com.ziro.fit.data.remote.ZiroApi
+import com.ziro.fit.data.repository.ProfileRepository
 import com.ziro.fit.model.LoginRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 sealed class AuthState {
@@ -22,7 +25,8 @@ sealed class AuthState {
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val api: ZiroApi,
-    private val tokenManager: TokenManager
+    private val tokenManager: TokenManager,
+    private val profileRepository: ProfileRepository
 ) : ViewModel() {
 
     var authState by mutableStateOf<AuthState>(AuthState.Loading)
@@ -50,6 +54,7 @@ class AuthViewModel @Inject constructor(
                     val user = userResponse.data
                     if (user != null) {
                         authState = AuthState.Authenticated(user.role ?: "trainer")
+                        syncPushToken() // Sync on startup check
                     } else {
                         // Token might be valid but can't get user? Treat as error or unauth
                         authState = AuthState.Unauthenticated
@@ -77,12 +82,25 @@ class AuthViewModel @Inject constructor(
                 if (loginData != null) {
                     tokenManager.saveToken(loginData.accessToken)
                     authState = AuthState.Authenticated(loginData.role)
+                    syncPushToken() // Sync on explicit login
                 } else {
                    authState = AuthState.Error("Login failed: No data received") 
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 authState = AuthState.Error("Login failed: ${e.message}")
+            }
+        }
+    }
+
+    private fun syncPushToken() {
+        viewModelScope.launch {
+            try {
+                // Check if Firebase is initialized and get token
+                val token = FirebaseMessaging.getInstance().token.await() // suspending function
+                profileRepository.registerPushToken(token)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

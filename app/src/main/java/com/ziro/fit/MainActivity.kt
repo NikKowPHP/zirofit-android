@@ -40,23 +40,44 @@ import com.ziro.fit.viewmodel.AuthState
 import com.ziro.fit.viewmodel.AuthViewModel
 import com.ziro.fit.viewmodel.UserViewModel
 import com.ziro.fit.viewmodel.WorkoutViewModel
+
+
+
+import com.ziro.fit.service.GlobalChatManager
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var globalChatManager: GlobalChatManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             ZirofitTheme {
-                AppNavigation()
+                AppNavigation(globalChatManager = globalChatManager)
             }
         }
     }
 }
 
 @Composable
-fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
+fun AppNavigation(
+    authViewModel: AuthViewModel = hiltViewModel(),
+    globalChatManager: GlobalChatManager
+) {
     val state = authViewModel.authState
+
+    // Hook to initialize Chat Manager when authenticated
+    LaunchedEffect(state) {
+        if (state is AuthState.Authenticated) {
+            globalChatManager.initialize()
+        } else if (state is AuthState.Unauthenticated) {
+            globalChatManager.clear()
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (state) {
@@ -64,7 +85,7 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
             is AuthState.Unauthenticated -> LoginScreen(onLogin = authViewModel::login, error = (state as? AuthState.Error)?.message)
             is AuthState.Authenticated -> {
                 if (state.role == "client") {
-                    ClientAppScreen(authViewModel = authViewModel)
+                    ClientAppScreen(authViewModel = authViewModel, globalChatManager = globalChatManager)
                 } else {
                     MainAppScreen(onLogout = authViewModel::logout)
                 }
@@ -75,7 +96,10 @@ fun AppNavigation(authViewModel: AuthViewModel = hiltViewModel()) {
 }
 
 @Composable
-fun ClientAppScreen(authViewModel: AuthViewModel) {
+fun ClientAppScreen(
+    authViewModel: AuthViewModel,
+    globalChatManager: GlobalChatManager // Passed down
+) {
     val navController = rememberNavController()
     // Shared workout viewmodel for client too
     val workoutViewModel: WorkoutViewModel = hiltViewModel()
@@ -227,6 +251,12 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
                         navArgument("trainerId") { type = NavType.StringType }
                     )
                 ) {
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            globalChatManager.onChatClosed()
+                        }
+                    }
+
                     com.ziro.fit.ui.chat.ChatScreen(
                         onNavigateBack = { navController.popBackStack() }
                     )

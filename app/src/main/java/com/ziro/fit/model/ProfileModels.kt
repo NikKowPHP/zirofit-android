@@ -130,3 +130,7 @@ data class Notification(
 data class GetNotificationsResponse(
     val notifications: List<Notification>
 )
+
+data class RegisterPushTokenRequest(
+    val token: String
+)

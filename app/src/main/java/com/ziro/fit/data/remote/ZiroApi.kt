@@ -53,6 +53,9 @@ interface ZiroApi {
     @GET("api/auth/me")
     suspend fun getMe(): ApiResponse<User>
 
+    @POST("api/profile/me/push-token")
+    suspend fun registerPushToken(@Body request: RegisterPushTokenRequest): ApiResponse<Any>
+
     @GET("api/trainer/calendar")
     suspend fun getCalendarEvents(
         @Query("startDate") startDate: String,
