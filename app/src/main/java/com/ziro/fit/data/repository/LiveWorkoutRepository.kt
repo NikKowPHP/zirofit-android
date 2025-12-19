@@ -73,6 +73,17 @@ class LiveWorkoutRepository @Inject constructor(
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
+
+    suspend fun cancelActiveWorkout(sessionId: String): Result<Unit> {
+        return try {
+            api.cancelActiveWorkout(sessionId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            // If 404, it might be already gone, treat as success or handle in VM
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
     
     suspend fun getExercises(query: String?, page: Int = 1): Result<GetExercisesResponse> {
         return try {

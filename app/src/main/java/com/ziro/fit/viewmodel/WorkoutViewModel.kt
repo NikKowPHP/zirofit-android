@@ -258,6 +258,28 @@ class WorkoutViewModel @Inject constructor(
         }
     }
 
+    fun cancelWorkout() {
+        val sessionId = workoutStateManager.state.value.activeSession?.id ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            repository.cancelActiveWorkout(sessionId)
+                .onSuccess {
+                    workoutStateManager.updateSession(null)
+                    updateServiceState(null)
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+                .onFailure { error ->
+                    // Even if it fails (like 404), we should probably clear local state
+                    // if the session is gone on the server.
+                    if (error.localizedMessage?.contains("404") == true) {
+                        workoutStateManager.updateSession(null)
+                        updateServiceState(null)
+                    }
+                    _uiState.update { it.copy(error = error.localizedMessage, isLoading = false) }
+                }
+        }
+    }
+
     fun loadExercises(query: String? = null) {
         viewModelScope.launch {
             _uiState.update { it.copy(isExercisesLoading = true) }

@@ -80,6 +80,9 @@ interface ZiroApi {
     @POST("api/workout-sessions/finish")
     suspend fun finishWorkout(@Body request: FinishWorkoutRequest): ApiResponse<FinishWorkoutResponse>
 
+    @POST("api/workout-sessions/{id}/cancel")
+    suspend fun cancelActiveWorkout(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
+
     @retrofit2.http.PUT("api/workout-sessions/{id}")
     suspend fun updateWorkoutSession(
         @retrofit2.http.Path("id") id: String,

@@ -55,6 +55,7 @@ fun LiveWorkoutScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var showExerciseSheet by remember { mutableStateOf(false) }
+    var showCancelDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Permission Launcher
@@ -169,7 +170,7 @@ fun LiveWorkoutScreen(
                             }
                             
                             TextButton(
-                                onClick = onNavigateBack, 
+                                onClick = { showCancelDialog = true }, 
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
@@ -183,6 +184,29 @@ fun LiveWorkoutScreen(
                         }
                     }
                 }
+            }
+        
+            // Confirmation Dialog
+            if (showCancelDialog) {
+                AlertDialog(
+                    onDismissRequest = { showCancelDialog = false },
+                    title = { Text("Cancel Workout?") },
+                    text = { Text("This will permanently discard your progress and logged sets for this session.") },
+                    confirmButton = {
+                        TextButton(onClick = { 
+                            showCancelDialog = false
+                            viewModel.cancelWorkout() 
+                        }) {
+                            Text("Discard", color = StrongRed)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showCancelDialog = false }) {
+                            Text("No", color = StrongTextPrimary)
+                        }
+                    },
+                    containerColor = StrongSurface
+                )
             }
         
             // Exercise Browser Sheet
