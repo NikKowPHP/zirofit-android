@@ -16,6 +16,7 @@ data class ClientDashboardData(
 )
 
 data class TrainerInfo(
+    val id: String,
     val name: String?,
     val username: String,
     val email: String

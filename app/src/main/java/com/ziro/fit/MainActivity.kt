@@ -148,10 +148,13 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
                         onLogout = authViewModel::logout,
                         onNavigateToDiscovery = { navController.navigate("trainer_discovery") },
                         onNavigateToCheckIns = { navController.navigate("client_checkins") },
-                        onNavigateToLiveWorkout = { 
+                        onNavigateToLiveWorkout = {
                             navController.navigate("live_workout") {
                                 launchSingleTop = true 
                             }
+                        },
+                        onNavigateToChat = { clientId, trainerId ->
+                             navController.navigate("chat/$clientId/$trainerId")
                         }
                     )
                 }
@@ -215,6 +218,17 @@ fun ClientAppScreen(authViewModel: AuthViewModel) {
                 composable("profile") {
                     com.ziro.fit.ui.profile.ClientProfileScreen(
                         onLogout = { authViewModel.logout() }
+                    )
+                }
+                composable(
+                    route = "chat/{clientId}/{trainerId}",
+                    arguments = listOf(
+                        navArgument("clientId") { type = NavType.StringType },
+                        navArgument("trainerId") { type = NavType.StringType }
+                    )
+                ) {
+                    com.ziro.fit.ui.chat.ChatScreen(
+                        onNavigateBack = { navController.popBackStack() }
                     )
                 }
             }
@@ -361,7 +375,8 @@ fun MainAppScreen(onLogout: () -> Unit) {
                         onNavigateToMeasurements = { id -> navController.navigate("client_details/$id/measurements") },
                         onNavigateToAssessments = { id -> navController.navigate("client_details/$id/assessments") },
                         onNavigateToPhotos = { id -> navController.navigate("client_details/$id/photos") },
-                        onNavigateToSessions = { id -> navController.navigate("client_details/$id/sessions") }
+                        onNavigateToSessions = { id -> navController.navigate("client_details/$id/sessions") },
+                        onNavigateToChat = { id -> navController.navigate("chat/$id/me") }
                     )
                 }
                 composable(
@@ -550,6 +565,17 @@ fun MainAppScreen(onLogout: () -> Unit) {
                     val checkInId = backStackEntry.arguments?.getString("checkInId") ?: ""
                     CheckInDetailScreen(
                         checkInId = checkInId,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+                composable(
+                    route = "chat/{clientId}/{trainerId}",
+                    arguments = listOf(
+                        navArgument("clientId") { type = NavType.StringType },
+                        navArgument("trainerId") { type = NavType.StringType }
+                    )
+                ) {
+                    com.ziro.fit.ui.chat.ChatScreen(
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }

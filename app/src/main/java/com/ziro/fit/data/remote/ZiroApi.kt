@@ -294,4 +294,14 @@ interface ZiroApi {
 
     @GET("api/client/programs")
     suspend fun getClientPrograms(): ApiResponse<GetClientProgramsResponse>
+
+    // Chat
+    @GET("api/chat")
+    suspend fun getChatHistory(
+        @Query("clientId") clientId: String,
+        @Query("trainerId") trainerId: String
+    ): ApiResponse<StartChatResponse>
+
+    @POST("api/chat")
+    suspend fun sendMessage(@Body request: SendMessageRequest): ApiResponse<Any>
 }

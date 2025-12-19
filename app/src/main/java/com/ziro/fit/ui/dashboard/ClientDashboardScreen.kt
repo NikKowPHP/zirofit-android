@@ -30,6 +30,7 @@ fun ClientDashboardScreen(
     onNavigateToDiscovery: () -> Unit,
     onNavigateToCheckIns: () -> Unit,
     onNavigateToLiveWorkout: () -> Unit,
+    onNavigateToChat: (String, String) -> Unit,
     viewModel: com.ziro.fit.viewmodel.ClientDashboardViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val uiState = viewModel.uiState
@@ -108,6 +109,7 @@ fun ClientDashboardScreen(
                                             viewModel::unlinkTrainer, 
                                             onNavigateToDiscovery, 
                                             onNavigateToCheckIns,
+                                            onNavigateToChat,
                                             onStartSession = { session ->
                                                 viewModel.startSession(session, onNavigateToLiveWorkout)
                                             }
@@ -141,6 +143,7 @@ fun ClientDashboardHome(
     onUnlinkTrainer: () -> Unit,
     onNavigateToDiscovery: () -> Unit,
     onNavigateToCheckIns: () -> Unit,
+    onNavigateToChat: (String, String) -> Unit,
     onStartSession: (com.ziro.fit.model.ClientSession) -> Unit
 ) {
     Column(
@@ -250,6 +253,21 @@ fun ClientDashboardHome(
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Button(
+                        onClick = {
+                             val trainerId = trainer?.id ?: dashboardTrainer?.id ?: ""
+                             val clientId = data.id 
+                             if (trainerId.isNotEmpty() && clientId.isNotEmpty()) {
+                                 onNavigateToChat(clientId, trainerId)
+                             }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Chat with Trainer")
                     }
                     
                     if (trainer?.profile?.aboutMe != null) {

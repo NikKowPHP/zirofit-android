@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Photo
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,6 +47,7 @@ fun ClientDetailsScreen(
     onNavigateToAssessments: (String) -> Unit,
     onNavigateToPhotos: (String) -> Unit,
     onNavigateToSessions: (String) -> Unit,
+    onNavigateToChat: (String) -> Unit,
     viewModel: ClientDetailsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -66,6 +68,9 @@ fun ClientDetailsScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { onNavigateToChat(clientId) }) {
+                        Icon(Icons.Default.Chat, contentDescription = "Chat")
+                    }
                     IconButton(onClick = { showEditDialog = true }) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit")
                     }

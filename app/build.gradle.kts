@@ -99,5 +99,13 @@ dependencies {
     // Maps
     implementation(libs.maps.compose)
     implementation(libs.play.services.maps)
+
+    // Supabase
+
+    // The bom is not in libs.toml, so I'll just use individual implementations as defined in libs.toml
+    implementation(libs.supabase.auth)
+    implementation(libs.supabase.postgrest)
+    implementation(libs.supabase.realtime)
+    implementation(libs.ktor.client.okhttp)
 }
       

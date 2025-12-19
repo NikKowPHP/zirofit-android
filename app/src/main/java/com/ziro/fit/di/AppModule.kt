@@ -70,4 +70,16 @@ object AppModule {
             .build()
             .create(ZiroApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideSupabaseClient(): io.github.jan.supabase.SupabaseClient {
+        // TODO: Move these to BuildConfig/Secrets
+        return io.github.jan.supabase.createSupabaseClient(
+            supabaseUrl = "http://127.0.0.1:54321",
+            supabaseKey = "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
+        ) {
+            install(io.github.jan.supabase.realtime.Realtime)
+        }
+    }
 }
