@@ -50,6 +50,19 @@ interface ZiroApi {
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): ApiResponse<LoginResponse>
 
+    @POST("api/auth/register")
+    suspend fun register(@Body request: RegisterRequest): ApiResponse<RegisterResponse>
+
+    @Multipart
+    @POST("api/onboarding/complete")
+    suspend fun completeOnboarding(
+        @Part("role") role: okhttp3.RequestBody,
+        @Part("name") name: okhttp3.RequestBody,
+        @Part("location") location: okhttp3.RequestBody?,
+        @Part("bio") bio: okhttp3.RequestBody?,
+        @Part avatar: okhttp3.MultipartBody.Part?
+    ): ApiResponse<User>
+
     @GET("api/auth/me")
     suspend fun getMe(): ApiResponse<User>
 

@@ -8,15 +8,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
@@ -37,6 +40,8 @@ import com.ziro.fit.ui.workout.LiveWorkoutMiniPlayer
 import com.ziro.fit.ui.theme.ZirofitTheme
 import com.ziro.fit.ui.checkins.CheckInListScreen
 import com.ziro.fit.ui.checkins.CheckInDetailScreen
+import com.ziro.fit.ui.auth.RegisterScreen
+import com.ziro.fit.ui.onboarding.RoleSelectionScreen
 import com.ziro.fit.viewmodel.AuthState
 import com.ziro.fit.viewmodel.AuthViewModel
 import com.ziro.fit.viewmodel.UserViewModel
@@ -79,19 +84,62 @@ fun AppNavigation(
             globalChatManager.clear()
         }
     }
+    
+    // Manage root navigation state based on auth
+    var currentScreen by remember { mutableStateOf<String>("loading") }
+
+    LaunchedEffect(state) {
+        currentScreen = when (state) {
+            is AuthState.Loading -> "loading"
+            is AuthState.Unauthenticated -> "login"
+            is AuthState.Authenticated -> {
+                if (!state.isOnboardingComplete) "onboarding" 
+                else if (state.role == "client") "client_app" 
+                else "trainer_app"
+            }
+            is AuthState.Error -> "login"
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        when (state) {
-            is AuthState.Loading -> LoadingScreen()
-            is AuthState.Unauthenticated -> LoginScreen(onLogin = authViewModel::login, error = (state as? AuthState.Error)?.message)
-            is AuthState.Authenticated -> {
-                if (state.role == "client") {
-                    ClientAppScreen(authViewModel = authViewModel, globalChatManager = globalChatManager)
-                } else {
-                    MainAppScreen(onLogout = authViewModel::logout)
+        when (currentScreen) {
+            "loading" -> LoadingScreen()
+            "login" -> AuthNavigation(authViewModel = authViewModel, initialRoute = "login")
+            "onboarding" -> RoleSelectionScreen(
+                onOnboardingComplete = { role -> 
+                    authViewModel.completeLocalOnboarding(role) 
                 }
-            }
-            is AuthState.Error -> LoginScreen(onLogin = authViewModel::login, error = state.message)
+            )
+            "client_app" -> ClientAppScreen(authViewModel = authViewModel, globalChatManager = globalChatManager)
+            "trainer_app" -> MainAppScreen(onLogout = authViewModel::logout)
+        }
+    }
+}
+
+// Separate nav host for Auth (Login <-> Register)
+@Composable
+fun AuthNavigation(authViewModel: AuthViewModel, initialRoute: String) {
+    val navController = rememberNavController()
+    val state = authViewModel.authState
+    
+    NavHost(navController = navController, startDestination = initialRoute) {
+        composable("login") {
+            LoginScreen(
+                onLogin = authViewModel::login, 
+                onNavigateToRegister = { navController.navigate("register") },
+                onClearError = authViewModel::clearError,
+                isLoading = state is AuthState.Loading,
+                error = (state as? AuthState.Error)?.message
+            )
+        }
+        composable("register") {
+             RegisterScreen(
+                 onRegister = authViewModel::register,
+                 onNavigateToLogin = { navController.popBackStack() },
+                 onClearError = authViewModel::clearError,
+                 isLoading = state is AuthState.Loading,
+                 error = (state as? AuthState.Error)?.message
+             )
         }
     }
 }
@@ -678,34 +726,99 @@ fun LoadingScreen() {
 }
 
 @Composable
-fun LoginScreen(onLogin: (String, String) -> Unit, error: String? = null) {
+fun LoginScreen(
+    onLogin: (String, String) -> Unit, 
+    onNavigateToRegister: () -> Unit, 
+    onClearError: () -> Unit,
+    isLoading: Boolean = false,
+    error: String? = null
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
+    // Clear error when typing
+    LaunchedEffect(email, password) {
+        onClearError()
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("ZIRO.FIT Login", style = MaterialTheme.typography.headlineMedium)
+        Text(
+            text = "Welcome Back", 
+            style = MaterialTheme.typography.displaySmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
         
-        Spacer(modifier = Modifier.height(32.dp))
+        Text(
+            text = "Sign in to continue to ZIRO.FIT",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        
+        Spacer(modifier = Modifier.height(48.dp))
+        
+        // Error Banner
+        androidx.compose.animation.AnimatedVisibility(
+            visible = error != null,
+            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline, 
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = error ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
         
         OutlinedTextField(
             value = email, 
             onValueChange = { email = it }, 
-            label = { Text("Email") },
+            label = { Text("Email Address") },
+            shape = RoundedCornerShape(12.dp),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !isLoading
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
         OutlinedTextField(
             value = password, 
             onValueChange = { password = it }, 
             label = { Text("Password") }, 
+            shape = RoundedCornerShape(12.dp),
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
@@ -714,20 +827,48 @@ fun LoginScreen(onLogin: (String, String) -> Unit, error: String? = null) {
             keyboardActions = KeyboardActions(
                 onDone = { onLogin(email, password) }
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            enabled = !isLoading
         )
-        
-        if (error != null) {
-            Text(text = error, color = Color.Red, modifier = Modifier.padding(8.dp))
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         
         Button(
             onClick = { onLogin(email, password) },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
         ) {
-            Text("Sign In")
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text("Sign In", style = MaterialTheme.typography.titleMedium)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Don't have an account?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TextButton(onClick = onNavigateToRegister) {
+                Text(
+                    text = "Sign Up",
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }

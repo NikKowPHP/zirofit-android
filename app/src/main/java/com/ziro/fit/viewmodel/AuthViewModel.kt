@@ -10,6 +10,8 @@ import com.ziro.fit.data.local.TokenManager
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.data.repository.ProfileRepository
 import com.ziro.fit.model.LoginRequest
+import com.ziro.fit.model.RegisterRequest
+import com.ziro.fit.util.ApiErrorParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -17,7 +19,7 @@ import javax.inject.Inject
 
 sealed class AuthState {
     object Loading : AuthState()
-    data class Authenticated(val role: String) : AuthState()
+    data class Authenticated(val role: String, val isOnboardingComplete: Boolean = true) : AuthState()
     object Unauthenticated : AuthState()
     data class Error(val message: String) : AuthState()
 }
@@ -53,16 +55,15 @@ class AuthViewModel @Inject constructor(
                     val userResponse = api.getMe()
                     val user = userResponse.data
                     if (user != null) {
-                        authState = AuthState.Authenticated(user.role ?: "trainer")
+                        val role = user.role ?: "pending"
+                        authState = AuthState.Authenticated(role, isOnboardingComplete = role != "pending")
                         syncPushToken() // Sync on startup check
                     } else {
-                        // Token might be valid but can't get user? Treat as error or unauth
                         authState = AuthState.Unauthenticated
                         tokenManager.clearToken()
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    // If we can't get user details (e.g. 401), assume unauthenticated
                     authState = AuthState.Unauthenticated
                     tokenManager.clearToken()
                 }
@@ -77,27 +78,51 @@ class AuthViewModel @Inject constructor(
             authState = AuthState.Loading
             try {
                 val response = api.login(LoginRequest(email, pass))
-                // Save the token from the response
                 val loginData = response.data
                 if (loginData != null) {
                     tokenManager.saveToken(loginData.accessToken)
-                    authState = AuthState.Authenticated(loginData.role)
-                    syncPushToken() // Sync on explicit login
+                    val role = loginData.role
+                    authState = AuthState.Authenticated(role, isOnboardingComplete = role != "pending")
+                    syncPushToken() 
                 } else {
-                   authState = AuthState.Error("Login failed: No data received") 
+                   authState = AuthState.Error(response.message ?: "Login failed: No data received") 
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                authState = AuthState.Error("Login failed: ${e.message}")
+                val apiError = ApiErrorParser.parse(e)
+                authState = AuthState.Error(ApiErrorParser.getErrorMessage(apiError))
             }
+        }
+    }
+
+    fun register(name: String, email: String, pass: String) {
+        viewModelScope.launch {
+            authState = AuthState.Loading
+            try {
+                val response = api.register(RegisterRequest(name, email, pass))
+                if (response.success == true || response.data != null) {
+                    login(email, pass)
+                } else {
+                    authState = AuthState.Error(response.message ?: "Registration failed")
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                val apiError = ApiErrorParser.parse(e)
+                authState = AuthState.Error(ApiErrorParser.getErrorMessage(apiError))
+            }
+        }
+    }
+
+    fun completeLocalOnboarding(role: String) {
+        if (authState is AuthState.Authenticated) {
+            authState = AuthState.Authenticated(role, isOnboardingComplete = true)
         }
     }
 
     private fun syncPushToken() {
         viewModelScope.launch {
             try {
-                // Check if Firebase is initialized and get token
-                val token = FirebaseMessaging.getInstance().token.await() // suspending function
+                val token = FirebaseMessaging.getInstance().token.await()
                 profileRepository.registerPushToken(token)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -108,5 +133,11 @@ class AuthViewModel @Inject constructor(
     fun logout() {
         tokenManager.clearToken()
         authState = AuthState.Unauthenticated
+    }
+
+    fun clearError() {
+        if (authState is AuthState.Error) {
+            authState = AuthState.Unauthenticated
+        }
     }
 }
