@@ -48,6 +48,50 @@ class ChatRepository @Inject constructor(
         }
     }
 
+    suspend fun generateAiWorkout(clientId: String, userIntent: String): Result<com.ziro.fit.model.WorkoutGenerationResponse> {
+        return try {
+            val response = api.generateAiWorkout(com.ziro.fit.model.AiGenerationRequest(clientId, userIntent))
+            if (response.success == true && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: response.error))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun startWorkout(templateId: String): Result<com.ziro.fit.model.StartWorkoutResponse> {
+        return try {
+            val request = com.ziro.fit.model.StartWorkoutRequest(
+                clientId = null,
+                templateId = templateId,
+                plannedSessionId = null
+            )
+            val response = api.startWorkout(request)
+            if (response.success == true && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: response.error))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createWorkoutTemplate(request: com.ziro.fit.model.CreateWorkoutTemplateRequest): Result<com.ziro.fit.model.CreateWorkoutTemplateResponse> {
+        return try {
+            val response = api.createWorkoutTemplate(request)
+            if (response.success == true && response.data != null) {
+                Result.success(response.data)
+            } else {
+                Result.failure(Exception(response.message ?: response.error))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun connectToChat(conversationId: String): Flow<Message> {
         val channel = supabase.channel("chat:$conversationId")
         channel.subscribe()

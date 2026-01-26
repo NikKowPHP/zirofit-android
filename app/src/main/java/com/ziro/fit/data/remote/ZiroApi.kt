@@ -77,6 +77,9 @@ interface ZiroApi {
     @POST("api/workout-sessions/start")
     suspend fun startWorkout(@Body request: StartWorkoutRequest): ApiResponse<StartWorkoutResponse>
 
+    @POST("api/workout-templates")
+    suspend fun createWorkoutTemplate(@Body request: CreateWorkoutTemplateRequest): ApiResponse<CreateWorkoutTemplateResponse>
+
     @POST("api/workout/log")
     suspend fun logSet(@Body request: LogSetRequest): ApiResponse<Any>
 
@@ -310,6 +313,9 @@ interface ZiroApi {
 
     @POST("api/chat")
     suspend fun sendMessage(@Body request: SendMessageRequest): ApiResponse<Any>
+
+    @POST("api/client/ai/generate")
+    suspend fun generateAiWorkout(@Body request: AiGenerationRequest): ApiResponse<WorkoutGenerationResponse>
 
     @POST("api/checkout/session")
     suspend fun createCheckoutSession(@Body request: CreateCheckoutSessionRequest): ApiResponse<CreateCheckoutSessionResponse>

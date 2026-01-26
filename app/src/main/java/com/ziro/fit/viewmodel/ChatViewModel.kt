@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -161,6 +162,117 @@ class ChatViewModel @Inject constructor(
             // We might have a duplicate for a moment until we de-dupe or replace the temp one.
             // The existing de-dupe logic in subscribeToRealtime uses ID, which won't match tempId.
             // Ideally we should replace the temp message with the real one, but usually Realtime is fast enough.
+        }
+    }
+
+    // Navigation Events
+    private val _navigationEvent = kotlinx.coroutines.channels.Channel<String>(kotlinx.coroutines.channels.Channel.BUFFERED)
+    val navigationEvent = _navigationEvent.receiveAsFlow()
+
+    fun generateAiWorkout(userIntent: String) {
+        val currentUser = _uiState.value.currentUserId
+        if (currentUser.isEmpty()) return
+
+        viewModelScope.launch {
+            // Optimistic update: Show user message locally
+            sendMessage(userIntent) 
+
+            // Show "Coach is thinking..." via a temporary system message or loading state.
+             _uiState.update { it.copy(isLoading = true) } 
+
+            val result = repository.generateAiWorkout(clientId, userIntent)
+            
+            _uiState.update { it.copy(isLoading = false) }
+            
+            result.onSuccess { response ->
+                try {
+                    // Map generic plan to content model (for UI)
+                    val planContent = com.ziro.fit.model.WorkoutPlanContent(
+                        name = response.result.name,
+                        focus = response.result.focus,
+                        reasoning = response.result.reasoning,
+                        exercises = response.result.exercises,
+                        templateId = null 
+                    )
+                    
+                    val jsonContent = com.google.gson.Gson().toJson(planContent)
+                    
+                    val aiMessage = Message(
+                        id = java.util.UUID.randomUUID().toString(),
+                        conversationId = _uiState.value.conversationId ?: "",
+                        senderId = resolvedTrainerId,
+                        content = jsonContent,
+                        mediaUrl = null,
+                        mediaType = Message.TYPE_WORKOUT_PLAN,
+                        isSystemMessage = false,
+                        createdAt = java.time.Instant.now().toString(),
+                        readAt = null
+                    )
+                    
+                    _uiState.update { state ->
+                        state.copy(messages = state.messages + aiMessage)
+                    }
+                } catch (e: Exception) {
+                     _uiState.update { it.copy(error = "Failed to process AI response: ${e.message}") }
+                }
+            }.onFailure { e ->
+                 _uiState.update { it.copy(error = "AI Generation failed: ${e.message}") }
+            }
+        }
+    }
+
+    fun startWorkout(templateId: String) {
+         viewModelScope.launch {
+             _uiState.update { it.copy(isLoading = true) }
+             val result = repository.startWorkout(templateId)
+             result.onSuccess {
+                 _uiState.update { it.copy(isLoading = false) }
+                 _navigationEvent.send("live_workout")
+             }.onFailure { e ->
+                 _uiState.update { it.copy(isLoading = false, error = "Failed to start workout: ${e.message}") }
+             }
+         }
+    }
+
+    fun startAiWorkout(plan: com.ziro.fit.model.WorkoutPlanContent) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            val templateIdToUse = if (plan.templateId != null) {
+                plan.templateId
+            } else {
+                // creating template first
+                val exercisesReq = plan.exercises.mapIndexed { index, ex ->
+                    com.ziro.fit.model.CreateTemplateExercise(
+                        name = ex.name,
+                        sets = ex.sets,
+                        reps = ex.reps,
+                        restSeconds = ex.rest,
+                        notes = ex.notes,
+                        order = index
+                    )
+                }
+                
+                val req = com.ziro.fit.model.CreateWorkoutTemplateRequest(
+                    name = plan.name,
+                    description = plan.reasoning,
+                    exercises = exercisesReq
+                )
+
+                val createResult = repository.createWorkoutTemplate(req)
+                if (createResult.isSuccess) {
+                    createResult.getOrNull()?.id
+                } else {
+                    _uiState.update { it.copy(isLoading = false, error = "Failed to save template: ${createResult.exceptionOrNull()?.message}") }
+                    return@launch
+                }
+            }
+
+            if (templateIdToUse != null) {
+                startWorkout(templateIdToUse)
+            } else {
+                 _uiState.update { it.copy(isLoading = false, error = "Failed to obtain template ID") }
+            }
         }
     }
 

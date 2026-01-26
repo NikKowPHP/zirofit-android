@@ -17,3 +17,23 @@ data class WorkoutTemplate(
     val type: TemplateType = TemplateType.USER,
     val exercises: List<String> = emptyList() // List of exercise names or IDs for summary
 )
+
+data class CreateWorkoutTemplateRequest(
+    val name: String,
+    val description: String?,
+    val exercises: List<CreateTemplateExercise>
+)
+
+data class CreateTemplateExercise(
+    val name: String,
+    val sets: Int,
+    val reps: String,
+    val restSeconds: Int,
+    val notes: String?,
+    val order: Int
+)
+
+data class CreateWorkoutTemplateResponse(
+    val id: String,
+    val name: String
+)

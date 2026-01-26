@@ -275,7 +275,12 @@ fun ClientAppScreen(
                     }
 
                     com.ziro.fit.ui.chat.ChatScreen(
-                        onNavigateBack = { navController.popBackStack() }
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToLiveWorkout = {
+                             navController.navigate("live_workout") {
+                                launchSingleTop = true
+                             }
+                        }
                     )
                 }
             }
@@ -623,7 +628,12 @@ fun MainAppScreen(onLogout: () -> Unit) {
                     )
                 ) {
                     com.ziro.fit.ui.chat.ChatScreen(
-                        onNavigateBack = { navController.popBackStack() }
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToLiveWorkout = {
+                             navController.navigate("live_workout") {
+                                launchSingleTop = true
+                             }
+                        }
                     )
                 }
             }
