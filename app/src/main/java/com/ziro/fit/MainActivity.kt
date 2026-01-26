@@ -120,25 +120,32 @@ fun AppNavigation(
 @Composable
 fun AuthNavigation(authViewModel: AuthViewModel, initialRoute: String) {
     val navController = rememberNavController()
-    val state = authViewModel.authState
+    val isLoading = authViewModel.uiLoading
+    val error = authViewModel.uiError
     
     NavHost(navController = navController, startDestination = initialRoute) {
         composable("login") {
             LoginScreen(
                 onLogin = authViewModel::login, 
-                onNavigateToRegister = { navController.navigate("register") },
+                onNavigateToRegister = { 
+                    authViewModel.clearError()
+                    navController.navigate("register") 
+                },
                 onClearError = authViewModel::clearError,
-                isLoading = state is AuthState.Loading,
-                error = (state as? AuthState.Error)?.message
+                isLoading = isLoading,
+                error = error
             )
         }
         composable("register") {
              RegisterScreen(
                  onRegister = authViewModel::register,
-                 onNavigateToLogin = { navController.popBackStack() },
+                 onNavigateToLogin = { 
+                     authViewModel.clearError()
+                     navController.popBackStack() 
+                 },
                  onClearError = authViewModel::clearError,
-                 isLoading = state is AuthState.Loading,
-                 error = (state as? AuthState.Error)?.message
+                 isLoading = isLoading,
+                 error = error
              )
         }
     }

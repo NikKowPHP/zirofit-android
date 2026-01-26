@@ -34,6 +34,11 @@ class AuthViewModel @Inject constructor(
     var authState by mutableStateOf<AuthState>(AuthState.Loading)
         private set
 
+    var uiLoading by mutableStateOf(false)
+        private set
+    var uiError by mutableStateOf<String?>(null)
+        private set
+
     init {
         setupLogoutCollection()
         checkAuthStatus()
@@ -75,7 +80,8 @@ class AuthViewModel @Inject constructor(
 
     fun login(email: String, pass: String) {
         viewModelScope.launch {
-            authState = AuthState.Loading
+            uiLoading = true
+            uiError = null
             try {
                 val response = api.login(LoginRequest(email, pass))
                 val loginData = response.data
@@ -85,30 +91,35 @@ class AuthViewModel @Inject constructor(
                     authState = AuthState.Authenticated(role, isOnboardingComplete = role != "pending")
                     syncPushToken() 
                 } else {
-                   authState = AuthState.Error(response.message ?: "Login failed: No data received") 
+                   uiError = response.message ?: "Login failed: No data received"
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 val apiError = ApiErrorParser.parse(e)
-                authState = AuthState.Error(ApiErrorParser.getErrorMessage(apiError))
+                uiError = ApiErrorParser.getErrorMessage(apiError)
+            } finally {
+                uiLoading = false
             }
         }
     }
 
     fun register(name: String, email: String, pass: String) {
         viewModelScope.launch {
-            authState = AuthState.Loading
+            uiLoading = true
+            uiError = null
             try {
                 val response = api.register(RegisterRequest(name, email, pass))
                 if (response.success == true || response.data != null) {
                     login(email, pass)
                 } else {
-                    authState = AuthState.Error(response.message ?: "Registration failed")
+                    uiError = response.message ?: "Registration failed"
+                    uiLoading = false
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 val apiError = ApiErrorParser.parse(e)
-                authState = AuthState.Error(ApiErrorParser.getErrorMessage(apiError))
+                uiError = ApiErrorParser.getErrorMessage(apiError)
+                uiLoading = false
             }
         }
     }
@@ -136,8 +147,6 @@ class AuthViewModel @Inject constructor(
     }
 
     fun clearError() {
-        if (authState is AuthState.Error) {
-            authState = AuthState.Unauthenticated
-        }
+        uiError = null
     }
 }
