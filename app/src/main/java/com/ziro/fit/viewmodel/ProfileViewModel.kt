@@ -61,6 +61,21 @@ class ProfileViewModel @Inject constructor(
         }
     }
 
+    fun updateBranding(bannerUri: android.net.Uri?, profileUri: android.net.Uri?, context: android.content.Context) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val bannerFile = bannerUri?.let { com.ziro.fit.util.FileUtils.getFileFromUri(context, it) }
+            val profileFile = profileUri?.let { com.ziro.fit.util.FileUtils.getFileFromUri(context, it) }
+            
+            val result = repository.updateBranding(bannerFile, profileFile)
+            result.onSuccess {
+               fetchBranding() // Refresh data
+            }.onFailure { e ->
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
     fun fetchServices() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }

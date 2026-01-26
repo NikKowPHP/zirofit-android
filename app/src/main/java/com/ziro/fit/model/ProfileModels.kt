@@ -20,8 +20,8 @@ data class ProfileBrandingResponse(
 
 data class ProfileBranding(
     val primaryColor: String?,
-    val logoUrl: String?,
-    val bannerUrl: String?
+    val bannerImageUrl: String?,
+    val profileImageUrl: String?
 )
 
 data class ProfileService(

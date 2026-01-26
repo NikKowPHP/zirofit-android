@@ -196,6 +196,13 @@ interface ZiroApi {
     @GET("api/profile/me/branding")
     suspend fun getBranding(): ApiResponse<ProfileBrandingResponse>
 
+    @retrofit2.http.Multipart
+    @POST("api/profile/me/branding")
+    suspend fun updateBranding(
+        @retrofit2.http.Part bannerImage: okhttp3.MultipartBody.Part?,
+        @retrofit2.http.Part profileImage: okhttp3.MultipartBody.Part?
+    ): ApiResponse<Any>
+
     @GET("api/profile/me/services")
     suspend fun getServices(): ApiResponse<ProfileServicesResponse>
 

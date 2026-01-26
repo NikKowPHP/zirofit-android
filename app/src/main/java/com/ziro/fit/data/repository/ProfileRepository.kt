@@ -2,6 +2,7 @@ package com.ziro.fit.data.repository
 
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,6 +30,30 @@ class ProfileRepository @Inject constructor(
                 Result.success(response.data!!.branding)
             } else {
                 Result.failure(Exception(response.message ?: "Failed to fetch branding"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateBranding(bannerFile: java.io.File?, profileFile: java.io.File?): Result<Unit> {
+        return try {
+            val bannerPart = bannerFile?.let {
+                val mimeType = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(it.extension) ?: "image/jpeg"
+                val requestBody = okhttp3.RequestBody.create(mimeType.toMediaTypeOrNull(), it)
+                okhttp3.MultipartBody.Part.createFormData("bannerImage", it.name, requestBody)
+            }
+            val profilePart = profileFile?.let {
+                val mimeType = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(it.extension) ?: "image/jpeg"
+                val requestBody = okhttp3.RequestBody.create(mimeType.toMediaTypeOrNull(), it)
+                okhttp3.MultipartBody.Part.createFormData("profileImage", it.name, requestBody)
+            }
+
+            val response = api.updateBranding(bannerPart, profilePart)
+            if (response.success != false) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to update branding"))
             }
         } catch (e: Exception) {
             Result.failure(e)
