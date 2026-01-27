@@ -55,4 +55,19 @@ class ClientDashboardRepository @Inject constructor(
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
+
+    suspend fun getActiveProgramProgress(): Result<com.ziro.fit.model.ActiveProgramProgress> {
+        return try {
+            val response = api.getActiveProgramProgress()
+            if (response.success != false && response.data != null) {
+                val uiModel = com.ziro.fit.model.ActiveProgramProgress.fromApiResponse(response.data)
+                Result.success(uiModel)
+            } else {
+                Result.failure(Exception("Failed to load active program progress"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
 }

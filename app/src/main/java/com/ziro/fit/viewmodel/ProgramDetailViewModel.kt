@@ -13,8 +13,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class TemplateWithStatus(
+    val template: com.ziro.fit.model.WorkoutTemplateDto,
+    val status: String, // "COMPLETED", "NEXT", "PENDING"
+    val lastCompletedAt: String? = null
+)
+
 data class ProgramDetailUiState(
     val program: ProgramDto? = null,
+    val templatesWithStatus: List<TemplateWithStatus> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -22,6 +29,7 @@ data class ProgramDetailUiState(
 @HiltViewModel
 class ProgramDetailViewModel @Inject constructor(
     private val workoutRepository: WorkoutRepository,
+    private val clientRepository: com.ziro.fit.data.repository.ClientRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -42,9 +50,41 @@ class ProgramDetailViewModel @Inject constructor(
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+            
             val program = workoutRepository.getProgram(programId)
             if (program != null) {
-                _uiState.update { it.copy(program = program, isLoading = false) }
+                // Fetch active program progress to get template statuses
+                val activeProgramResult = clientRepository.getActiveProgramProgress()
+                val activeProgram = activeProgramResult.getOrNull()
+                
+                // Map templates with their status
+                val templatesWithStatus = if (activeProgram != null && activeProgram.programId == programId) {
+                    program.templates?.map { template ->
+                        val statusInfo = activeProgram.templateStatuses.find { it.templateId == template.id }
+                        TemplateWithStatus(
+                            template = template,
+                            status = statusInfo?.status ?: "PENDING",
+                            lastCompletedAt = statusInfo?.lastCompletedAt
+                        )
+                    } ?: emptyList()
+                } else {
+                    // If no active program or different program, all templates are PENDING
+                    program.templates?.map { template ->
+                        TemplateWithStatus(
+                            template = template,
+                            status = "PENDING",
+                            lastCompletedAt = null
+                        )
+                    } ?: emptyList()
+                }
+                
+                _uiState.update { 
+                    it.copy(
+                        program = program, 
+                        templatesWithStatus = templatesWithStatus,
+                        isLoading = false
+                    ) 
+                }
             } else {
                 _uiState.update { it.copy(isLoading = false, error = "Program not found") }
             }

@@ -324,6 +324,9 @@ interface ZiroApi {
     @GET("api/client/programs")
     suspend fun getClientPrograms(): List<ClientProgramAssignmentDto>
 
+    @GET("api/client/program/active")
+    suspend fun getActiveProgramProgress(): ApiResponse<ActiveProgramApiResponse>
+
     // Chat
     @GET("api/chat")
     suspend fun getChatHistory(

@@ -68,3 +68,81 @@ data class ClientProgramAssignmentDto(
     val isActive: Boolean,
     val program: ProgramDto
 )
+
+data class TemplateStatus(
+    val templateId: String,
+    val status: String, // "COMPLETED", "NEXT", "PENDING"
+    val lastCompletedAt: String? = null
+)
+
+// DTOs for the API response
+data class ActiveProgramApiResponse(
+    val program: ActiveProgramInfo,
+    val progress: ProgramProgressInfo,
+    val templates: List<ProgramTemplateDto>
+)
+
+data class ActiveProgramInfo(
+    val id: String,
+    val name: String,
+    val description: String?
+)
+
+data class ProgramProgressInfo(
+    val completedCount: Int,
+    val totalCount: Int,
+    val progressPercentage: Float,
+    val nextTemplateId: String?
+)
+
+data class ProgramTemplateDto(
+    val id: String,
+    val name: String,
+    val description: String?,
+    val order: Int,
+    val status: String,
+    val exerciseCount: Int
+)
+
+// UI Model
+data class ActiveProgramProgress(
+    val programId: String,
+    val programName: String,
+    val programDescription: String? = null,
+    val progressPercentage: Float,
+    val currentTemplate: WorkoutTemplateDto?,
+    val templateStatuses: List<TemplateStatus>
+) {
+    companion object {
+        fun fromApiResponse(response: ActiveProgramApiResponse): ActiveProgramProgress {
+            val currentTemplateDto = if (response.progress.nextTemplateId != null) {
+                val template = response.templates.find { it.id == response.progress.nextTemplateId }
+                template?.let {
+                    WorkoutTemplateDto(
+                        id = it.id,
+                        name = it.name,
+                        description = it.description,
+                        exerciseCount = it.exerciseCount
+                    )
+                }
+            } else null
+
+            val templateStatuses = response.templates.map {
+                TemplateStatus(
+                    templateId = it.id,
+                    status = it.status,
+                    lastCompletedAt = null
+                )
+            }
+
+            return ActiveProgramProgress(
+                programId = response.program.id,
+                programName = response.program.name,
+                programDescription = response.program.description,
+                progressPercentage = response.progress.progressPercentage,
+                currentTemplate = currentTemplateDto,
+                templateStatuses = templateStatuses
+            )
+        }
+    }
+}

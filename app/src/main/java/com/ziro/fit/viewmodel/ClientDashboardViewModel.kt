@@ -21,7 +21,8 @@ sealed class ClientDashboardUiState {
         val isHistoryLoading: Boolean = false,
         val progress: com.ziro.fit.model.ClientProgressResponse? = null,
         val isProgressLoading: Boolean = false,
-        val isRefreshing: Boolean = false
+        val isRefreshing: Boolean = false,
+        val activeProgram: com.ziro.fit.model.ActiveProgramProgress? = null
     ) : ClientDashboardUiState()
     data class Error(val message: String) : ClientDashboardUiState()
 }
@@ -55,11 +56,20 @@ class ClientDashboardViewModel @Inject constructor(
 
             repository.getClientDashboard()
                 .onSuccess { data ->
-                    // Fetch dedicated trainer info in parallel
+                    // Fetch dedicated trainer info and active program in parallel
                     viewModelScope.launch {
                         val trainerResult = trainerRepository.getLinkedTrainer()
                         val linkedTrainer = trainerResult.getOrNull()
-                        uiState = ClientDashboardUiState.Success(data, linkedTrainer, isRefreshing = false)
+                        
+                        val activeProgramResult = repository.getActiveProgramProgress()
+                        val activeProgram = activeProgramResult.getOrNull()
+                        
+                        uiState = ClientDashboardUiState.Success(
+                            data, 
+                            linkedTrainer, 
+                            isRefreshing = false,
+                            activeProgram = activeProgram
+                        )
                     }
                 }
                 .onFailure { e ->
@@ -77,11 +87,20 @@ class ClientDashboardViewModel @Inject constructor(
                                     workoutSessions = emptyList(),
                                     measurements = emptyList()
                                 )
-                                // Also try to fetch trainer info for fallback
+                                // Also try to fetch trainer info and active program for fallback
                                 viewModelScope.launch {
                                     val trainerResult = trainerRepository.getLinkedTrainer()
                                     val linkedTrainer = trainerResult.getOrNull()
-                                    uiState = ClientDashboardUiState.Success(fallbackData, linkedTrainer, isRefreshing = false)
+                                    
+                                    val activeProgramResult = repository.getActiveProgramProgress()
+                                    val activeProgram = activeProgramResult.getOrNull()
+                                    
+                                    uiState = ClientDashboardUiState.Success(
+                                        fallbackData, 
+                                        linkedTrainer, 
+                                        isRefreshing = false,
+                                        activeProgram = activeProgram
+                                    )
                                 }
                             } else {
                                 uiState = ClientDashboardUiState.Error("Profile not found and failed to fetch user info")

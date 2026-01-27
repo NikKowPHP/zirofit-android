@@ -270,4 +270,19 @@ class ClientRepository @Inject constructor(
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
+
+    suspend fun getActiveProgramProgress(): Result<ActiveProgramProgress> {
+        return try {
+            val response = api.getActiveProgramProgress()
+            if (response.data != null) {
+                val uiModel = ActiveProgramProgress.fromApiResponse(response.data)
+                Result.success(uiModel)
+            } else {
+                Result.failure(Exception("Failed to load active program progress"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
 }

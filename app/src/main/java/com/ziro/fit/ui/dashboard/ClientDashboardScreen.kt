@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ziro.fit.model.ClientDashboardData
@@ -115,7 +116,8 @@ fun ClientDashboardScreen(
                                             onNavigateToAICoach,
                                             onStartSession = { session ->
                                                 viewModel.startSession(session, onNavigateToLiveWorkout)
-                                            }
+                                            },
+                                            activeProgram = uiState.activeProgram
                                         )
                                     }
                                 }
@@ -148,7 +150,8 @@ fun ClientDashboardHome(
     onNavigateToCheckIns: () -> Unit,
     onNavigateToChat: (String, String) -> Unit,
     onNavigateToAICoach: () -> Unit,
-    onStartSession: (com.ziro.fit.model.ClientSession) -> Unit
+    onStartSession: (com.ziro.fit.model.ClientSession) -> Unit,
+    activeProgram: com.ziro.fit.model.ActiveProgramProgress?
 ) {
     Column(
         modifier = Modifier
@@ -158,6 +161,28 @@ fun ClientDashboardHome(
     ) {
         // Welcome message removed
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Active Program Card
+        if (activeProgram != null) {
+            ActiveProgramCard(
+                activeProgram = activeProgram,
+                onStartWorkout = { templateId ->
+                    // Create a mock session for starting the workout with this template
+                    val mockSession = com.ziro.fit.model.ClientSession(
+                        id = "",
+                        startTime = "",
+                        endTime = null,
+                        status = "PLANNED",
+                        notes = null,
+                        name = null,
+                        plannedDate = null,
+                        workoutTemplateId = templateId
+                    )
+                    onStartSession(mockSession)
+                }
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         // Upcoming Sessions Section
         val upcomingSessions = data.workoutSessions?.filter { it.status == "PLANNED" } ?: emptyList()
@@ -330,6 +355,103 @@ fun ClientDashboardHome(
                         Text("Find a Trainer")
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun ActiveProgramCard(
+    activeProgram: com.ziro.fit.model.ActiveProgramProgress,
+    onStartWorkout: (String) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Current Program",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = activeProgram.programName,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                fontWeight = FontWeight.Bold
+            )
+            
+            if (!activeProgram.programDescription.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = activeProgram.programDescription,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Progress indicator
+            Column {
+                Text(
+                    text = "Progress: ${(activeProgram.progressPercentage * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = { activeProgram.progressPercentage },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Next workout section or completion message
+            if (activeProgram.currentTemplate != null) {
+                Text(
+                    text = "Next Up",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = activeProgram.currentTemplate.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = { onStartWorkout(activeProgram.currentTemplate.id) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Start ${activeProgram.currentTemplate.name}")
+                }
+            } else {
+                Text(
+                    text = "Program Completed! 🎉",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "You've completed all workouts in this program. Great job!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
             }
         }
     }
