@@ -84,6 +84,32 @@ fun WorkoutsScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
             
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Programs Section
+            if (uiState.programs.isNotEmpty()) {
+                Text(
+                    text = "Programs",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(bottom = 24.dp)
+                ) {
+                    uiState.programs.forEach { program ->
+                         ProgramCard(
+                            program = program, 
+                            onClick = { 
+                                // TODO: Navigate to program detail
+                            }
+                        )
+                    }
+                }
+            }
+            
             // Templates Header
             Row(
                 modifier = Modifier.fillMaxWidth(),

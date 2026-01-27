@@ -94,3 +94,54 @@ fun TemplateCard(
         }
     }
 }
+
+@Composable
+fun ProgramCard(
+    program: com.ziro.fit.model.ProgramDto,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .width(240.dp)
+            .padding(end = 8.dp)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .height(140.dp),
+             verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = program.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                if (!program.description.isNullOrBlank()) {
+                    Text(
+                        text = program.description ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            
+            val weekCount = program.weeks?.size ?: 0
+            val templateCount = program.templates?.size ?: 0
+            val infoText = if (weekCount > 0) "$weekCount Weeks" else "$templateCount Workouts"
+            
+            Text(
+                text = infoText,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+    }
+}

@@ -15,6 +15,7 @@ data class WorkoutsUiState(
     val userTemplates: List<WorkoutTemplate> = emptyList(),
     val trainerTemplates: List<WorkoutTemplate> = emptyList(),
     val systemTemplates: List<WorkoutTemplate> = emptyList(),
+    val programs: List<com.ziro.fit.model.ProgramDto> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
@@ -36,11 +37,13 @@ class WorkoutsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
                 val templates = workoutRepository.getTemplates()
+                val programs = workoutRepository.getPrograms()
                 
                 _uiState.value = _uiState.value.copy(
                     userTemplates = templates.filter { it.type == TemplateType.USER },
                     systemTemplates = templates.filter { it.type == TemplateType.SYSTEM },
-                    trainerTemplates = templates.filter { it.type == TemplateType.TRAINER }, 
+                    trainerTemplates = templates.filter { it.type == TemplateType.TRAINER },
+                    programs = programs,
                     isLoading = false
                 )
             } catch (e: Exception) {

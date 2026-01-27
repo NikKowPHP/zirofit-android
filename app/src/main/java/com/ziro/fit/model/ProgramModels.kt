@@ -10,6 +10,7 @@ data class ProgramDto(
     val id: String,
     val name: String,
     val description: String? = null,
+    val trainerId: String? = null,
     val templates: List<WorkoutTemplateDto>? = null,
     val weeks: List<ProgramWeekDto>? = null
 )
@@ -59,4 +60,11 @@ data class ProgramResponse(
     val name: String,
     val description: String?,
     val weeks: List<ProgramWeekDto>
+)
+
+data class ClientProgramAssignmentDto(
+    val assignmentId: String,
+    val startDate: String,
+    val isActive: Boolean,
+    val program: ProgramDto
 )

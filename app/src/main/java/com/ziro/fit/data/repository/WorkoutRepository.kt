@@ -12,65 +12,54 @@ class WorkoutRepository @Inject constructor(
 ) {
     suspend fun getTemplates(): List<WorkoutTemplate> {
         return try {
-            val response = api.getClientPrograms()
-            if (response.data != null) {
-                val allTemplates = mutableListOf<WorkoutTemplate>()
+            val assignments = api.getClientPrograms()
+            val allTemplates = mutableListOf<WorkoutTemplate>()
+            
+            assignments.forEach { assignment ->
+                val program = assignment.program
+                // If trainerId is present, it's a trainer program. 
+                // If not, it's likely an AI or System program assigned to the user.
+                // We'll treat AI programs (null trainerId) as USER templates so they show in "My Templates".
+                val type = if (program.trainerId != null) TemplateType.TRAINER else TemplateType.USER
                 
-                response.data.userPrograms.forEach { program ->
-                    program.templates?.forEach { templateDto ->
-                        allTemplates.add(
-                            WorkoutTemplate(
-                                id = templateDto.id,
-                                name = templateDto.name,
-                                exerciseCount = templateDto.exerciseCount,
-                                description = templateDto.description,
-                                lastPerformed = templateDto.lastPerformed,
-                                type = TemplateType.USER,
-                                exercises = templateDto.exercises?.map { it.name } ?: emptyList()
-                            )
+                program.templates?.forEach { templateDto ->
+                    allTemplates.add(
+                        WorkoutTemplate(
+                            id = templateDto.id,
+                            name = templateDto.name,
+                            exerciseCount = templateDto.exerciseCount,
+                            description = templateDto.description,
+                            lastPerformed = templateDto.lastPerformed,
+                            type = type,
+                            exercises = templateDto.exercises?.map { it.name } ?: emptyList()
                         )
-                    }
+                    )
                 }
-
-                response.data.systemPrograms.forEach { program ->
-                    program.templates?.forEach { templateDto ->
-                         allTemplates.add(
-                            WorkoutTemplate(
-                                id = templateDto.id,
-                                name = templateDto.name,
-                                exerciseCount = templateDto.exerciseCount,
-                                description = templateDto.description,
-                                lastPerformed = templateDto.lastPerformed,
-                                type = TemplateType.SYSTEM,
-                                exercises = templateDto.exercises?.map { it.name } ?: emptyList()
-                            )
-                        )
-                    }
-                }
-
-                response.data.trainerPrograms.forEach { program ->
-                    program.templates?.forEach { templateDto ->
-                         allTemplates.add(
-                            WorkoutTemplate(
-                                id = templateDto.id,
-                                name = templateDto.name,
-                                exerciseCount = templateDto.exerciseCount,
-                                description = templateDto.description,
-                                lastPerformed = templateDto.lastPerformed,
-                                type = TemplateType.TRAINER,
-                                exercises = templateDto.exercises?.map { it.name } ?: emptyList()
-                            )
-                        )
-                    }
-                }
-                
-                allTemplates
-            } else {
-                emptyList()
             }
+            allTemplates
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
+        }
+    }
+
+    suspend fun getPrograms(): List<com.ziro.fit.model.ProgramDto> {
+        return try {
+            val assignments = api.getClientPrograms()
+            assignments.map { it.program }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    suspend fun getProgram(programId: String): com.ziro.fit.model.ProgramDto? {
+        return try {
+            val assignments = api.getClientPrograms()
+            assignments.find { it.program.id == programId }?.program
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 }

@@ -44,6 +44,6 @@ data class GenerateProgramFromGoalResponse(
     @SerializedName("success")
     val success: Boolean,
     
-    @SerializedName("program_id")
+    @SerializedName("program_id", alternate = ["programId"])
     val programId: String
 )
