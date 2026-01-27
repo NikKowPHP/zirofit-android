@@ -25,6 +25,7 @@ import com.ziro.fit.viewmodel.WorkoutsViewModel
 fun WorkoutsScreen(
     onNavigateBack: (() -> Unit)? = null,
     onStartFreestyleWorkout: () -> Unit,
+    onNavigateToProgramDetail: (String) -> Unit,
     viewModel: WorkoutsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -103,7 +104,7 @@ fun WorkoutsScreen(
                          ProgramCard(
                             program = program, 
                             onClick = { 
-                                // TODO: Navigate to program detail
+                                onNavigateToProgramDetail(program.id)
                             }
                         )
                     }

@@ -318,7 +318,18 @@ fun ClientAppScreen(
                         onStartFreestyleWorkout = {
                             workoutViewModel.startWorkout(null, null, null)
                             navController.navigate("live_workout")
+                        },
+                        onNavigateToProgramDetail = { programId ->
+                            navController.navigate("program_details/$programId")
                         }
+                    )
+                }
+                composable(
+                    route = "program_details/{programId}",
+                    arguments = listOf(navArgument("programId") { type = NavType.StringType })
+                ) {
+                    com.ziro.fit.ui.program.ProgramDetailScreen(
+                        onNavigateBack = { navController.popBackStack() }
                     )
                 }
                 composable("live_workout") {
