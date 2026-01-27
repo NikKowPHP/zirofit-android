@@ -249,4 +249,25 @@ class ClientRepository @Inject constructor(
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
+
+    suspend fun generateAiProgram(clientId: String, duration: String, focus: String): Result<ProgramResponse> {
+        return try {
+            val request = GenerateProgramRequest(clientId, duration, focus)
+            val response = api.generateAiProgram(request)
+            Result.success(response.data!!)
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
+
+    suspend fun getClientPrograms(clientId: String): Result<GetClientProgramsResponse> {
+        return try {
+            val response = api.getTrainerClientPrograms(clientId)
+            Result.success(response.data!!)
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
 }

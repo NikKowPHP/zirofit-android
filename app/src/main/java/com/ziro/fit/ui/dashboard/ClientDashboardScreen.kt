@@ -30,7 +30,9 @@ fun ClientDashboardScreen(
     onNavigateToDiscovery: () -> Unit,
     onNavigateToCheckIns: () -> Unit,
     onNavigateToLiveWorkout: () -> Unit,
+
     onNavigateToChat: (String, String) -> Unit,
+    onNavigateToAICoach: () -> Unit,
     viewModel: com.ziro.fit.viewmodel.ClientDashboardViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val uiState = viewModel.uiState
@@ -110,6 +112,7 @@ fun ClientDashboardScreen(
                                             onNavigateToDiscovery, 
                                             onNavigateToCheckIns,
                                             onNavigateToChat,
+                                            onNavigateToAICoach,
                                             onStartSession = { session ->
                                                 viewModel.startSession(session, onNavigateToLiveWorkout)
                                             }
@@ -144,6 +147,7 @@ fun ClientDashboardHome(
     onNavigateToDiscovery: () -> Unit,
     onNavigateToCheckIns: () -> Unit,
     onNavigateToChat: (String, String) -> Unit,
+    onNavigateToAICoach: () -> Unit,
     onStartSession: (com.ziro.fit.model.ClientSession) -> Unit
 ) {
     Column(
@@ -175,6 +179,37 @@ fun ClientDashboardHome(
             ) {
                 Box(modifier = Modifier.padding(16.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Text("No upcoming workouts scheduled", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // AI Coach Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "AI Coach",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Generate a personalized program based on your goals.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onNavigateToAICoach,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary
+                    )
+                ) {
+                    Text("Start AI Coach")
                 }
             }
         }

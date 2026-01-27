@@ -10,7 +10,28 @@ data class ProgramDto(
     val id: String,
     val name: String,
     val description: String? = null,
-    val templates: List<WorkoutTemplateDto>? = null
+    val templates: List<WorkoutTemplateDto>? = null,
+    val weeks: List<ProgramWeekDto>? = null
+)
+
+data class ProgramWeekDto(
+    val weekNumber: Int,
+    val workouts: List<ProgramWorkoutDto>
+)
+
+data class ProgramWorkoutDto(
+    val name: String,
+    val focus: String?,
+    val exercises: List<ProgramExerciseDto>
+)
+
+data class ProgramExerciseDto(
+    val name: String,
+    val sets: Int,
+    val reps: String,
+    val rpe: Int?,
+    val rest: Int?,
+    val notes: String?
 )
 
 data class WorkoutTemplateDto(
@@ -25,4 +46,17 @@ data class WorkoutTemplateDto(
 data class ExerciseDto(
     val name: String,
     val id: String? = null
+)
+
+data class GenerateProgramRequest(
+    val clientId: String,
+    val duration: String, // "week" or "month"
+    val focus: String
+)
+
+data class ProgramResponse(
+    val programId: String,
+    val name: String,
+    val description: String?,
+    val weeks: List<ProgramWeekDto>
 )

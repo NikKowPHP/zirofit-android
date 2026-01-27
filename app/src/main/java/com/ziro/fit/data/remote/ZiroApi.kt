@@ -339,4 +339,17 @@ interface ZiroApi {
 
     @POST("api/checkout/session")
     suspend fun createCheckoutSession(@Body request: CreateCheckoutSessionRequest): ApiResponse<CreateCheckoutSessionResponse>
+
+    @POST("api/trainer/programs/ai-generate")
+    suspend fun generateAiProgram(@Body request: GenerateProgramRequest): ApiResponse<ProgramResponse>
+
+    @GET("api/clients/{id}/programs")
+    suspend fun getTrainerClientPrograms(@retrofit2.http.Path("id") id: String): ApiResponse<GetClientProgramsResponse>
+
+    // AI Coach
+    @POST("api/mobile/ai-coach/refine")
+    suspend fun refineGoal(@Body request: RefineGoalRequest): ApiResponse<RefineGoalResponse>
+
+    @POST("api/mobile/ai-coach/generate")
+    suspend fun generateProgramFromGoal(@Body request: GenerateProgramFromGoalRequest): ApiResponse<GenerateProgramFromGoalResponse>
 }

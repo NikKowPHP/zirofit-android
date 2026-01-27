@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
@@ -47,6 +48,7 @@ fun ClientDetailsScreen(
     onNavigateToAssessments: (String) -> Unit,
     onNavigateToPhotos: (String) -> Unit,
     onNavigateToSessions: (String) -> Unit,
+    onNavigateToPrograms: (String) -> Unit,
     onNavigateToChat: (String) -> Unit,
     viewModel: ClientDetailsViewModel = hiltViewModel()
 ) {
@@ -117,7 +119,8 @@ fun ClientDetailsScreen(
                         onSeeAllMeasurements = { onNavigateToMeasurements(clientId) },
                         onSeeAllAssessments = { onNavigateToAssessments(clientId) },
                         onSeeAllPhotos = { onNavigateToPhotos(clientId) },
-                        onSeeAllSessions = { onNavigateToSessions(clientId) }
+                        onSeeAllSessions = { onNavigateToSessions(clientId) },
+                        onSeeAllPrograms = { onNavigateToPrograms(clientId) }
                     )
                 }
             }
@@ -172,7 +175,8 @@ fun ClientDetailsContent(
     onSeeAllMeasurements: () -> Unit,
     onSeeAllAssessments: () -> Unit,
     onSeeAllPhotos: () -> Unit,
-    onSeeAllSessions: () -> Unit
+    onSeeAllSessions: () -> Unit,
+    onSeeAllPrograms: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -210,6 +214,13 @@ fun ClientDetailsContent(
                         icon = Icons.Default.FitnessCenter,
                         subtitle = "${sessions.size} sessions",
                         onClick = onSeeAllSessions
+                    )
+                    HorizontalDivider()
+                    NavigationItem(
+                        title = "Programs",
+                        icon = Icons.Default.DateRange,
+                        subtitle = "View & Create",
+                        onClick = onSeeAllPrograms
                     )
                     HorizontalDivider()
                     NavigationItem(
