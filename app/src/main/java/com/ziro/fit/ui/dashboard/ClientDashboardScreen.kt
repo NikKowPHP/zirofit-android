@@ -34,6 +34,7 @@ fun ClientDashboardScreen(
 
     onNavigateToChat: (String, String) -> Unit,
     onNavigateToAICoach: () -> Unit,
+    workoutViewModel: com.ziro.fit.viewmodel.WorkoutViewModel,
     viewModel: com.ziro.fit.viewmodel.ClientDashboardViewModel = androidx.hilt.navigation.compose.hiltViewModel()
 ) {
     val uiState = viewModel.uiState
@@ -115,7 +116,12 @@ fun ClientDashboardScreen(
                                             onNavigateToChat,
                                             onNavigateToAICoach,
                                             onStartSession = { session ->
-                                                viewModel.startSession(session, onNavigateToLiveWorkout)
+                                                workoutViewModel.startWorkout(
+                                                    clientId = data.id,
+                                                    templateId = session.workoutTemplateId,
+                                                    plannedSessionId = if (session.id.isNotEmpty()) session.id else null,
+                                                    onSuccess = { onNavigateToLiveWorkout() }
+                                                )
                                             },
                                             activeProgram = uiState.activeProgram
                                         )

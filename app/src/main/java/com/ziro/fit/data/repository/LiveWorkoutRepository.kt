@@ -138,15 +138,26 @@ class LiveWorkoutRepository @Inject constructor(
         val processedExerciseIds = mutableSetOf<String>()
 
         data.workoutTemplate?.exercises?.sortedBy { it.order }?.forEach { templateStep ->
-            processedExerciseIds.add(templateStep.exerciseId)
+            // SAFTEY FIX: Fallback if exercise info or ID is missing from API
+            val exerciseId = templateStep.exerciseId ?: templateStep.id 
             
-            val logsForThisExercise = logsByExercise[templateStep.exerciseId] ?: emptyList()
+            // Try to get name from object, or parse from notes, or fallback
+            val exerciseName = templateStep.exercise?.name ?: run {
+                // Try to extract "Exercise: Name." from notes if available
+                val noteName = templateStep.notes?.let { note ->
+                    val match = Regex("Exercise: (.*?)[\\.,]").find(note)
+                    match?.groupValues?.get(1)
+                }
+                noteName ?: "Exercise ${templateStep.order}"
+            }
+            
+            processedExerciseIds.add(exerciseId)
+            
+            val logsForThisExercise = logsByExercise[exerciseId] ?: emptyList()
             
             // CRITICAL LOGIC: Merging Plan + Logs
             // If plan says 3 sets, but we logged 1, we show 1 real + 2 ghosts.
-            // If plan says 3 sets, but we logged 4, we show 4 real.
-            
-            val targetSetsCount = templateStep.targetSets
+            val targetSetsCount = templateStep.targetSets ?: 0
             val actualLogsCount = logsForThisExercise.size
             
             // Determine total rows to show (at least as many as logged, or up to target)
@@ -183,8 +194,8 @@ class LiveWorkoutRepository @Inject constructor(
 
             uiExercises.add(
                 WorkoutExerciseUi(
-                    exerciseId = templateStep.exerciseId,
-                    exerciseName = templateStep.exercise.name,
+                    exerciseId = exerciseId,
+                    exerciseName = exerciseName,
                     targetReps = templateStep.targetReps,
                     restSeconds = templateStep.restSeconds,
                     sets = setsUi

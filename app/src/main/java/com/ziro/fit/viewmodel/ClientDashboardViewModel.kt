@@ -175,25 +175,4 @@ class ClientDashboardViewModel @Inject constructor(
                 }
         }
     }
-
-    fun startSession(session: com.ziro.fit.model.ClientSession, onSuccess: () -> Unit) {
-        val currentState = uiState as? ClientDashboardUiState.Success ?: return
-        viewModelScope.launch {
-             try {
-                val request = com.ziro.fit.model.StartWorkoutRequest(
-                    clientId = currentState.data.id,
-                    templateId = session.workoutTemplateId,
-                    plannedSessionId = session.id
-                )
-                val response = api.startWorkout(request)
-                if (response.success != false) {
-                     onSuccess()
-                } else {
-                     uiState = ClientDashboardUiState.Error("Failed to start workout")
-                }
-             } catch (e: Exception) {
-                 uiState = ClientDashboardUiState.Error(e.message ?: "Failed to start workout")
-             }
-        }
-    }
 }

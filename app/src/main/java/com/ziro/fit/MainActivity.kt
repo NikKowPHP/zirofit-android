@@ -236,7 +236,8 @@ fun ClientAppScreen(
                         onNavigateToChat = { clientId, trainerId ->
                              navController.navigate("chat/$clientId/$trainerId")
                         },
-                        onNavigateToAICoach = { navController.navigate("ai_coach") }
+                        onNavigateToAICoach = { navController.navigate("ai_coach") },
+                        workoutViewModel = workoutViewModel
                     )
                 }
                 composable("ai_coach") {
@@ -316,8 +317,12 @@ fun ClientAppScreen(
                 composable("client_workouts") {
                     com.ziro.fit.ui.workouts.WorkoutsScreen(
                         onStartFreestyleWorkout = {
-                            workoutViewModel.startWorkout(null, null, null)
-                            navController.navigate("live_workout")
+                            workoutViewModel.startWorkout(
+                                clientId = null,
+                                templateId = null,
+                                plannedSessionId = null,
+                                onSuccess = { navController.navigate("live_workout") }
+                            )
                         },
                         onNavigateToProgramDetail = { programId ->
                             navController.navigate("program_details/$programId")

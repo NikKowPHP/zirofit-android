@@ -38,12 +38,13 @@ data class ServerTemplate(
 
 data class ServerTemplateExercise(
     val id: String, // Template Step ID
-    val exerciseId: String,
+    val exerciseId: String?, // Changed to Nullable (missing in JSON)
     val order: Int,
-    val targetSets: Int, // Important: How many sets are planned?
+    val targetSets: Int?, // Changed to Nullable (null in JSON)
     val targetReps: String?,
     val restSeconds: Int?,
-    val exercise: ServerExerciseInfo
+    val notes: String?, // Added notes field to extract data if needed
+    val exercise: ServerExerciseInfo? // Changed to Nullable (null in JSON)
 )
 
 data class ServerExerciseLog(

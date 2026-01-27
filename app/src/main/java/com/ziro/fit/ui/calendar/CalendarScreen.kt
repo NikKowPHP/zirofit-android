@@ -225,9 +225,13 @@ fun CalendarScreen(
             EventDetailsSheetContent(
                 event = state.selectedEvent!!,
                 onStartSession = { event -> 
-                    workoutViewModel.startWorkout(null, null, event.id)
+                    workoutViewModel.startWorkout(
+                        clientId = null,
+                        templateId = null,
+                        plannedSessionId = event.id,
+                        onSuccess = { onNavigateToLiveWorkout() }
+                    )
                     viewModel.onEventDismissed() 
-                    onNavigateToLiveWorkout()
                 },
                 onUpdateSession = { 
                     viewModel.onUpdateSession(it)

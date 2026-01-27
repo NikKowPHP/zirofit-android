@@ -124,7 +124,12 @@ class WorkoutViewModel @Inject constructor(
         }
     }
 
-    fun startWorkout(clientId: String?, templateId: String?, plannedSessionId: String?) {
+    fun startWorkout(
+        clientId: String?, 
+        templateId: String?, 
+        plannedSessionId: String?,
+        onSuccess: () -> Unit = {}
+    ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             repository.startWorkout(clientId, templateId, plannedSessionId)
@@ -132,6 +137,7 @@ class WorkoutViewModel @Inject constructor(
                     workoutStateManager.updateSession(session)
                     updateServiceState(session)
                     _uiState.update { it.copy(isLoading = false, isSessionCompleted = false) }
+                    onSuccess()
                 }
                 .onFailure { error ->
                     _uiState.update { it.copy(error = error.localizedMessage, isLoading = false) }
