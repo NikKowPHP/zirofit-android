@@ -27,11 +27,14 @@ data class GoalSuggestion(
 )
 
 data class GenerateProgramFromGoalRequest(
-    @SerializedName("client_id")
+    @SerializedName("clientId")
     val clientId: String,
     
-    @SerializedName("selected_goal")
+    @SerializedName("selectedGoal")
     val selectedGoal: String,
+
+    @SerializedName("focus")
+    val focus: String,
     
     @SerializedName("metrics")
     val metrics: Map<String, Any>

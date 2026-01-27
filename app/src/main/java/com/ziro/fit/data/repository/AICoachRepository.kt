@@ -39,12 +39,13 @@ class AICoachRepository @Inject constructor(
         }
     }
 
-    suspend fun generateProgram(clientId: String, goal: String, metrics: Map<String, Any>): Result<String> {
+    suspend fun generateProgram(clientId: String, goal: String, focus: String, metrics: Map<String, Any>): Result<String> {
         return try {
             val response = api.generateProgramFromGoal(
                 GenerateProgramFromGoalRequest(
                     clientId = clientId,
                     selectedGoal = goal,
+                    focus = focus,
                     metrics = metrics
                 )
             )

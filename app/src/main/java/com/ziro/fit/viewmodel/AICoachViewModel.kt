@@ -137,6 +137,7 @@ class AICoachViewModel @Inject constructor(
             val result = aiCoachRepository.generateProgram(
                 clientId = clientId,
                 goal = suggestion.title, 
+                focus = suggestion.focus,
                 metrics = currentState.metricValues
             )
 
