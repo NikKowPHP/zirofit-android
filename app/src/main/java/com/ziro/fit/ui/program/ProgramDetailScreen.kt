@@ -73,43 +73,8 @@ fun ProgramDetailScreen(
                             HorizontalDivider()
                         }
 
-                        // Display Weeks if available
-                        if (!program.weeks.isNullOrEmpty()) {
-                            program.weeks.sortedBy { it.weekNumber }.forEach { week ->
-                                item {
-                                    Text(
-                                        text = "Week ${week.weekNumber}",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        modifier = Modifier.padding(vertical = 8.dp)
-                                    )
-                                }
-                                items(week.workouts) { workout ->
-                                    Card(
-                                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                                    ) {
-                                        Column(modifier = Modifier.padding(16.dp)) {
-                                            Text(
-                                                text = workout.name,
-                                                style = MaterialTheme.typography.titleMedium
-                                            )
-                                            if (!workout.focus.isNullOrBlank()) {
-                                                Text(
-                                                    text = "Focus: ${workout.focus}",
-                                                    style = MaterialTheme.typography.bodyMedium
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Text(
-                                                text = "${workout.exercises.size} Exercises",
-                                                style = MaterialTheme.typography.labelMedium
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        } else if (uiState.templatesWithStatus.isNotEmpty()) {
-                             // Display flattened templates with status using the interactive card
+                        // Display flattened templates with status using the interactive card
+                        if (uiState.templatesWithStatus.isNotEmpty()) {
                              item {
                                  Text(
                                      text = "Workouts",
@@ -118,7 +83,10 @@ fun ProgramDetailScreen(
                                  )
                              }
                              items(uiState.templatesWithStatus) { templateWithStatus ->
-                                 TemplateStatusCard(templateWithStatus = templateWithStatus)
+                                 TemplateStatusCard(
+                                     templateWithStatus = templateWithStatus,
+                                     onExpand = { id -> viewModel.loadTemplateDetails(id) }
+                                 )
                              }
                         } else if (!program.templates.isNullOrEmpty()) {
                              // Fallback for simple templates without status
@@ -157,10 +125,20 @@ fun ProgramDetailScreen(
 }
 
 @Composable
-fun TemplateStatusCard(templateWithStatus: com.ziro.fit.viewmodel.TemplateWithStatus) {
+fun TemplateStatusCard(
+    templateWithStatus: com.ziro.fit.viewmodel.TemplateWithStatus,
+    onExpand: (String) -> Unit
+) {
     val template = templateWithStatus.template
     val status = templateWithStatus.status
     var expanded by remember { mutableStateOf(false) }
+    
+    // Trigger data load when expanded if exercises are missing
+    LaunchedEffect(expanded) {
+        if (expanded && template.exercises.isNullOrEmpty() && !templateWithStatus.isLoadingDetails) {
+            onExpand(template.id)
+        }
+    }
     
     // Determine card appearance based on status
     val borderColor = when (status) {
@@ -248,8 +226,6 @@ fun TemplateStatusCard(templateWithStatus: com.ziro.fit.viewmodel.TemplateWithSt
                 }
                 
                 // Action button based on status
-                // Only show button if not expanded, or keep it always visible in the row?
-                // Keeping it visible in the row for quick access.
                 when (status) {
                     "COMPLETED" -> {
                         OutlinedButton(
@@ -291,7 +267,11 @@ fun TemplateStatusCard(templateWithStatus: com.ziro.fit.viewmodel.TemplateWithSt
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                if (!template.exercises.isNullOrEmpty()) {
+                if (templateWithStatus.isLoadingDetails) {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    }
+                } else if (!template.exercises.isNullOrEmpty()) {
                     template.exercises.forEachIndexed { index, exercise ->
                         Row(
                             modifier = Modifier

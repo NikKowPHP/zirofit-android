@@ -93,6 +93,10 @@ interface ZiroApi {
     @POST("api/workout-templates")
     suspend fun createWorkoutTemplate(@Body request: CreateWorkoutTemplateRequest): ApiResponse<CreateWorkoutTemplateResponse>
 
+    // New Endpoint to fetch template details
+    @GET("api/workout-templates/{id}")
+    suspend fun getWorkoutTemplate(@retrofit2.http.Path("id") id: String): ApiResponse<ServerTemplate>
+
     @POST("api/workout/log")
     suspend fun logSet(@Body request: LogSetRequest): ApiResponse<Any>
 

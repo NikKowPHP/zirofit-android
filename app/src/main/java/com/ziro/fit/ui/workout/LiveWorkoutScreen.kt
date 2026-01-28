@@ -330,13 +330,15 @@ fun ExerciseCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = exercise.exerciseName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = StrongBlue,
-                fontSize = 18.sp
-            )
+            Column {
+                Text(
+                    text = exercise.exerciseName,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = StrongBlue,
+                    fontSize = 18.sp
+                )
+            }
             
             // Options Menu (Placeholder)
             Icon(
@@ -354,8 +356,9 @@ fun ExerciseCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text("SET", modifier = Modifier.width(40.dp), color = StrongTextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Spacer(Modifier.width(16.dp))
+            Spacer(Modifier.width(8.dp))
             Text("PREVIOUS", modifier = Modifier.weight(1f), color = StrongTextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text("TARGET", modifier = Modifier.weight(0.7f), color = StrongTextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             Text("KG", modifier = Modifier.weight(1f), color = StrongTextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             Text("REPS", modifier = Modifier.weight(1f), color = StrongTextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
             Spacer(Modifier.width(40.dp)) // Checkbox column
@@ -365,6 +368,7 @@ fun ExerciseCard(
         exercise.sets.forEachIndexed { index, set ->
             SetRow(
                 set = set,
+                targetReps = exercise.targetReps,
                 onWeightChange = { w -> onInputChange(exercise.exerciseId, index, w, set.reps) },
                 onRepsChange = { r -> onInputChange(exercise.exerciseId, index, set.weight, r) },
                 onCheck = { onSetToggle(set) }
@@ -419,6 +423,7 @@ fun ExerciseCard(
 @Composable
 fun SetRow(
     set: WorkoutSetUi,
+    targetReps: String?,
     onWeightChange: (String) -> Unit,
     onRepsChange: (String) -> Unit,
     onCheck: () -> Unit
@@ -444,7 +449,7 @@ fun SetRow(
             fontWeight = FontWeight.Bold
         )
         
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(8.dp))
 
         // Previous Data
         Text(
@@ -453,6 +458,16 @@ fun SetRow(
             textAlign = TextAlign.Center,
             color = StrongTextSecondary,
             fontSize = 14.sp
+        )
+
+        // Target Reps
+        Text(
+            text = targetReps ?: "-",
+            modifier = Modifier.weight(0.7f),
+            textAlign = TextAlign.Center,
+            color = StrongTextPrimary,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
         )
 
         // Inputs

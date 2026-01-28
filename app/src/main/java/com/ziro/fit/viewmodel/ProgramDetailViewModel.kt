@@ -16,7 +16,8 @@ import javax.inject.Inject
 data class TemplateWithStatus(
     val template: com.ziro.fit.model.WorkoutTemplateDto,
     val status: String, // "COMPLETED", "NEXT", "PENDING"
-    val lastCompletedAt: String? = null
+    val lastCompletedAt: String? = null,
+    val isLoadingDetails: Boolean = false // Track loading state for expansion
 )
 
 data class ProgramDetailUiState(
@@ -87,6 +88,39 @@ class ProgramDetailViewModel @Inject constructor(
                 }
             } else {
                 _uiState.update { it.copy(isLoading = false, error = "Program not found") }
+            }
+        }
+    }
+
+    fun loadTemplateDetails(templateId: String) {
+        // Mark as loading
+        _uiState.update { state ->
+            state.copy(templatesWithStatus = state.templatesWithStatus.map {
+                if (it.template.id == templateId) it.copy(isLoadingDetails = true) else it
+            })
+        }
+
+        viewModelScope.launch {
+            val result = workoutRepository.getTemplateDetails(templateId)
+            result.onSuccess { detailedTemplate ->
+                _uiState.update { state ->
+                    state.copy(templatesWithStatus = state.templatesWithStatus.map {
+                        if (it.template.id == templateId) {
+                            // Merge details: Keep original description/status, update exercises
+                            val mergedTemplate = it.template.copy(exercises = detailedTemplate.exercises)
+                            it.copy(template = mergedTemplate, isLoadingDetails = false)
+                        } else {
+                            it
+                        }
+                    })
+                }
+            }.onFailure {
+                // Reset loading state on failure
+                _uiState.update { state ->
+                    state.copy(templatesWithStatus = state.templatesWithStatus.map {
+                        if (it.template.id == templateId) it.copy(isLoadingDetails = false) else it
+                    })
+                }
             }
         }
     }
