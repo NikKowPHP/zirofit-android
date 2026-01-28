@@ -22,7 +22,10 @@ import com.ziro.fit.viewmodel.ProgramDetailViewModel
 @Composable
 fun ProgramDetailScreen(
     onNavigateBack: () -> Unit,
-    viewModel: ProgramDetailViewModel = hiltViewModel()
+    viewModel: ProgramDetailViewModel = hiltViewModel(),
+    workoutViewModel: com.ziro.fit.viewmodel.WorkoutViewModel,
+    clientId: String,
+    onNavigateToLiveWorkout: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -85,7 +88,15 @@ fun ProgramDetailScreen(
                              items(uiState.templatesWithStatus) { templateWithStatus ->
                                  TemplateStatusCard(
                                      templateWithStatus = templateWithStatus,
-                                     onExpand = { id -> viewModel.loadTemplateDetails(id) }
+                                     onExpand = { id -> viewModel.loadTemplateDetails(id) },
+                                     onStart = {
+                                         workoutViewModel.startWorkout(
+                                             clientId = clientId,
+                                             templateId = templateWithStatus.template.id,
+                                             plannedSessionId = null,
+                                             onSuccess = onNavigateToLiveWorkout
+                                         )
+                                     }
                                  )
                              }
                         } else if (!program.templates.isNullOrEmpty()) {
@@ -127,7 +138,8 @@ fun ProgramDetailScreen(
 @Composable
 fun TemplateStatusCard(
     templateWithStatus: com.ziro.fit.viewmodel.TemplateWithStatus,
-    onExpand: (String) -> Unit
+    onExpand: (String) -> Unit,
+    onStart: () -> Unit
 ) {
     val template = templateWithStatus.template
     val status = templateWithStatus.status
@@ -239,7 +251,7 @@ fun TemplateStatusCard(
                     }
                     "NEXT" -> {
                         Button(
-                            onClick = { /* TODO: Start this workout */ },
+                            onClick = onStart,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary
                             )

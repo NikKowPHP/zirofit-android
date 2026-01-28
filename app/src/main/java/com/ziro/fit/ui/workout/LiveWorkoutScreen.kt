@@ -232,7 +232,6 @@ fun LiveWorkoutScreen(
                 ModalBottomSheet(
                     onDismissRequest = { 
                         viewModel.onSessionCompletedNavigated()
-                        onNavigateBack() 
                     },
                     dragHandle = null,
                     containerColor = StrongSurface
@@ -241,7 +240,6 @@ fun LiveWorkoutScreen(
                         stats = state.workoutSuccessStats!!,
                         onDone = {
                             viewModel.onSessionCompletedNavigated()
-                            onNavigateBack()
                         }
                     )
                 }

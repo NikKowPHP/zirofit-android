@@ -19,7 +19,7 @@ import javax.inject.Inject
 
 sealed class AuthState {
     object Loading : AuthState()
-    data class Authenticated(val role: String, val isOnboardingComplete: Boolean = true) : AuthState()
+    data class Authenticated(val role: String, val userId: String, val isOnboardingComplete: Boolean = true) : AuthState()
     object Unauthenticated : AuthState()
     data class Error(val message: String) : AuthState()
 }
@@ -61,7 +61,7 @@ class AuthViewModel @Inject constructor(
                     val user = userResponse.data
                     if (user != null) {
                         val role = user.role ?: "pending"
-                        authState = AuthState.Authenticated(role, isOnboardingComplete = role != "pending")
+                        authState = AuthState.Authenticated(role, user.id, isOnboardingComplete = role != "pending")
                         syncPushToken() // Sync on startup check
                     } else {
                         authState = AuthState.Unauthenticated
@@ -88,7 +88,7 @@ class AuthViewModel @Inject constructor(
                 if (loginData != null) {
                     tokenManager.saveToken(loginData.accessToken)
                     val role = loginData.role
-                    authState = AuthState.Authenticated(role, isOnboardingComplete = role != "pending")
+                    authState = AuthState.Authenticated(role, loginData.id, isOnboardingComplete = role != "pending")
                     syncPushToken() 
                 } else {
                    uiError = response.message ?: "Login failed: No data received"
@@ -125,8 +125,9 @@ class AuthViewModel @Inject constructor(
     }
 
     fun completeLocalOnboarding(role: String) {
-        if (authState is AuthState.Authenticated) {
-            authState = AuthState.Authenticated(role, isOnboardingComplete = true)
+        val currentState = authState
+        if (currentState is AuthState.Authenticated) {
+            authState = AuthState.Authenticated(role, currentState.userId, isOnboardingComplete = true)
         }
     }
 

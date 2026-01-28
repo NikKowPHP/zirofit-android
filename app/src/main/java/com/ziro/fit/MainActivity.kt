@@ -166,6 +166,10 @@ fun ClientAppScreen(
         workoutViewModel.refreshActiveSession()
     }
 
+    // Get User ID from Auth State
+    val authState = authViewModel.authState
+    val currentUserId = (authState as? AuthState.Authenticated)?.userId ?: ""
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
@@ -334,7 +338,14 @@ fun ClientAppScreen(
                     arguments = listOf(navArgument("programId") { type = NavType.StringType })
                 ) {
                     com.ziro.fit.ui.program.ProgramDetailScreen(
-                        onNavigateBack = { navController.popBackStack() }
+                        onNavigateBack = { navController.popBackStack() },
+                        workoutViewModel = workoutViewModel,
+                        clientId = currentUserId,
+                        onNavigateToLiveWorkout = {
+                            navController.navigate("live_workout") {
+                                launchSingleTop = true
+                            }
+                        }
                     )
                 }
                 composable("live_workout") {
