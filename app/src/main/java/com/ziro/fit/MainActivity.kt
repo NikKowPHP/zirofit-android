@@ -320,16 +320,22 @@ fun ClientAppScreen(
                 }
                 composable("client_workouts") {
                     com.ziro.fit.ui.workouts.WorkoutsScreen(
-                        onStartFreestyleWorkout = {
+                        onStartWorkout = { templateId ->
                             workoutViewModel.startWorkout(
                                 clientId = null,
-                                templateId = null,
+                                templateId = templateId,
                                 plannedSessionId = null,
                                 onSuccess = { navController.navigate("live_workout") }
                             )
                         },
                         onNavigateToProgramDetail = { programId ->
                             navController.navigate("program_details/$programId")
+                        },
+                        onNavigateToCreateTemplate = {
+                            navController.navigate("workout/create_template")
+                        },
+                        onEditTemplate = { templateId ->
+                            navController.navigate("workout/edit_template/$templateId")
                         }
                     )
                 }
@@ -347,6 +353,16 @@ fun ClientAppScreen(
                             }
                         }
                     )
+                }
+                composable("workout/create_template") {
+                     com.ziro.fit.ui.workouts.CreateWorkoutTemplateScreen(
+                         onNavigateBack = { navController.popBackStack() }
+                     )
+                }
+                composable("workout/edit_template/{templateId}") {
+                     com.ziro.fit.ui.workouts.CreateWorkoutTemplateScreen(
+                         onNavigateBack = { navController.popBackStack() }
+                     )
                 }
                 composable("live_workout") {
                     LiveWorkoutScreen(

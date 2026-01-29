@@ -30,7 +30,8 @@ data class CreateTemplateExercise(
     val reps: String,
     val restSeconds: Int,
     val notes: String?,
-    val order: Int
+    val order: Int,
+    val exerciseId: String? = null
 )
 
 data class CreateWorkoutTemplateResponse(

@@ -88,7 +88,7 @@ class AuthViewModel @Inject constructor(
                 if (loginData != null) {
                     tokenManager.saveToken(loginData.accessToken)
                     val role = loginData.role
-                    authState = AuthState.Authenticated(role, loginData.id, isOnboardingComplete = role != "pending")
+                    authState = AuthState.Authenticated(role, loginData.user.id, isOnboardingComplete = role != "pending")
                     syncPushToken() 
                 } else {
                    uiError = response.message ?: "Login failed: No data received"

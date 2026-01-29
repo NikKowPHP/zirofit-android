@@ -97,6 +97,15 @@ interface ZiroApi {
     @GET("api/workout-templates/{id}")
     suspend fun getWorkoutTemplate(@retrofit2.http.Path("id") id: String): ApiResponse<ServerTemplate>
 
+    @retrofit2.http.PUT("api/workout-templates/{id}")
+    suspend fun updateWorkoutTemplate(
+        @retrofit2.http.Path("id") id: String,
+        @Body request: CreateWorkoutTemplateRequest
+    ): ApiResponse<CreateWorkoutTemplateResponse>
+
+    @retrofit2.http.DELETE("api/workout-templates/{id}")
+    suspend fun deleteWorkoutTemplate(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
+
     @POST("api/workout/log")
     suspend fun logSet(@Body request: LogSetRequest): ApiResponse<Any>
 

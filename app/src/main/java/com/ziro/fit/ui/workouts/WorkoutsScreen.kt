@@ -1,5 +1,6 @@
 package com.ziro.fit.ui.workouts
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -21,11 +22,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.ziro.fit.model.WorkoutTemplate
 import com.ziro.fit.viewmodel.WorkoutsViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutsScreen(
     onNavigateBack: (() -> Unit)? = null,
-    onStartFreestyleWorkout: () -> Unit,
+    onStartWorkout: (String?) -> Unit,
     onNavigateToProgramDetail: (String) -> Unit,
+    onNavigateToCreateTemplate: (() -> Unit)? = null,
+    onEditTemplate: ((String) -> Unit)? = null,
     viewModel: WorkoutsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -70,7 +74,7 @@ fun WorkoutsScreen(
             )
             
             Button(
-                onClick = onStartFreestyleWorkout,
+                onClick = { onStartWorkout(null) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
@@ -122,7 +126,7 @@ fun WorkoutsScreen(
                     style = MaterialTheme.typography.titleLarge
                 )
                 Row {
-                    IconButton(onClick = { /* TODO: Create Template */ }) {
+                    IconButton(onClick = { onNavigateToCreateTemplate?.invoke() }) {
                          Icon(Icons.Default.Add, contentDescription = "Add Template")
                     }
                     IconButton(onClick = { /* TODO: Folders */ }) {
@@ -162,11 +166,33 @@ fun WorkoutsScreen(
                             .padding(vertical = 8.dp)
                     ) {
                         combinedTemplates.forEach { template -> 
-                            TemplateCard(
-                                template = template, 
-                                onClick = { /* TODO: Start from template */ },
-                                onMenuClick = { /* TODO: Template options */ }
-                            )
+                            var showMenu by remember { mutableStateOf(false) }
+                            Box {
+                                TemplateCard(
+                                    template = template, 
+                                    onClick = { viewModel.onTemplateClicked(template) },
+                                    onMenuClick = { showMenu = true }
+                                )
+                                DropdownMenu(
+                                    expanded = showMenu,
+                                    onDismissRequest = { showMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Edit") },
+                                        onClick = {
+                                            showMenu = false
+                                            onEditTemplate?.invoke(template.id)
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                        onClick = {
+                                            showMenu = false
+                                            viewModel.deleteTemplate(template.id)
+                                        }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -213,13 +239,90 @@ fun WorkoutsScreen(
                 uiState.systemTemplates.forEach { template -> 
                      TemplateCard(
                         template = template, 
-                        onClick = { /* TODO: Start from template */ },
+                        onClick = { viewModel.onTemplateClicked(template) },
                         onMenuClick = { /* TODO: Template options */ }
                     )
                 }
             }
             
             Spacer(modifier = Modifier.height(80.dp)) // Bottom padding
+        }
+    }
+
+    // Template Preview Bottom Sheet
+    if (uiState.selectedTemplateForPreview != null) {
+        val template = uiState.selectedTemplateForPreview!!
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.dismissTemplatePreview() },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = template.name,
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                if (!template.description.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = template.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    text = "Exercises",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                if (template.exercises.isNotEmpty()) {
+                    template.exercises.forEachIndexed { index, exercise ->
+                         Row(
+                             modifier = Modifier
+                                 .fillMaxWidth()
+                                 .padding(vertical = 8.dp),
+                             verticalAlignment = Alignment.CenterVertically
+                         ) {
+                             Box(
+                                 modifier = Modifier
+                                     .size(24.dp)
+                                     .background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.CircleShape),
+                                 contentAlignment = Alignment.Center
+                             ) {
+                                 Text((index + 1).toString(), style = MaterialTheme.typography.labelSmall)
+                             }
+                             Spacer(modifier = Modifier.width(12.dp))
+                             Text(exercise, style = MaterialTheme.typography.bodyLarge)
+                         }
+                         if (index < template.exercises.size - 1) {
+                             HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
+                         }
+                    }
+                } else {
+                    Text("No exercises in this template", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                
+                Spacer(modifier = Modifier.height(32.dp))
+                
+                Button(
+                    onClick = { 
+                        viewModel.dismissTemplatePreview()
+                        onStartWorkout(template.id) 
+                    },
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("START WORKOUT")
+                }
+            }
         }
     }
 }

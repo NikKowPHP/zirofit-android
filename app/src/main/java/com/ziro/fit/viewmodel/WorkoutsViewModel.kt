@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -17,7 +18,8 @@ data class WorkoutsUiState(
     val systemTemplates: List<WorkoutTemplate> = emptyList(),
     val programs: List<com.ziro.fit.model.ProgramDto> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val selectedTemplateForPreview: WorkoutTemplate? = null
 )
 
 @HiltViewModel
@@ -49,6 +51,26 @@ class WorkoutsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
+        }
+    }
+    fun onTemplateClicked(template: WorkoutTemplate) {
+        _uiState.value = _uiState.value.copy(selectedTemplateForPreview = template)
+    }
+
+    fun dismissTemplatePreview() {
+        _uiState.value = _uiState.value.copy(selectedTemplateForPreview = null)
+    }
+
+    fun deleteTemplate(templateId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            workoutRepository.deleteTemplate(templateId)
+                .onSuccess {
+                    loadTemplates() // Reload to refresh list
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(error = e.localizedMessage, isLoading = false) }
+                }
         }
     }
 }

@@ -102,4 +102,30 @@ class WorkoutRepository @Inject constructor(
             Result.failure(e)
         }
     }
+    suspend fun createTemplate(request: com.ziro.fit.model.CreateWorkoutTemplateRequest): Result<com.ziro.fit.model.CreateWorkoutTemplateResponse> {
+        return try {
+            val response = api.createWorkoutTemplate(request)
+            Result.success(response.data!!)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateTemplate(id: String, request: com.ziro.fit.model.CreateWorkoutTemplateRequest): Result<com.ziro.fit.model.CreateWorkoutTemplateResponse> {
+        return try {
+            val response = api.updateWorkoutTemplate(id, request)
+            Result.success(response.data!!)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteTemplate(id: String): Result<Unit> {
+        return try {
+            api.deleteWorkoutTemplate(id)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

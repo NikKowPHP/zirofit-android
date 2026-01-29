@@ -9,7 +9,7 @@ data class LoginResponse(
     val message: String,
     val role: String,
     val accessToken: String,
-    val id: String
+    val user: User
 )
 
 data class RegisterRequest(
