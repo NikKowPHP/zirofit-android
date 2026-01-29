@@ -250,13 +250,13 @@ interface ZiroApi {
     @GET("api/trainer/assessments")
     suspend fun getAssessments(): ApiResponse<GetAssessmentsResponse>
 
-    @POST("api/profile/me/assessments")
+    @POST("api/trainer/assessments")
     suspend fun createAssessment(@Body request: com.ziro.fit.model.CreateAssessmentRequest): ApiResponse<CreateAssessmentResponse>
 
-    @retrofit2.http.PUT("api/profile/me/assessments/{id}")
+    @retrofit2.http.PUT("api/trainer/assessments/{id}")
     suspend fun updateAssessment(@retrofit2.http.Path("id") id: String, @Body request: com.ziro.fit.model.UpdateAssessmentRequest): ApiResponse<Assessment>
 
-    @retrofit2.http.DELETE("api/profile/me/assessments/{id}")
+    @retrofit2.http.DELETE("api/trainer/assessments/{id}")
     suspend fun deleteAssessment(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
 
     // Bookings

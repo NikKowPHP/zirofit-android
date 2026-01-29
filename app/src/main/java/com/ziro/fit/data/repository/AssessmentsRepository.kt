@@ -30,7 +30,7 @@ class AssessmentsRepository @Inject constructor(
             val request = CreateAssessmentRequest(name, description, unit)
             val response = api.createAssessment(request)
             if ((response.success ?: true) && response.data != null) {
-                emit(Result.success(response.data!!.newAssessment))
+                emit(Result.success(response.data!!.assessment))
             } else {
                 emit(Result.failure(Exception(response.message ?: "Failed to create assessment")))
             }

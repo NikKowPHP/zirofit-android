@@ -17,7 +17,7 @@ data class CreateAssessmentRequest(
 )
 
 data class CreateAssessmentResponse(
-    val newAssessment: Assessment
+    val assessment: Assessment // Updated from 'newAssessment' to match API spec
 )
 
 // Assuming standard update body structure, usually similar to create but partial or full
