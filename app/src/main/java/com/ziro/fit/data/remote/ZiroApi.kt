@@ -247,7 +247,7 @@ interface ZiroApi {
     suspend fun getNotifications(): ApiResponse<GetNotificationsResponse>
 
     // Generic Assessments Management
-    @GET("api/profile/me/assessments")
+    @GET("api/trainer/assessments")
     suspend fun getAssessments(): ApiResponse<GetAssessmentsResponse>
 
     @POST("api/profile/me/assessments")

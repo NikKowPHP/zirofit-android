@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.ziro.fit.model.Assessment
 import com.ziro.fit.model.AssessmentResult
 import com.ziro.fit.util.DateTimeUtils
 import com.ziro.fit.viewmodel.ClientAssessmentsViewModel
@@ -106,12 +108,20 @@ fun ClientAssessmentsScreen(
             }
 
             if (showCreateDialog) {
-                AssessmentFormDialog(
+                AssessmentSelectionDialog(
+                    availableAssessments = uiState.availableAssessmentTypes,
                     onDismiss = { showCreateDialog = false },
-                    onConfirm = { id, date, value, notes ->
-                        viewModel.createAssessment(clientId, id, date, value, notes)
+                    onConfirm = { assessmentId, date, value, notes ->
+                        viewModel.createAssessment(clientId, assessmentId, date, value, notes)
                         showCreateDialog = false
-                    }
+                    },
+                    onCreateNewType = { name, unit ->
+                        viewModel.createAssessmentType(name, unit) { newId ->
+                            // Optional: Could auto-select, but managing that state in Dialog is tricky. 
+                            // Dialog will receive updated list via uiState.availableAssessmentTypes
+                        }
+                    },
+                    isCreatingType = uiState.isCreatingType
                 )
             }
         }
@@ -191,69 +201,164 @@ fun AssessmentItemFull(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AssessmentFormDialog(
+fun AssessmentSelectionDialog(
+    availableAssessments: List<Assessment>,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Double, String?) -> Unit
+    onConfirm: (String, String, Double, String?) -> Unit,
+    onCreateNewType: (String, String) -> Unit,
+    isCreatingType: Boolean
 ) {
-    var assessmentName by remember { mutableStateOf("") }
+    var isAddingNewType by remember { mutableStateOf(false) }
+    
+    // Selection State
+    var selectedAssessment by remember { mutableStateOf<Assessment?>(null) }
+    var expanded by remember { mutableStateOf(false) }
     var value by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     val today = java.time.LocalDate.now().toString()
     var date by remember { mutableStateOf(today) }
 
+    // Creation State
+    var newTypeName by remember { mutableStateOf("") }
+    var newTypeUnit by remember { mutableStateOf("") }
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Assessment Result") },
+        title = { Text(if (isAddingNewType) "Create Assessment Type" else "Add Result") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = date,
-                    onValueChange = { date = it },
-                    label = { Text("Date (YYYY-MM-DD)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = assessmentName,
-                    onValueChange = { assessmentName = it },
-                    label = { Text("Assessment Name/ID") }, // Should be ID but using name as ID for MVP
-                    placeholder = { Text("e.g. Pushups") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = value,
-                    onValueChange = { value = it },
-                    label = { Text("Value") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                 OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (isAddingNewType) {
+                    // Create New Type Form
+                    Text("Define a new assessment type to add to your library.", style = MaterialTheme.typography.bodyMedium)
+                    OutlinedTextField(
+                        value = newTypeName,
+                        onValueChange = { newTypeName = it },
+                        label = { Text("Name (e.g. Plank)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newTypeUnit,
+                        onValueChange = { newTypeUnit = it },
+                        label = { Text("Unit (e.g. Seconds)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    // Select & Record Form
+                    
+                    // Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedAssessment?.name ?: "",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Assessment") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            if (availableAssessments.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("No assessments found") },
+                                    onClick = { expanded = false },
+                                    enabled = false
+                                )
+                            }
+                            
+                            availableAssessments.forEach { assessment ->
+                                DropdownMenuItem(
+                                    text = { Text(assessment.name) },
+                                    onClick = {
+                                        selectedAssessment = assessment
+                                        expanded = false
+                                    }
+                                )
+                            }
+                            
+                            HorizontalDivider()
+                            
+                            DropdownMenuItem(
+                                text = { Text("Create New Assessment...", color = MaterialTheme.colorScheme.primary) },
+                                onClick = {
+                                    isAddingNewType = true
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                    
+                    OutlinedTextField(
+                        value = date,
+                        onValueChange = { date = it },
+                        label = { Text("Date (YYYY-MM-DD)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    OutlinedTextField(
+                        value = value,
+                        onValueChange = { value = it },
+                        label = { Text("Value ${selectedAssessment?.unit?.let { "($it)" } ?: ""}") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        label = { Text("Notes") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    val v = value.toDoubleOrNull()
-                    if (assessmentName.isNotBlank() && v != null) {
-                         val isoDate = try {
-                            java.time.LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().toString()
-                        } catch (e: Exception) {
-                            if(date.contains("T")) date else Instant.now().toString()
-                        }
-                        onConfirm(assessmentName, isoDate, v, notes)
+            if (isAddingNewType) {
+                Button(
+                    onClick = {
+                        onCreateNewType(newTypeName, newTypeUnit)
+                        isAddingNewType = false // Switch back to selection
+                        // Optionally auto-select the new one if logic allows
+                        // We rely on the ViewModel to refresh the list, and user can pick it.
+                    },
+                    enabled = newTypeName.isNotBlank() && newTypeUnit.isNotBlank() && !isCreatingType
+                ) {
+                    if (isCreatingType) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                    } else {
+                        Text("Create")
                     }
-                },
-                enabled = assessmentName.isNotBlank() && value.toDoubleOrNull() != null
-            ) {
-                Text("Save")
+                }
+            } else {
+                Button(
+                    onClick = {
+                        val v = value.toDoubleOrNull()
+                        if (selectedAssessment != null && v != null) {
+                             val isoDate = try {
+                                java.time.LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().toString()
+                            } catch (e: Exception) {
+                                if(date.contains("T")) date else Instant.now().toString()
+                            }
+                            onConfirm(selectedAssessment!!.id, isoDate, v, notes)
+                        }
+                    },
+                    enabled = selectedAssessment != null && value.toDoubleOrNull() != null
+                ) {
+                    Text("Save")
+                }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
+            TextButton(onClick = {
+                if (isAddingNewType) isAddingNewType = false else onDismiss()
+            }) {
+                Text(if (isAddingNewType) "Back" else "Cancel")
             }
         }
     )
