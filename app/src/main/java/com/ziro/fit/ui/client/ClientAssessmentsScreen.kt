@@ -61,10 +61,10 @@ fun ClientAssessmentsScreen(
                 .fillMaxSize()
         ) {
             when {
-                uiState.isLoading -> {
+                uiState.isLoading && uiState.assessments.isEmpty() -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
-                uiState.error != null -> {
+                uiState.error != null && uiState.assessments.isEmpty() -> {
                     Column(
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -115,10 +115,9 @@ fun ClientAssessmentsScreen(
                         viewModel.createAssessment(clientId, assessmentId, date, value, notes)
                         showCreateDialog = false
                     },
-                    onCreateNewType = { name, unit ->
-                        viewModel.createAssessmentType(name, unit) { newId ->
-                            // Optional: Could auto-select, but managing that state in Dialog is tricky. 
-                            // Dialog will receive updated list via uiState.availableAssessmentTypes
+                    onCreateNewType = { name, unit, onTypeCreated ->
+                        viewModel.createAssessmentType(name, unit) { newAssessment ->
+                            onTypeCreated(newAssessment)
                         }
                     },
                     isCreatingType = uiState.isCreatingType
@@ -205,7 +204,7 @@ fun AssessmentSelectionDialog(
     availableAssessments: List<Assessment>,
     onDismiss: () -> Unit,
     onConfirm: (String, String, Double, String?) -> Unit,
-    onCreateNewType: (String, String) -> Unit,
+    onCreateNewType: (String, String, (Assessment) -> Unit) -> Unit, // Updated signature
     isCreatingType: Boolean
 ) {
     var isAddingNewType by remember { mutableStateOf(false) }
@@ -322,10 +321,10 @@ fun AssessmentSelectionDialog(
             if (isAddingNewType) {
                 Button(
                     onClick = {
-                        onCreateNewType(newTypeName, newTypeUnit)
-                        isAddingNewType = false // Switch back to selection
-                        // Optionally auto-select the new one if logic allows
-                        // We rely on the ViewModel to refresh the list, and user can pick it.
+                        onCreateNewType(newTypeName, newTypeUnit) { newAssessment ->
+                            selectedAssessment = newAssessment
+                            isAddingNewType = false // Switch back to selection
+                        }
                     },
                     enabled = newTypeName.isNotBlank() && newTypeUnit.isNotBlank() && !isCreatingType
                 ) {

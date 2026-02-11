@@ -246,12 +246,12 @@ interface ZiroApi {
     @GET("api/notifications")
     suspend fun getNotifications(): ApiResponse<GetNotificationsResponse>
 
-    // Generic Assessments Management
+    // Generic Assessments Management - Removed ApiResponse wrapper
     @GET("api/trainer/assessments")
-    suspend fun getAssessments(): ApiResponse<GetAssessmentsResponse>
+    suspend fun getAssessments(): GetAssessmentsResponse
 
     @POST("api/trainer/assessments")
-    suspend fun createAssessment(@Body request: com.ziro.fit.model.CreateAssessmentRequest): ApiResponse<CreateAssessmentResponse>
+    suspend fun createAssessment(@Body request: com.ziro.fit.model.CreateAssessmentRequest): CreateAssessmentResponse
 
     @retrofit2.http.PUT("api/trainer/assessments/{id}")
     suspend fun updateAssessment(@retrofit2.http.Path("id") id: String, @Body request: com.ziro.fit.model.UpdateAssessmentRequest): ApiResponse<Assessment>

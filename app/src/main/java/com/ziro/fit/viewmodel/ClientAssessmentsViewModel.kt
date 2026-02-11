@@ -48,12 +48,12 @@ class ClientAssessmentsViewModel @Inject constructor(
                         error = error.message ?: "Failed to load assessments"
                     )
                 }
-
+                
             // Also load available assessment types for the dropdown
             loadAvailableAssessmentTypes()
         }
     }
-
+    
     private suspend fun loadAvailableAssessmentTypes() {
         assessmentsRepository.getAssessments().collect { result ->
             result.onSuccess { types ->
@@ -78,8 +78,8 @@ class ClientAssessmentsViewModel @Inject constructor(
             }
         }
     }
-
-    fun createAssessmentType(name: String, unit: String, onSuccess: (String) -> Unit) {
+    
+    fun createAssessmentType(name: String, unit: String, onSuccess: (Assessment) -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCreatingType = true, error = null)
             assessmentsRepository.createAssessment(name, null, unit).collect { result ->
@@ -88,7 +88,7 @@ class ClientAssessmentsViewModel @Inject constructor(
                         isCreatingType = false,
                         availableAssessmentTypes = _uiState.value.availableAssessmentTypes + newAssessment
                     )
-                    onSuccess(newAssessment.id)
+                    onSuccess(newAssessment)
                 }.onFailure { e ->
                     _uiState.value = _uiState.value.copy(
                         isCreatingType = false,
