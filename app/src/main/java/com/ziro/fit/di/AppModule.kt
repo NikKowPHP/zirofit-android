@@ -18,7 +18,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-        private const val BASE_URL = "http://localhost:3321/"
+        private const val BASE_URL = "http://10.0.2.2:3321/"
 // private const val BASE_URL = "https://ziro.fit/"
     private const val TAG = "ZiroAPI"
 

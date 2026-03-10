@@ -23,6 +23,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Provide a default empty placeholder so the manifest merger doesn't crash 
+        // if the API key is missing from local.properties
+        manifestPlaceholders["MAPS_API_KEY"] = ""
     }
 
     buildTypes {
