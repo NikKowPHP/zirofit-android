@@ -243,6 +243,7 @@ fun ClientAppScreen(
                              navController.navigate("chat/$clientId/$trainerId")
                         },
                         onNavigateToAICoach = { navController.navigate("ai_coach") },
+                        onNavigateToEvents = { navController.navigate("events_list") },
                         workoutViewModel = workoutViewModel
                     )
                 }

@@ -90,7 +90,8 @@ data class WorkoutSetUi(
     val weight: String,
     val reps: String,
     val isCompleted: Boolean,
-    val order: Int // 0-indexed position in the list
+    val order: Int, // 0-indexed position in the list
+    val rpe: Double? = null
 )
 
 // --- 3. API REQUEST ---
@@ -100,7 +101,10 @@ data class LogSetRequest(
     val exerciseId: String,
     val reps: Int,
     val weight: Double,
-    @SerializedName("order") val order: Int
+    @SerializedName("order") val order: Int,
+    val isCompleted: Boolean? = null,
+    val logId: String? = null,
+    val rpe: Double? = null
 )
 
 data class StartWorkoutRequest(

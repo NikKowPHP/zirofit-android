@@ -6,9 +6,9 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,11 +23,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.ziro.fit.model.ExploreEvent
-import com.ziro.fit.ui.theme.BackgroundDark
-import com.ziro.fit.ui.theme.PrimaryGold
-import com.ziro.fit.ui.theme.SurfaceDark
+import com.ziro.fit.ui.theme.*
 import com.ziro.fit.viewmodel.EventDetailViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventDetailScreen(
     eventId: String,
@@ -51,12 +50,13 @@ fun EventDetailScreen(
     }
 
     Scaffold(
-        backgroundColor = BackgroundDark,
+        containerColor = StrongBackground,
         topBar = {
             TopAppBar(
-                title = { Text("Event Details") },
-                backgroundColor = Color.Transparent,
-                elevation = 0.dp,
+                title = { Text("Event Details", color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -67,7 +67,7 @@ fun EventDetailScreen(
     ) { padding ->
         if (uiState.isLoading && uiState.event == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = PrimaryGold)
+                CircularProgressIndicator(color = StrongBlue)
             }
         } else {
             uiState.event?.let { event ->
@@ -75,7 +75,8 @@ fun EventDetailScreen(
                     event = event,
                     onEnroll = { viewModel.enroll(event) },
                     isLoading = uiState.isLoading,
-                    joinSuccess = uiState.joinSuccess
+                    joinSuccess = uiState.joinSuccess,
+                    padding = padding
                 )
             }
         }
@@ -98,11 +99,13 @@ fun EventDetailContent(
     event: ExploreEvent,
     onEnroll: () -> Unit,
     isLoading: Boolean,
-    joinSuccess: Boolean
+    joinSuccess: Boolean,
+    padding: PaddingValues
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(padding)
             .verticalScroll(rememberScrollState())
     ) {
         AsyncImage(
@@ -125,17 +128,17 @@ fun EventDetailContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CalendarToday, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.CalendarToday, contentDescription = null, tint = StrongBlue, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = event.startTime, color = Color.LightGray, fontSize = 14.sp)
+                Text(text = event.startTime, color = StrongTextSecondary, fontSize = 14.sp)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocationOn, contentDescription = null, tint = PrimaryGold, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.LocationOn, contentDescription = null, tint = StrongBlue, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = event.locationName, color = Color.LightGray, fontSize = 14.sp)
+                Text(text = event.locationName, color = StrongTextSecondary, fontSize = 14.sp)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -145,14 +148,14 @@ fun EventDetailContent(
             Column {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Capacity", color = Color.White, fontSize = 14.sp)
-                    Text("${event.enrolledCount ?: 0}/${event.capacity ?: "∞"}", color = PrimaryGold, fontSize = 14.sp)
+                    Text("${event.enrolledCount ?: 0}/${event.capacity ?: "∞"}", color = StrongBlue, fontSize = 14.sp)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 LinearProgressIndicator(
-                    progress = progress.coerceIn(0f, 1f),
+                    progress = { progress.coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                    color = if (progress >= 0.9f) Color.Red else PrimaryGold,
-                    backgroundColor = SurfaceDark
+                    color = if (progress >= 0.9f) StrongRed else StrongBlue,
+                    trackColor = StrongSecondaryBackground
                 )
             }
 
@@ -162,7 +165,7 @@ fun EventDetailContent(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = event.description ?: "No description provided.",
-                color = Color.Gray,
+                color = StrongTextSecondary,
                 lineHeight = 22.sp,
                 fontSize = 15.sp
             )
@@ -174,7 +177,9 @@ fun EventDetailContent(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    backgroundColor = SurfaceDark
+                    colors = CardDefaults.cardColors(
+                        containerColor = StrongSecondaryBackground
+                    )
                 ) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         AsyncImage(
@@ -185,7 +190,7 @@ fun EventDetailContent(
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            Text("Hosted by", color = Color.Gray, fontSize = 12.sp)
+                            Text("Hosted by", color = StrongTextSecondary, fontSize = 12.sp)
                             Text(event.resolvedHostName!!, color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -197,11 +202,11 @@ fun EventDetailContent(
             if (joinSuccess) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = Color.Green.copy(alpha = 0.2f),
+                    color = StrongGreen.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.Green)
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = StrongGreen)
                         Spacer(modifier = Modifier.width(12.dp))
                         Text("You are enrolled!", color = Color.White)
                     }
@@ -211,7 +216,7 @@ fun EventDetailContent(
                     onClick = onEnroll,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(backgroundColor = PrimaryGold),
+                    colors = ButtonDefaults.buttonColors(containerColor = StrongBlue),
                     enabled = !isLoading && (event.isBooked != true) && !event.isFull
                 ) {
                     if (isLoading) {
@@ -222,7 +227,7 @@ fun EventDetailContent(
                             event.isFull -> "Event Full"
                             else -> if (event.price != null && event.price > 0) "Buy Ticket (${event.priceDisplay})" else "Join for Free"
                         }
-                        Text(text, color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(text, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                 }
             }

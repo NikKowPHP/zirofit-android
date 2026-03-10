@@ -46,9 +46,9 @@ class LiveWorkoutRepository @Inject constructor(
         }
     }
 
-    suspend fun logSet(sessionId: String, exerciseId: String, reps: Int, weight: Double, order: Int): Result<Unit> {
+    suspend fun logSet(sessionId: String, exerciseId: String, reps: Int, weight: Double, order: Int, isCompleted: Boolean? = null, logId: String? = null, rpe: Double? = null): Result<Unit> {
         return try {
-            api.logSet(LogSetRequest(sessionId, exerciseId, reps, weight, order))
+            api.logSet(LogSetRequest(sessionId, exerciseId, reps, weight, order, isCompleted, logId, rpe))
             Result.success(Unit)
         } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)

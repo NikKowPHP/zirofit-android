@@ -6,11 +6,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,11 +23,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.ziro.fit.model.ExploreEvent
-import com.ziro.fit.ui.theme.BackgroundDark
-import com.ziro.fit.ui.theme.PrimaryGold
-import com.ziro.fit.ui.theme.SurfaceDark
+import com.ziro.fit.ui.theme.*
 import com.ziro.fit.viewmodel.EventsViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EventsListScreen(
     onBack: () -> Unit,
@@ -40,7 +39,9 @@ fun EventsListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Explore Events", color = Color.White) },
-                backgroundColor = BackgroundDark,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = StrongBackground
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
@@ -48,12 +49,12 @@ fun EventsListScreen(
                 },
                 actions = {
                     IconButton(onClick = { /* Open filters */ }) {
-                        Icon(Icons.Default.FilterAlt, contentDescription = "Filter", tint = PrimaryGold)
+                        Icon(Icons.Default.FilterAlt, contentDescription = "Filter", tint = StrongBlue)
                     }
                 }
             )
         },
-        backgroundColor = BackgroundDark
+        containerColor = StrongBackground
     ) { padding ->
         Column(
             modifier = Modifier
@@ -69,16 +70,18 @@ fun EventsListScreen(
                     .padding(16.dp),
                 placeholder = { Text("Search events...", color = Color.Gray) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-                colors = TextFieldDefaults.textFieldColors(
-                    backgroundColor = SurfaceDark,
-                    textColor = Color.White,
-                    focusedIndicatorColor = PrimaryGold,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = StrongSecondaryBackground,
+                    unfocusedContainerColor = StrongSecondaryBackground,
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedIndicatorColor = StrongBlue,
                     unfocusedIndicatorColor = Color.Transparent
                 ),
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // Category Chips (Horizontal Scroll would be better, but keeping it simple)
+            // Category Chips
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -94,7 +97,7 @@ fun EventsListScreen(
 
             if (uiState.isLoading && uiState.events.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryGold)
+                    CircularProgressIndicator(color = StrongBlue)
                 }
             } else {
                 LazyColumn(
@@ -111,7 +114,7 @@ fun EventsListScreen(
                                 viewModel.loadEvents()
                             }
                             Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = PrimaryGold, strokeWidth = 2.dp)
+                                CircularProgressIndicator(color = StrongBlue, strokeWidth = 2.dp)
                             }
                         }
                     }
@@ -137,13 +140,13 @@ fun CategoryChip(text: String, isSelected: Boolean, onClick: () -> Unit) {
     Surface(
         modifier = Modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) PrimaryGold else SurfaceDark,
-        elevation = 2.dp
+        color = if (isSelected) StrongBlue else StrongSecondaryBackground,
+        tonalElevation = 2.dp
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            color = if (isSelected) Color.Black else Color.White,
+            color = if (isSelected) Color.White else StrongTextSecondary,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
         )
@@ -157,8 +160,10 @@ fun EventItem(event: ExploreEvent, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
-        backgroundColor = SurfaceDark,
-        elevation = 4.dp
+        colors = CardDefaults.cardColors(
+            containerColor = StrongSecondaryBackground
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
             Box {
@@ -182,7 +187,7 @@ fun EventItem(event: ExploreEvent, onClick: () -> Unit) {
                     Text(
                         text = event.priceDisplay ?: "Free",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        color = PrimaryGold,
+                        color = StrongBlue,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )
@@ -201,7 +206,7 @@ fun EventItem(event: ExploreEvent, onClick: () -> Unit) {
                 
                 Text(
                     text = event.locationName,
-                    color = Color.Gray,
+                    color = StrongTextSecondary,
                     fontSize = 14.sp
                 )
                 
@@ -210,13 +215,13 @@ fun EventItem(event: ExploreEvent, onClick: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = event.startTime.take(10), // Simple date extraction
-                        color = PrimaryGold,
+                        color = StrongBlue,
                         fontSize = 12.sp
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     Text(
                         text = "${event.enrolledCount ?: 0}/${event.capacity ?: "∞"}",
-                        color = if (event.isNearCapacity == true) Color.Red else Color.Gray,
+                        color = if (event.isNearCapacity == true) StrongRed else StrongTextSecondary,
                         fontSize = 12.sp
                     )
                 }

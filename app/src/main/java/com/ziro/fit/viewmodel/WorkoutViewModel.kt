@@ -10,6 +10,10 @@ import com.ziro.fit.model.LiveWorkoutUiModel
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
 import com.ziro.fit.model.WorkoutStats
+import com.ziro.fit.model.SyncActionType
+import com.ziro.fit.model.LogSetPayload
+import com.ziro.fit.model.FinishWorkoutPayload
+import com.ziro.fit.service.SyncManager
 import com.ziro.fit.service.ActiveWorkoutService
 import com.ziro.fit.service.WorkoutStateManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -45,7 +49,8 @@ data class WorkoutUiState(
 class WorkoutViewModel @Inject constructor(
     private val repository: LiveWorkoutRepository,
     private val workoutStateManager: WorkoutStateManager,
-    private val application: Application
+    private val application: Application,
+    private val syncManager: SyncManager
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(WorkoutUiState())
     val uiState: StateFlow<WorkoutUiState> = _uiState.asStateFlow()
@@ -228,8 +233,9 @@ class WorkoutViewModel @Inject constructor(
         val restTime = exercise?.restSeconds ?: 60
         startRestTimer(restTime, exerciseId)
 
+        // NEW CODE START - Use SyncManager
         viewModelScope.launch {
-            repository.logSet(session.id, exerciseId, repsVal, weightVal, set.order)
+            repository.logSet(session.id, exerciseId, repsVal, weightVal, set.order, set.isCompleted, set.logId, set.rpe)
                 .onSuccess {
                     repository.getActiveSession().onSuccess { refreshed ->
                         if (refreshed != null) {
@@ -239,9 +245,22 @@ class WorkoutViewModel @Inject constructor(
                     }
                 }
                 .onFailure {
-                    _uiState.update { it.copy(error = "Failed to save set") }
+                    // Queue for offline sync
+                    val payload = LogSetPayload(
+                        workoutSessionId = session.id,
+                        exerciseId = exerciseId,
+                        reps = repsVal,
+                        weight = weightVal,
+                        rpe = set.rpe,
+                        order = set.order,
+                        isCompleted = set.isCompleted,
+                        logId = set.logId
+                    )
+                    syncManager.enqueue(SyncActionType.LOG_SET, payload)
+                    _uiState.update { it.copy(error = "Network offline. Set saved locally.") }
                 }
         }
+        // NEW CODE END
     }
 
     fun finishWorkout(notes: String? = null) {
@@ -258,9 +277,33 @@ class WorkoutViewModel @Inject constructor(
                         workoutSuccessStats = response.stats
                     ) }
                 }
+                // NEW CODE START - Use SyncManager
                 .onFailure { e ->
-                    _uiState.update { it.copy(isFinishing = false, error = e.localizedMessage) }
+                    val payload = FinishWorkoutPayload(
+                        sessionId = sessionId,
+                        notes = notes
+                    )
+                    syncManager.enqueue(SyncActionType.FINISH_WORKOUT, payload)
+                    
+                    // Locally complete the session for the UI
+                    workoutStateManager.updateSession(null)
+                    updateServiceState(null)
+                    
+                    // Fake a success payload to allow UI to proceed offline
+                    _uiState.update { it.copy(
+                        isFinishing = false, 
+                        isSessionCompleted = true,
+                        workoutSuccessStats = WorkoutStats(
+                            durationSeconds = 0,
+                            volumeKg = 0.0,
+                            setsCompleted = 0,
+                            recordsBroken = 0,
+                            message = "Network offline. Workout saved and queued for sync.",
+                            exerciseSummaries = emptyList()
+                        )
+                    ) }
                 }
+                // NEW CODE END
         }
     }
 
