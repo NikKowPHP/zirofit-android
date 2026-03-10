@@ -37,6 +37,8 @@ import androidx.navigation.navDeepLink
 import com.ziro.fit.ui.calendar.CalendarScreen
 import com.ziro.fit.ui.workout.LiveWorkoutScreen
 import com.ziro.fit.ui.workout.LiveWorkoutMiniPlayer
+import com.ziro.fit.ui.discovery.EventsListScreen
+import com.ziro.fit.ui.discovery.EventDetailScreen
 import com.ziro.fit.ui.theme.ZirofitTheme
 import com.ziro.fit.ui.checkins.CheckInListScreen
 import com.ziro.fit.ui.checkins.CheckInDetailScreen
@@ -301,6 +303,22 @@ fun ClientAppScreen(
                     LaunchedEffect(Unit) {
                         navController.popBackStack()
                     }
+                }
+                composable("events_list") {
+                    EventsListScreen(
+                        onBack = { navController.popBackStack() },
+                        onNavigateToEvent = { eventId ->
+                            navController.navigate("event_detail/$eventId")
+                        }
+                    )
+                }
+
+                composable("event_detail/{eventId}") { backStackEntry ->
+                    val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                    EventDetailScreen(
+                        eventId = eventId,
+                        onBack = { navController.popBackStack() }
+                    )
                 }
                 composable("trainer_discovery") {
                     com.ziro.fit.ui.discovery.TrainerDiscoveryScreen(

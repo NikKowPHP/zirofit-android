@@ -10,9 +10,14 @@ import javax.inject.Singleton
 class BillingRepository @Inject constructor(
     private val api: ZiroApi
 ) {
-    suspend fun createCheckoutSession(packageId: String): Result<String> {
+    suspend fun createCheckoutSession(packageId: String? = null, eventId: String? = null, type: String? = null): Result<String> {
         return try {
-            val request = CreateCheckoutSessionRequest(packageId = packageId)
+            val request = CreateCheckoutSessionRequest(
+                packageId = packageId, 
+                eventId = eventId, 
+                type = type,
+                isMobile = true
+            )
             val response = api.createCheckoutSession(request)
             if (response.success != false && response.data != null) {
                 Result.success(response.data.url)

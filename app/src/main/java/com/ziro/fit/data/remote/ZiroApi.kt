@@ -368,4 +368,24 @@ interface ZiroApi {
 
     @POST("api/mobile/ai-coach/generate")
     suspend fun generateProgramFromGoal(@Body request: GenerateProgramFromGoalRequest): ApiResponse<GenerateProgramFromGoalResponse>
+    
+    // Explore Events
+    @GET("api/events")
+    suspend fun getExploreEvents(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 20,
+        @Query("cityId") cityId: String? = null,
+        @Query("lat") lat: Double? = null,
+        @Query("long") long: Double? = null,
+        @Query("category") categoryId: String? = null,
+        @Query("search") search: String? = null,
+        @Query("isFree") isFree: Boolean? = null,
+        @Query("sortBy") sortBy: String? = null
+    ): ApiResponse<ExploreEventsResponse>
+
+    @GET("api/events/{id}")
+    suspend fun getEventDetails(@retrofit2.http.Path("id") id: String): ApiResponse<EventDetailResponse>
+
+    @POST("api/events/{id}/join")
+    suspend fun joinFreeEvent(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
 }

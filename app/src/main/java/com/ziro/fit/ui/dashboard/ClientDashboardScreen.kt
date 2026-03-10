@@ -31,6 +31,7 @@ fun ClientDashboardScreen(
     onNavigateToDiscovery: () -> Unit,
     onNavigateToCheckIns: () -> Unit,
     onNavigateToLiveWorkout: () -> Unit,
+    onNavigateToEvents: () -> Unit, // Added this line
 
     onNavigateToChat: (String, String) -> Unit,
     onNavigateToAICoach: () -> Unit,
