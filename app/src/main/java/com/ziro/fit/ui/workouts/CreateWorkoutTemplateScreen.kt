@@ -36,6 +36,8 @@ fun CreateWorkoutTemplateScreen(
     val uiState by viewModel.uiState.collectAsState()
     var showExerciseSheet by remember { mutableStateOf(false) }
 
+    val exerciseSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
     LaunchedEffect(uiState.isSaved) {
         if (uiState.isSaved) {
             onNavigateBack()
@@ -157,6 +159,7 @@ fun CreateWorkoutTemplateScreen(
         if (showExerciseSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showExerciseSheet = false },
+                sheetState = exerciseSheetState,
                 containerColor = MaterialTheme.colorScheme.surface
             ) {
                 ExerciseBrowserContent(

@@ -52,6 +52,8 @@ fun LiveWorkoutScreen(
     var showCancelDialog by remember { mutableStateOf(false) }
     var showFinishDialog by remember { mutableStateOf(false) }
     
+    val exerciseSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
     val context = LocalContext.current
 
     // Advanced Input System State
@@ -375,6 +377,7 @@ fun LiveWorkoutScreen(
             if (showExerciseSheet) {
                 ModalBottomSheet(
                     onDismissRequest = { showExerciseSheet = false },
+                    sheetState = exerciseSheetState,
                     containerColor = StrongSurface
                 ) {
                     ExerciseBrowserContent(
