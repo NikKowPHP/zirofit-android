@@ -114,10 +114,21 @@ fun LiveWorkoutScreen(
     fun handleNext() {
         syncInput()
         focusedTarget?.let { target ->
+            val exercise = state.activeSession?.exercises?.find { it.exerciseId == target.exerciseId }
+            val currentSet = exercise?.sets?.getOrNull(target.setIndex)
+
             if (target.field == SessionFocusField.WEIGHT) {
                 triggerInput(FocusTarget(target.exerciseId, target.setIndex, SessionFocusField.REPS))
             } else {
-                val exercise = state.activeSession?.exercises?.find { it.exerciseId == target.exerciseId }
+                // Log the set automatically when moving past REPS
+                if (currentSet != null) {
+                    val updatedSet = currentSet.copy(
+                        weight = if (target.field == SessionFocusField.WEIGHT) activeInputText else currentSet.weight,
+                        reps = if (target.field == SessionFocusField.REPS) activeInputText else currentSet.reps
+                    )
+                    viewModel.logSet(target.exerciseId, updatedSet)
+                }
+
                 if (exercise != null && target.setIndex + 1 < exercise.sets.size) {
                     triggerInput(FocusTarget(target.exerciseId, target.setIndex + 1, SessionFocusField.WEIGHT))
                 } else {
@@ -794,7 +805,7 @@ fun CustomNumericKeyboard(
                 }
             }
             Box(modifier = Modifier.fillMaxWidth().height(60.dp).clip(RoundedCornerShape(8.dp)).background(StrongBlue).clickable { onNext() }, contentAlignment = Alignment.Center) {
-                Text("Next", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text(if (isWeight) "Next" else "Log", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
     }
