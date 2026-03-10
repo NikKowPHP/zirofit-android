@@ -356,6 +356,22 @@ fun LiveWorkoutScreen(
                 )
             }
 
+            state.error?.let { errorMessage ->
+                AlertDialog(
+                    onDismissRequest = { viewModel.clearError() },
+                    title = { Text("Error") },
+                    text = { Text(errorMessage) },
+                    confirmButton = {
+                        TextButton(onClick = { viewModel.clearError() }) {
+                            Text("OK", color = StrongBlue)
+                        }
+                    },
+                    containerColor = StrongSurface,
+                    titleContentColor = StrongRed,
+                    textContentColor = StrongTextSecondary
+                )
+            }
+
             if (showExerciseSheet) {
                 ModalBottomSheet(
                     onDismissRequest = { showExerciseSheet = false },

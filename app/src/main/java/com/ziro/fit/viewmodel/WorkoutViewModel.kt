@@ -309,4 +309,8 @@ class WorkoutViewModel @Inject constructor(
     fun onSessionCompletedNavigated() {
         _uiState.update { it.copy(isSessionCompleted = false, workoutSuccessStats = null) }
     }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
+    }
 }
