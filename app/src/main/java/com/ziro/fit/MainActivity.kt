@@ -718,6 +718,12 @@ fun MainAppScreen(onLogout: () -> Unit) {
                     val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
                     com.ziro.fit.ui.profile.subscreens.BillingScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
                 }
+                composable("profile/payouts") {
+                    com.ziro.fit.ui.profile.subscreens.PayoutsScreen(onNavigateBack = { navController.popBackStack() })
+                }
+                composable("profile/revenue") {
+                    com.ziro.fit.ui.profile.subscreens.RevenueScreen(onNavigateBack = { navController.popBackStack() })
+                }
                 composable("profile/benefits") {
                     val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
                     com.ziro.fit.ui.profile.subscreens.BenefitsScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })

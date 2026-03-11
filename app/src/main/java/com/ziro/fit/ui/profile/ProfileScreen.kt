@@ -36,6 +36,8 @@ fun ProfileScreen(
         ProfileMenuItem("Social Links", "Connect your social media", "profile/social_links"),
         ProfileMenuItem("External Links", "Add external resources", "profile/external_links"),
         ProfileMenuItem("Billing", "Manage subscription and payments", "profile/billing"),
+        ProfileMenuItem("Payouts", "Manage Stripe Connect", "profile/payouts"),
+        ProfileMenuItem("Revenue", "View your earnings", "profile/revenue"),
         ProfileMenuItem("Benefits", "List your service benefits", "profile/benefits"),
         ProfileMenuItem("Notifications", "View your notifications", "profile/notifications")
     )

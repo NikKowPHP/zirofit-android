@@ -106,7 +106,11 @@ data class ProfileBillingResponse(
 
 data class ProfileBilling(
     val stripeConnected: Boolean?,
-    val subscriptionStatus: String?
+    val subscriptionStatus: String?,
+    @SerializedName("details_submitted") val detailsSubmitted: Boolean? = false,
+    @SerializedName("charges_enabled") val chargesEnabled: Boolean? = false,
+    @SerializedName("payouts_enabled") val payoutsEnabled: Boolean? = false,
+    val accountId: String? = null
 )
 
 data class Benefit(
@@ -133,4 +137,8 @@ data class GetNotificationsResponse(
 
 data class RegisterPushTokenRequest(
     val token: String
+)
+
+data class StripeOnboardingResponse(
+    val url: String
 )

@@ -198,6 +198,20 @@ class WorkoutViewModel @Inject constructor(
         workoutStateManager.updateSession(currentSession.copy(exercises = updatedExercises))
     }
 
+    fun updateSetRpe(exerciseId: String, setIndex: Int, rpe: Double?) {
+        val currentSession = workoutStateManager.state.value.activeSession ?: return
+        val updatedExercises = currentSession.exercises.map { ex ->
+            if (ex.exerciseId == exerciseId) {
+                val updatedSets = ex.sets.toMutableList()
+                if (setIndex in updatedSets.indices) {
+                    updatedSets[setIndex] = updatedSets[setIndex].copy(rpe = rpe)
+                    ex.copy(sets = updatedSets)
+                } else ex
+            } else ex
+        }
+        workoutStateManager.updateSession(currentSession.copy(exercises = updatedExercises))
+    }
+
     fun addSetToExercise(exerciseId: String) {
         val currentSession = workoutStateManager.state.value.activeSession ?: return
         val updatedExercises = currentSession.exercises.map { ex ->

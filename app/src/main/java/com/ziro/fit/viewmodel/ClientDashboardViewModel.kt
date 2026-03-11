@@ -22,7 +22,16 @@ sealed class ClientDashboardUiState {
         val progress: com.ziro.fit.model.ClientProgressResponse? = null,
         val isProgressLoading: Boolean = false,
         val isRefreshing: Boolean = false,
-        val activeProgram: com.ziro.fit.model.ActiveProgramProgress? = null
+        val activeProgram: com.ziro.fit.model.ActiveProgramProgress? = null,
+        val widgets: List<com.ziro.fit.model.AnalyticsWidget> = listOf(
+            com.ziro.fit.model.AnalyticsWidget("1", com.ziro.fit.model.AnalyticsWidgetType.WORKOUTS_PER_WEEK, true, 0),
+            com.ziro.fit.model.AnalyticsWidget("2", com.ziro.fit.model.AnalyticsWidgetType.CONSISTENCY, true, 1),
+            com.ziro.fit.model.AnalyticsWidget("3", com.ziro.fit.model.AnalyticsWidgetType.VOLUME_PROGRESSION, true, 2),
+            com.ziro.fit.model.AnalyticsWidget("4", com.ziro.fit.model.AnalyticsWidgetType.MUSCLE_FOCUS, true, 3),
+            com.ziro.fit.model.AnalyticsWidget("5", com.ziro.fit.model.AnalyticsWidgetType.PRS, true, 4),
+            com.ziro.fit.model.AnalyticsWidget("6", com.ziro.fit.model.AnalyticsWidgetType.HEAT_MAP, true, 5),
+            com.ziro.fit.model.AnalyticsWidget("7", com.ziro.fit.model.AnalyticsWidgetType.INSIGHTS, true, 6)
+        )
     ) : ClientDashboardUiState()
     data class Error(val message: String) : ClientDashboardUiState()
 }

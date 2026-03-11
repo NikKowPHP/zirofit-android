@@ -1,6 +1,7 @@
 package com.ziro.fit.ui.dashboard
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +23,9 @@ import com.ziro.fit.model.VolumeDataPoint
 import com.ziro.fit.model.ExercisePerformance
 import com.ziro.fit.model.FavoriteExercise
 import com.ziro.fit.model.WorstPerformingExercise
+import com.ziro.fit.model.AnalyticsWidget
+import com.ziro.fit.model.AnalyticsWidgetType
+import kotlin.math.random
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -29,7 +33,8 @@ import java.util.Locale
 fun ClientStatisticsContent(
     progress: ClientProgressResponse?,
     measurements: List<Measurement>,
-    isLoading: Boolean
+    isLoading: Boolean,
+    widgets: List<AnalyticsWidget>? = null
 ) {
     val scrollState = rememberScrollState()
 
@@ -45,81 +50,134 @@ fun ClientStatisticsContent(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // 1. Overview Cards
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                StatCard(
-                    title = "Recent Volume",
-                    value = progress?.volumeHistory?.lastOrNull()?.totalVolume?.let { "%.0f kg".format(it) } ?: "0 kg",
-                    modifier = Modifier.weight(1f)
-                )
-                StatCard(
-                    title = "Latest Weight",
-                    value = measurements.maxByOrNull { it.measurementDate }?.weightKg?.let { "${it}kg" } ?: "N/A",
-                    modifier = Modifier.weight(1f)
-                )
-            }
+            // Determine active widgets order
+            val activeWidgets = (widgets ?: emptyList()).filter { it.isVisible }.sortedBy { it.order }
+            
+            // Fallback to standard render if widgets are empty
+            if (activeWidgets.isEmpty()) {
+                // 1. Overview Cards
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    StatCard(
+                        title = "Recent Volume",
+                        value = progress?.volumeHistory?.lastOrNull()?.totalVolume?.let { "%.0f kg".format(it) } ?: "0 kg",
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        title = "Latest Weight",
+                        value = measurements.maxByOrNull { it.measurementDate }?.weightKg?.let { "${it}kg" } ?: "N/A",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-            // 2. Favorite Exercises
-            if (progress?.favoriteExercises?.isNotEmpty() == true) {
-                Text(
-                    text = "Favorite Exercises",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    progress.favoriteExercises.forEach { exercise ->
-                        FavoriteExerciseItem(exercise)
+                // 2. Favorite Exercises
+                if (progress?.favoriteExercises?.isNotEmpty() == true) {
+                    Text(
+                        text = "Favorite Exercises",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        progress.favoriteExercises.forEach { exercise ->
+                            FavoriteExerciseItem(exercise)
+                        }
                     }
                 }
-            }
 
-            // 3. Worst Performing Exercises
-            if (progress?.worstPerformingExercises?.isNotEmpty() == true) {
-                Text(
-                    text = "Areas for Improvement",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    progress.worstPerformingExercises.forEach { exercise ->
-                        WorstPerformingExerciseItem(exercise)
+                // 3. Worst Performing Exercises
+                if (progress?.worstPerformingExercises?.isNotEmpty() == true) {
+                    Text(
+                        text = "Areas for Improvement",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        progress.worstPerformingExercises.forEach { exercise ->
+                            WorstPerformingExerciseItem(exercise)
+                        }
                     }
                 }
-            }
 
-            // 4. Exercise Performance
-            if (progress?.exercisePerformance?.isNotEmpty() == true) {
-                Text(
-                    text = "Exercise Performance",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    progress.exercisePerformance.forEach { exercise ->
-                        ExercisePerformanceItem(exercise)
+                // 4. Exercise Performance
+                if (progress?.exercisePerformance?.isNotEmpty() == true) {
+                    Text(
+                        text = "Exercise Performance",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        progress.exercisePerformance.forEach { exercise ->
+                            ExercisePerformanceItem(exercise)
+                        }
                     }
                 }
-            }
 
-            // 5. Volume Chart
-            if (progress?.volumeHistory?.isNotEmpty() == true) {
-                Text(
-                    text = "Volume Progress (Last 30 Sessions)",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                VolumeChart(progress.volumeHistory)
+                // 5. Volume Chart
+                if (progress?.volumeHistory?.isNotEmpty() == true) {
+                    Text(
+                        text = "Volume Progress (Last 30 Sessions)",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    VolumeChart(progress.volumeHistory)
+                } else {
+                     Text(text = "No volume data available.", style = MaterialTheme.typography.bodyMedium)
+                }
+
+                // 6. Weight Chart
+                if (measurements.isNotEmpty()) {
+                    Text(
+                        text = "Weight Progress",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    WeightChart(measurements)
+                }
             } else {
-                 Text(text = "No volume data available.", style = MaterialTheme.typography.bodyMedium)
-            }
-
-            // 6. Weight Chart
-            if (measurements.isNotEmpty()) {
-                Text(
-                    text = "Weight Progress",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                WeightChart(measurements)
+                // Dynamic rendering
+                activeWidgets.forEach { widget ->
+                    when (widget.type) {
+                        AnalyticsWidgetType.WORKOUTS_PER_WEEK -> {
+                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                StatCard("Recent Volume", progress?.volumeHistory?.lastOrNull()?.totalVolume?.let { "%.0f kg".format(it) } ?: "0 kg", Modifier.weight(1f))
+                                StatCard("Latest Weight", measurements.maxByOrNull { it.measurementDate }?.weightKg?.let { "${it}kg" } ?: "N/A", Modifier.weight(1f))
+                            }
+                        }
+                        AnalyticsWidgetType.VOLUME_PROGRESSION -> {
+                            if (progress?.volumeHistory?.isNotEmpty() == true) {
+                                Text(widget.type.title, style = MaterialTheme.typography.titleLarge)
+                                VolumeChart(progress.volumeHistory)
+                            }
+                        }
+                        AnalyticsWidgetType.MUSCLE_FOCUS -> {
+                            if (progress?.favoriteExercises?.isNotEmpty() == true) {
+                                Text(widget.type.title, style = MaterialTheme.typography.titleLarge)
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    progress.favoriteExercises.forEach { FavoriteExerciseItem(it) }
+                                }
+                            }
+                        }
+                        AnalyticsWidgetType.PRS -> {
+                            if (progress?.exercisePerformance?.isNotEmpty() == true) {
+                                Text(widget.type.title, style = MaterialTheme.typography.titleLarge)
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    progress.exercisePerformance.forEach { ExercisePerformanceItem(it) }
+                                }
+                            }
+                        }
+                        AnalyticsWidgetType.HEAT_MAP -> {
+                            Text(widget.type.title, style = MaterialTheme.typography.titleLarge)
+                            HeatMapWidget(progress)
+                        }
+                        AnalyticsWidgetType.INSIGHTS -> {
+                            if (progress?.worstPerformingExercises?.isNotEmpty() == true) {
+                                Text("Areas for Improvement", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.error)
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    progress.worstPerformingExercises.forEach { WorstPerformingExerciseItem(it) }
+                                }
+                            }
+                        }
+                        else -> {}
+                    }
+                }
             }
         }
     }
@@ -349,6 +407,31 @@ fun WeightChart(measurements: List<Measurement>) {
                     color = Color.Blue,
                     style = Stroke(width = 2.dp.toPx())
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun HeatMapWidget(progress: ClientProgressResponse?) {
+    Card(
+        modifier = Modifier.fillMaxWidth().height(150.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+    ) {
+        Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                for (col in 0 until 12) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        for (row in 0 until 7) {
+                            val isActive = random() > 0.7 
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(if (isActive) Color(0xFF6200EE) else Color.Gray.copy(alpha = 0.2f), RoundedCornerShape(2.dp))
+                            )
+                        }
+                    }
+                }
             }
         }
     }

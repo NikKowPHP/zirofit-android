@@ -240,6 +240,9 @@ interface ZiroApi {
     @GET("api/profile/me/billing")
     suspend fun getBilling(): ApiResponse<ProfileBillingResponse>
 
+    @POST("api/profile/me/billing")
+    suspend fun fetchStripeOnboardingUrl(): ApiResponse<StripeOnboardingResponse>
+
     @GET("api/profile/me/benefits")
     suspend fun getBenefits(): ApiResponse<ProfileBenefitsResponse>
 

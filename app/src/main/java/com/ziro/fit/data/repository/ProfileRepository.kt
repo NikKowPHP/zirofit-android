@@ -202,4 +202,17 @@ class ProfileRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun fetchStripeOnboardingUrl(): Result<String> {
+        return try {
+            val response = api.fetchStripeOnboardingUrl()
+            if ((response.success ?: true) && response.data != null) {
+                Result.success(response.data!!.url)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to fetch Stripe URL"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -144,7 +144,8 @@ fun ClientDashboardScreen(
                                 2 -> ClientStatisticsContent(
                                     progress = uiState.progress,
                                     measurements = data.measurements ?: emptyList(),
-                                    isLoading = uiState.isProgressLoading
+                                    isLoading = uiState.isProgressLoading,
+                                    widgets = uiState.widgets
                                 )
                             }
                         }

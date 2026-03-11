@@ -13,6 +13,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -291,26 +293,32 @@ fun LiveWorkoutScreen(
                                 )
                             }
                             WorkoutInputOverlay.PLATE_CALCULATOR -> {
-                                Column(modifier = Modifier.fillMaxWidth().height(300.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                                    Text("Plate Calculator (Coming Soon)", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                                    Spacer(Modifier.height(20.dp))
-                                    Button(onClick = { inputOverlay = WorkoutInputOverlay.KEYBOARD }, colors = ButtonDefaults.buttonColors(containerColor = StrongBlue)) { 
-                                        Text("Back to Keyboard") 
-                                    }
-                                }
+                                PlateCalculatorOverlay(
+                                    weightText = activeInputText,
+                                    onWeightChange = { activeInputText = it },
+                                    onBack = { inputOverlay = WorkoutInputOverlay.KEYBOARD }
+                                )
                             }
                             WorkoutInputOverlay.RPE_PICKER -> {
-                                Column(modifier = Modifier.fillMaxWidth().height(250.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                                    Text("RPE Picker (Coming Soon)", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                                    Spacer(Modifier.height(20.dp))
-                                    Button(onClick = { 
+                                val currentRpe = focusedTarget?.let { target ->
+                                    state.activeSession?.exercises?.find { it.exerciseId == target.exerciseId }?.sets?.getOrNull(target.setIndex)?.rpe
+                                }
+                                RPEPickerOverlay(
+                                    currentRpe = currentRpe,
+                                    onRpeSelected = { rpe ->
+                                        focusedTarget?.let { target ->
+                                            viewModel.updateSetRpe(target.exerciseId, target.setIndex, rpe)
+                                        }
                                         syncInput()
                                         inputOverlay = WorkoutInputOverlay.NONE
                                         focusedTarget = null
-                                    }, colors = ButtonDefaults.buttonColors(containerColor = StrongBlue)) { 
-                                        Text("Close") 
+                                    },
+                                    onDismiss = {
+                                        syncInput()
+                                        inputOverlay = WorkoutInputOverlay.NONE
+                                        focusedTarget = null
                                     }
-                                }
+                                )
                             }
                             else -> {}
                         }
@@ -819,5 +827,236 @@ private fun formatSeconds(seconds: Long): String {
         String.format("%d:%02d:%02d", h, m, s)
     } else {
         String.format("%02d:%02d", m, s)
+    }
+}
+
+@Composable
+fun PlateCalculatorOverlay(
+    weightText: String,
+    onWeightChange: (String) -> Unit,
+    onBack: () -> Unit
+) {
+    val barWeight = 20.0
+    val currentWeight = weightText.toDoubleOrNull() ?: 0.0
+    val availablePlates = listOf(25.0, 20.0, 15.0, 10.0, 5.0, 2.5, 1.25)
+
+    fun addPlate(plate: Double) {
+        val newWeight = if (currentWeight == 0.0) barWeight + (plate * 2) else currentWeight + (plate * 2)
+        onWeightChange(if (newWeight == kotlin.math.floor(newWeight)) newWeight.toInt().toString() else newWeight.toString())
+    }
+
+    fun clearPlates() {
+        onWeightChange(barWeight.toInt().toString())
+    }
+
+    fun calculatePlates(totalWeight: Double): List<Double> {
+        var remaining = (totalWeight - barWeight) / 2.0
+        val result = mutableListOf<Double>()
+        for (plate in availablePlates) {
+            while (remaining >= plate) {
+                result.add(plate)
+                remaining -= plate
+            }
+        }
+        return result
+    }
+
+    val currentPlates = calculatePlates(currentWeight)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "${if (currentWeight == kotlin.math.floor(currentWeight)) currentWeight.toInt() else currentWeight} kg",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = StrongTextPrimary
+        )
+        Text("Bar: ${barWeight.toInt()} kg", fontSize = 14.sp, color = StrongTextSecondary)
+
+        Spacer(Modifier.height(20.dp))
+
+        Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth(0.8f).height(12.dp).background(Color.Gray, RoundedCornerShape(4.dp)))
+            Row(modifier = Modifier.fillMaxWidth(0.6f), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.width(40.dp).height(20.dp).background(Color.Gray.copy(alpha = 0.5f), RoundedCornerShape(2.dp)))
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        currentPlates.reversed().forEach { plate -> PlateVisual(plate) }
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        currentPlates.forEach { plate -> PlateVisual(plate) }
+                    }
+                    Box(modifier = Modifier.width(40.dp).height(20.dp).background(Color.Gray.copy(alpha = 0.5f), RoundedCornerShape(2.dp)))
+                }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+        Text("Tap plates to add", fontSize = 12.sp, color = StrongTextSecondary)
+        Spacer(Modifier.height(12.dp))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            availablePlates.forEach { plate ->
+                Button(
+                    onClick = { addPlate(plate) },
+                    shape = CircleShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = plateColor(plate)),
+                    modifier = Modifier.size(60.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = if (plate == kotlin.math.floor(plate)) plate.toInt().toString() else plate.toString(),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+            Button(
+                onClick = { clearPlates() },
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(containerColor = StrongRed),
+                modifier = Modifier.size(60.dp),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Icon(Icons.Default.Delete, contentDescription = "Clear", tint = Color.White)
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = onBack, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = StrongSecondaryBackground)) {
+            Text("Back to Keyboard", color = StrongTextPrimary)
+        }
+    }
+}
+
+@Composable
+fun PlateVisual(weight: Double) {
+    val height = when (weight) {
+        25.0 -> 90.dp
+        20.0 -> 90.dp
+        15.0 -> 80.dp
+        10.0 -> 70.dp
+        5.0 -> 60.dp
+        2.5 -> 50.dp
+        1.25 -> 40.dp
+        else -> 40.dp
+    }
+    val width = when (weight) {
+        25.0 -> 12.dp
+        20.0 -> 10.dp
+        15.0 -> 10.dp
+        10.0 -> 10.dp
+        5.0 -> 8.dp
+        2.5 -> 8.dp
+        1.25 -> 8.dp
+        else -> 8.dp
+    }
+    Box(modifier = Modifier.width(width).height(height).background(plateColor(weight), RoundedCornerShape(4.dp)))
+}
+
+fun plateColor(weight: Double): Color {
+    return when (weight) {
+        25.0 -> Color.Red
+        20.0 -> Color.Blue
+        15.0 -> Color.Yellow
+        10.0 -> Color.Green
+        5.0 -> Color.White.copy(alpha = 0.8f)
+        2.5 -> Color.Red.copy(alpha = 0.6f)
+        1.25 -> Color.Blue.copy(alpha = 0.6f)
+        else -> Color.Gray
+    }
+}
+
+@Composable
+fun RPEPickerOverlay(
+    currentRpe: Double?,
+    onRpeSelected: (Double?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val rpeValues = listOf(10.0, 9.5, 9.0, 8.5, 8.0, 7.5, 7.0, 6.5, 6.0, 5.5, 5.0)
+
+    fun rpeDescription(value: Double): String {
+        return when (value) {
+            10.0 -> "Max Effort"
+            9.5 -> "Maybe 0 reps left"
+            9.0 -> "1 rep left"
+            8.5 -> "Maybe 1-2 reps left"
+            8.0 -> "2 reps left"
+            7.5 -> "Maybe 2-3 reps left"
+            7.0 -> "3 reps left"
+            6.5 -> "Maybe 3-4 reps left"
+            6.0 -> "4+ reps left"
+            5.5 -> "Warm up"
+            5.0 -> "Light"
+            else -> ""
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp, bottom = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Select RPE", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = StrongTextPrimary)
+            TextButton(onClick = { onRpeSelected(null) }) {
+                Text("Clear", color = StrongRed)
+            }
+        }
+
+        androidx.compose.foundation.lazy.LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(vertical = 16.dp)
+        ) {
+            items(rpeValues.size) { index ->
+                val value = rpeValues[index]
+                val isSelected = currentRpe == value
+                Button(
+                    onClick = { onRpeSelected(value) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSelected) StrongBlue else StrongInputBackground.copy(alpha = 0.5f),
+                        contentColor = if (isSelected) Color.White else StrongTextPrimary
+                    ),
+                    modifier = Modifier.width(80.dp).height(100.dp),
+                    contentPadding = PaddingValues(4.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Text(
+                            text = if (value == kotlin.math.floor(value)) value.toInt().toString() else value.toString(),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = rpeDescription(value),
+                            fontSize = 10.sp,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 12.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        Text("RPE (Rate of Perceived Exertion) helps track intensity.", fontSize = 12.sp, color = StrongTextSecondary)
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), colors = ButtonDefaults.buttonColors(containerColor = StrongSecondaryBackground)) {
+            Text("Close", color = StrongTextPrimary)
+        }
     }
 }
