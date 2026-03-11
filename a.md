@@ -12,10 +12,9 @@ Based on a comprehensive analysis of both the iOS (`Ziro Fit/`) and Android (`ap
     *   **iOS:** Fully implemented using `GoogleSignInHelper.swift` and `AppleSignInHelper.swift` integrated with Supabase.
     *   **Android:** Currently only supports email/password (`LoginScreen.kt`). 
     *   *Impact:* High friction for new user onboarding.
-2.  **Offline Sync Engine**
-    *   **iOS:** `SyncManager.swift` implements a robust background queue (`SyncAction`) that caches set logs and session completions locally if the network drops, syncing them when connectivity is restored.
-    *   **Android:** `LiveWorkoutRepository.kt` makes direct API calls. If the network drops during a workout, sets will fail to log.
-    *   *Impact:* Critical for gym environments where WiFi/Cellular can be spotty.
+
+
+
 3.  **Plate Calculator & RPE Picker**
     *   **iOS:** Native `PlateCalculatorOverlay.swift` (visual barbell math) and `RPEPickerOverlay.swift` (Rate of Perceived Exertion scale).
     *   **Android:** Currently stubbed out with `"Coming Soon"` text inside `LiveWorkoutScreen.kt`.
@@ -23,6 +22,8 @@ Based on a comprehensive analysis of both the iOS (`Ziro Fit/`) and Android (`ap
 4.  **Trainer Revenue & Payouts Dashboard**
     *   **iOS:** Rich `RevenueView.swift` (earnings charts, recent transactions) and `PayoutsView.swift` (Stripe Connect management).
     *   **Android:** Missing these dedicated screens entirely (trainers cannot view earnings or manage their Stripe payouts natively).
+
+    
 
 ### P1: High Impact & Differentiating Features
 *These features are primary selling points of the platform or significantly boost retention.*

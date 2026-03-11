@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.History as HistoryIcon
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +26,8 @@ import com.ziro.fit.model.ClientDashboardData
 import com.ziro.fit.model.LinkedTrainer
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.graphics.Color
+import com.ziro.fit.ui.theme.*
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,6 +122,7 @@ fun ClientDashboardScreen(
                                             onNavigateToCheckIns,
                                             onNavigateToChat,
                                             onNavigateToAICoach,
+                                            onNavigateToEvents,
                                             onStartSession = { session ->
                                                 workoutViewModel.startWorkout(
                                                     clientId = data.id,
@@ -160,6 +164,7 @@ fun ClientDashboardHome(
     onNavigateToCheckIns: () -> Unit,
     onNavigateToChat: (String, String) -> Unit,
     onNavigateToAICoach: () -> Unit,
+    onNavigateToEvents: () -> Unit,
     onStartSession: (com.ziro.fit.model.ClientSession) -> Unit,
     activeProgram: com.ziro.fit.model.ActiveProgramProgress?
 ) {
@@ -214,6 +219,40 @@ fun ClientDashboardHome(
             ) {
                 Box(modifier = Modifier.padding(16.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Text("No upcoming workouts scheduled", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Events Quick Action
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = StrongSecondaryBackground.copy(alpha = 0.9f))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Events",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = StrongBlue
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Explore upcoming workshops, seminars, and group workouts.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onNavigateToEvents,
+                    colors = ButtonDefaults.buttonColors(containerColor = StrongBlue)
+                ) {
+                    Icon(
+                        imageVector = androidx.compose.material.icons.Icons.Default.Event,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Explore Events")
                 }
             }
         }

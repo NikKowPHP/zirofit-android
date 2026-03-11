@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -19,7 +20,8 @@ import androidx.compose.ui.unit.dp
 fun MoreScreen(
     onNavigateToAssessments: () -> Unit,
     onNavigateToBookings: () -> Unit,
-    onNavigateToCheckIns: () -> Unit
+    onNavigateToCheckIns: () -> Unit,
+    onNavigateToEvents: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -33,6 +35,15 @@ fun MoreScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
+            item {
+                MoreMenuItem(
+                    icon = Icons.Default.Event,
+                    title = "Explore Events",
+                    subtitle = "Discover and join upcoming events",
+                    onClick = onNavigateToEvents
+                )
+                HorizontalDivider()
+            }
             item {
                 MoreMenuItem(
                     icon = Icons.Default.Build,

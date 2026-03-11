@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -190,6 +191,18 @@ fun ClientAppScreen(
                             selected = currentRoute == "client_dashboard",
                             onClick = {
                                 navController.navigate("client_dashboard") {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                        NavigationBarItem(
+                            icon = { Icon(Icons.Default.Event, contentDescription = null) },
+                            label = { Text("Events") },
+                            selected = currentRoute == "events_list",
+                            onClick = {
+                                navController.navigate("events_list") {
                                     popUpTo(navController.graph.startDestinationId) { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
@@ -744,7 +757,27 @@ fun MainAppScreen(onLogout: () -> Unit) {
                     com.ziro.fit.ui.more.MoreScreen(
                         onNavigateToAssessments = { navController.navigate("assessments_library") },
                         onNavigateToBookings = { navController.navigate("bookings_list") },
-                        onNavigateToCheckIns = { navController.navigate("checkins_list") }
+                        onNavigateToCheckIns = { navController.navigate("checkins_list") },
+                        onNavigateToEvents = { navController.navigate("events_list") }
+                    )
+                }
+                composable("events_list") {
+                    com.ziro.fit.ui.discovery.EventsListScreen(
+                        onBack = { navController.popBackStack() },
+                        onNavigateToEvent = { eventId ->
+                            navController.navigate("event_detail/$eventId")
+                        }
+                    )
+                }
+
+                composable(
+                    route = "event_detail/{eventId}",
+                    arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+                    com.ziro.fit.ui.discovery.EventDetailScreen(
+                        eventId = eventId,
+                        onBack = { navController.popBackStack() }
                     )
                 }
                 composable("assessments_library") {
