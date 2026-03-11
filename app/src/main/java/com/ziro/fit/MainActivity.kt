@@ -245,7 +245,7 @@ fun ClientAppScreen(
                 composable("client_dashboard") {
                     com.ziro.fit.ui.dashboard.ClientDashboardScreen(
                         onLogout = authViewModel::logout,
-                        onNavigateToDiscovery = { navController.navigate("trainer_discovery") },
+                        onNavigateToDiscovery = { navController.navigate("trainer_finding_onboarding") },
                         onNavigateToCheckIns = { navController.navigate("client_checkins") },
                         onNavigateToLiveWorkout = {
                             navController.navigate("live_workout") {
@@ -258,6 +258,36 @@ fun ClientAppScreen(
                         onNavigateToAICoach = { navController.navigate("ai_coach") },
                         onNavigateToEvents = { navController.navigate("events_list") },
                         workoutViewModel = workoutViewModel
+                    )
+                }
+                composable("trainer_finding_onboarding") {
+                    com.ziro.fit.ui.onboarding.TrainerFindingOnboardingScreen(
+                        onFinish = { specialty, location -> 
+                            val specQuery = specialty?.let { "?specialty=$it" } ?: ""
+                            val locQuery = location?.let { "&location=$it" } ?: ""
+                            navController.navigate("trainer_discovery$specQuery$locQuery") {
+                                popUpTo("client_dashboard")
+                            }
+                        },
+                        onSkip = {
+                            navController.navigate("trainer_discovery") {
+                                popUpTo("client_dashboard")
+                            }
+                        }
+                    )
+                }
+                composable(
+                    route = "trainer_discovery?specialty={specialty}&location={location}",
+                    arguments = listOf(
+                        navArgument("specialty") { type = NavType.StringType; nullable = true },
+                        navArgument("location") { type = NavType.StringType; nullable = true }
+                    )
+                ) { backStackEntry ->
+                    val specialty = backStackEntry.arguments?.getString("specialty")
+                    val location = backStackEntry.arguments?.getString("location")
+                    com.ziro.fit.ui.discovery.TrainerDiscoveryScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        onTrainerClick = { trainerId -> navController.navigate("trainer_profile/$trainerId") }
                     )
                 }
                 composable("ai_coach") {

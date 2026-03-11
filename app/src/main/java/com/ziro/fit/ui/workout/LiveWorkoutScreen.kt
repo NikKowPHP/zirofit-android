@@ -1,8 +1,10 @@
 package com.ziro.fit.ui.workout
 
 import android.Manifest
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
+import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -67,6 +69,16 @@ fun LiveWorkoutScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
         onResult = { viewModel.onPermissionsResult() }
     )
+    
+    val speechRecognizerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val data = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val text = data?.get(0) ?: ""
+            viewModel.parseVoiceCommand(text)
+        }
+    }
 
     LaunchedEffect(Unit) {
         val permissionsToRequest = mutableListOf<String>()
@@ -252,8 +264,52 @@ fun LiveWorkoutScreen(
                         if (isBlank) showCancelDialog = true 
                         else showFinishDialog = true 
                     },
-                    isBlank = isBlank
+                    isBlank = isBlank,
+                    onMicTap = {
+                        val intent = android.content.Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                        }
+                        speechRecognizerLauncher.launch(intent)
+                    }
                 )
+            }
+
+            // Voice Command Overlay
+            if (state.latestCommand != null) {
+                val command = state.latestCommand!!
+                Box(
+                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.4f)).padding(16.dp).zIndex(400f),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 120.dp),
+                        colors = CardDefaults.cardColors(containerColor = StrongSecondaryBackground)
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text("Voice Command Detected", color = Color.Gray, fontSize = 14.sp)
+                                IconButton(onClick = { viewModel.dismissVoiceCommand() }, modifier = Modifier.size(24.dp)) {
+                                    Icon(Icons.Default.Close, contentDescription = null, tint = Color.Gray)
+                                }
+                            }
+                            Text(command.exercise ?: "Active Exercise", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = StrongTextPrimary)
+                            Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+                                if (command.sets != null) {
+                                    Column { Text("Sets", color=Color.Gray, fontSize=12.sp); Text("${command.sets}", fontSize=16.sp, color=StrongTextPrimary) }
+                                }
+                                if (command.reps != null) {
+                                    Column { Text("Reps", color=Color.Gray, fontSize=12.sp); Text("${command.reps}", fontSize=16.sp, color=StrongTextPrimary) }
+                                }
+                                if (command.weight != null) {
+                                    Column { Text("Weight", color=Color.Gray, fontSize=12.sp); Text("${command.weight} kg", fontSize=16.sp, color=StrongTextPrimary) }
+                                }
+                            }
+                            Button(onClick = { viewModel.confirmVoiceCommand() }, modifier = Modifier.fillMaxWidth(), colors=ButtonDefaults.buttonColors(containerColor=StrongBlue)) {
+                                Text("Confirm & Log")
+                            }
+                        }
+                    }
+                }
             }
 
             // Advanced Input Overlay
@@ -499,7 +555,8 @@ fun LiveWorkoutControls(
     isTimerRunning: Boolean,
     onTogglePause: () -> Unit,
     onFinish: () -> Unit,
-    isBlank: Boolean
+    isBlank: Boolean,
+    onMicTap: () -> Unit = {}
 ) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
         Row(
@@ -512,7 +569,17 @@ fun LiveWorkoutControls(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
+            Button(
+                onClick = onMicTap,
+                modifier = Modifier.size(56.dp),
+                shape = CircleShape,
+                colors = ButtonDefaults.buttonColors(containerColor = StrongBlue),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Icon(Icons.Default.Mic, contentDescription = null, tint = Color.White)
+            }
+            
+            Button(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)

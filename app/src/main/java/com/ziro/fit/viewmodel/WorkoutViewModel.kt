@@ -26,6 +26,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import java.util.regex.Pattern
 import javax.inject.Inject
 
 // Re-using the same UI state data class, but mapping from Manager state
@@ -42,7 +43,15 @@ data class WorkoutUiState(
     val isRestActive: Boolean = false,
     val restingExerciseId: String? = null,
     val restSecondsRemaining: Int = 0,
-    val restTotalSeconds: Int = 60
+    val restTotalSeconds: Int = 60,
+    val latestCommand: ParsedWorkoutCommand? = null
+)
+
+data class ParsedWorkoutCommand(
+    var exercise: String? = null,
+    var sets: Int? = null,
+    var reps: Int? = null,
+    var weight: Double? = null
 )
 
 @HiltViewModel
@@ -369,5 +378,131 @@ class WorkoutViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    // Voice command functions
+    fun parseVoiceCommand(text: String) {
+        val lowerText = text.lowercase()
+        var command = ParsedWorkoutCommand()
+
+        val repsPattern = Pattern.compile("(\\d+|one|two|three|four|five|six|seven|eight|nine|ten)\\s*(reps|rep|repetitions|wraps|wrap|rocks|rock|laps|lap)")
+        val repsMatcher = repsPattern.matcher(lowerText)
+        if (repsMatcher.find()) {
+            val numStr = repsMatcher.group(1)
+            command.reps = numStr?.toIntOrNull() ?: wordToNumber(numStr ?: "")
+        }
+
+        val setsPattern = Pattern.compile("(\\d+|one|two|three|four|five|six|seven|eight|nine|ten)\\s*(sets|set)")
+        val setsMatcher = setsPattern.matcher(lowerText)
+        if (setsMatcher.find()) {
+            val numStr = setsMatcher.group(1)
+            command.sets = numStr?.toIntOrNull() ?: wordToNumber(numStr ?: "")
+        }
+
+        val weightPattern = Pattern.compile("(\\d+(?:\\.\\d+)?|one|two|three|four|five|six|seven|eight|nine|ten)\\s*(kg|kilograms|kilos|lbs|pounds|lb)")
+        val weightMatcher = weightPattern.matcher(lowerText)
+        if (weightMatcher.find()) {
+            val numStr = weightMatcher.group(1)
+            command.weight = numStr?.toDoubleOrNull() ?: wordToNumber(numStr ?: "")?.toDouble()
+        }
+
+        if (command.reps == null && command.weight == null) {
+            val numbers = extractNumbers(lowerText)
+            if (numbers.size >= 2) {
+                command.reps = numbers[0].toInt()
+                command.weight = numbers[1]
+            } else if (numbers.size == 1) {
+                command.reps = numbers[0].toInt()
+            }
+        }
+
+        val possibleExercises = listOf(
+            "barbell bench press", "inclined bench press", "declined bench press",
+            "bench press", "benchpress", "chest press", "dumbbell press",
+            "back squat", "front squat", "goblet squat", "hack squat", "squat",
+            "romanian deadlift", "sumo deadlift", "deadlift",
+            "archer pushup", "diamond pushup", "pushups", "push ups", "push-up", "push-ups",
+            "pullups", "pull ups", "chin ups", "lat pulldown",
+            "bicep curls", "hammer curls", "preacher curls", "curls",
+            "shoulder press", "overhead press", "military press",
+            "bent over rows", "seated rows", "cable rows", "rows",
+            "walking lunges", "reverse lunges", "lunges",
+            "tricep dips", "chest dips", "dips",
+            "side plank", "plank",
+            "burpees", "jumping jacks", "mountain climbers"
+        ).sortedByDescending { it.length }
+
+        for (exercise in possibleExercises) {
+            if (lowerText.contains(exercise)) {
+                command.exercise = exercise.replaceFirstChar { it.uppercase() }
+                break
+            }
+        }
+
+        _uiState.update { it.copy(latestCommand = command) }
+    }
+
+    private fun extractNumbers(text: String): List<Double> {
+        val pattern = Pattern.compile("\\d+(?:\\.\\d+)?")
+        val matcher = pattern.matcher(text)
+        val numbers = mutableListOf<Double>()
+        while (matcher.find()) {
+            matcher.group()?.toDoubleOrNull()?.let { numbers.add(it) }
+        }
+        return numbers
+    }
+
+    private fun wordToNumber(word: String): Int? {
+        val numberWords = mapOf(
+            "one" to 1, "two" to 2, "three" to 3, "four" to 4, "five" to 5,
+            "six" to 6, "seven" to 7, "eight" to 8, "nine" to 9, "ten" to 10
+        )
+        return numberWords[word.lowercase()]
+    }
+
+    fun confirmVoiceCommand() {
+        val command = _uiState.value.latestCommand ?: return
+        val currentSession = workoutStateManager.state.value.activeSession ?: return
+
+        val searchNormalized = command.exercise?.lowercase()?.replace(Regex("[^a-z0-9]"), "") ?: ""
+        var targetExerciseId: String? = null
+
+        val exactMatch = currentSession.exercises.firstOrNull { it.exerciseName.lowercase().replace(Regex("[^a-z0-9]"), "") == searchNormalized }
+        
+        if (exactMatch != null) {
+            targetExerciseId = exactMatch.exerciseId
+        } else {
+            val libMatch = _uiState.value.availableExercises.firstOrNull { it.name.lowercase().replace(Regex("[^a-z0-9]"), "") == searchNormalized }
+            if (libMatch != null) {
+                targetExerciseId = libMatch.id
+                addExercisesToSession(listOf(libMatch))
+            } else {
+                targetExerciseId = currentSession.exercises.lastOrNull()?.exerciseId
+            }
+        }
+
+        if (targetExerciseId != null && command.reps != null) {
+            val sessionAfterAdd = workoutStateManager.state.value.activeSession
+            val exIndex = sessionAfterAdd?.exercises?.indexOfFirst { it.exerciseId == targetExerciseId } ?: -1
+            if (exIndex != -1) {
+                val exercise = sessionAfterAdd!!.exercises[exIndex]
+                val nextSetNum = exercise.sets.size + 1
+                val nextOrder = exercise.sets.maxOfOrNull { it.order }?.plus(1) ?: 0
+                val newSet = WorkoutSetUi(
+                    logId = java.util.UUID.randomUUID().toString(),
+                    setNumber = nextSetNum,
+                    weight = (command.weight ?: 0.0).toString(),
+                    reps = command.reps.toString(),
+                    isCompleted = true,
+                    order = nextOrder
+                )
+                logSet(targetExerciseId, newSet)
+            }
+        }
+        _uiState.update { it.copy(latestCommand = null) }
+    }
+
+    fun dismissVoiceCommand() {
+        _uiState.update { it.copy(latestCommand = null) }
     }
 }
