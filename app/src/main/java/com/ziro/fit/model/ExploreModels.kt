@@ -2,6 +2,31 @@ package com.ziro.fit.model
 
 import com.google.gson.annotations.SerializedName
 
+data class ExploreCity(
+    val id: String,
+    val name: String,
+    val imageUrl: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val isCurrentLocation: Boolean = false
+)
+
+data class ExploreCategory(
+    val id: String,
+    val name: String,
+    val iconUrl: String? = null
+)
+
+data class ExploreMetadataResponse(
+    val cities: List<ExploreCity>,
+    val categories: List<ExploreCategory>
+)
+
+data class ExploreFeaturedResponse(
+    val featuredEvents: List<ExploreEvent>,
+    val featuredTrainers: List<TrainerSummary>
+)
+
 data class ExploreEvent(
     val id: String,
     val title: String,

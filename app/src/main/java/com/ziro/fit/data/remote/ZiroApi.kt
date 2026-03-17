@@ -391,4 +391,15 @@ interface ZiroApi {
 
     @POST("api/events/{id}/join")
     suspend fun joinFreeEvent(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
+
+    // Explore Metadata and Featured
+    @GET("api/explore/metadata")
+    suspend fun getExploreMetadata(): ApiResponse<ExploreMetadataResponse>
+
+    @GET("api/explore/featured")
+    suspend fun getExploreFeatured(
+        @Query("lat") lat: Double? = null,
+        @Query("long") long: Double? = null,
+        @Query("cityId") cityId: String? = null
+    ): ApiResponse<ExploreFeaturedResponse>
 }

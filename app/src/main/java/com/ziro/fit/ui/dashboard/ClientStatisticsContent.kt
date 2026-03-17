@@ -25,9 +25,7 @@ import com.ziro.fit.model.FavoriteExercise
 import com.ziro.fit.model.WorstPerformingExercise
 import com.ziro.fit.model.AnalyticsWidget
 import com.ziro.fit.model.AnalyticsWidgetType
-import kotlin.math.random
-import java.text.SimpleDateFormat
-import java.util.Locale
+
 
 @Composable
 fun ClientStatisticsContent(
@@ -423,7 +421,8 @@ fun HeatMapWidget(progress: ClientProgressResponse?) {
                 for (col in 0 until 12) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         for (row in 0 until 7) {
-                            val isActive = random() > 0.7 
+                            // FIXED: Use java.lang.Math or Kotlin's Random
+                            val isActive = java.lang.Math.random() > 0.7 
                             Box(
                                 modifier = Modifier
                                     .size(12.dp)

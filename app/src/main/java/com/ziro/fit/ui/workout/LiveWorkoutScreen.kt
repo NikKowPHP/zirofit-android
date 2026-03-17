@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
@@ -575,16 +576,6 @@ fun LiveWorkoutControls(
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = StrongBlue),
                 contentPadding = PaddingValues(0.dp)
-            ) {
-                Icon(Icons.Default.Mic, contentDescription = null, tint = Color.White)
-            }
-            
-            Button(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(StrongBlue),
-                contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.Mic, contentDescription = null, tint = Color.White)
             }

@@ -40,6 +40,7 @@ import com.ziro.fit.ui.workout.LiveWorkoutScreen
 import com.ziro.fit.ui.workout.LiveWorkoutMiniPlayer
 import com.ziro.fit.ui.discovery.EventsListScreen
 import com.ziro.fit.ui.discovery.EventDetailScreen
+import com.ziro.fit.ui.discovery.ExploreScreen
 import com.ziro.fit.ui.theme.ZirofitTheme
 import com.ziro.fit.ui.checkins.CheckInListScreen
 import com.ziro.fit.ui.checkins.CheckInDetailScreen
@@ -349,10 +350,15 @@ fun ClientAppScreen(
                     }
                 }
                 composable("events_list") {
-                    EventsListScreen(
-                        onBack = { navController.popBackStack() },
+                    ExploreScreen(
                         onNavigateToEvent = { eventId ->
                             navController.navigate("event_detail/$eventId")
+                        },
+                        onNavigateToTrainer = { trainerId ->
+                            navController.navigate("trainer_profile/$trainerId")
+                        },
+                        onNavigateToMap = {
+                            navController.navigate("trainer_discovery")
                         }
                     )
                 }

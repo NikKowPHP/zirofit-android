@@ -3,6 +3,8 @@ package com.ziro.fit.data.repository
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.ExploreEvent
 import com.ziro.fit.model.ExploreEventsResponse
+import com.ziro.fit.model.ExploreFeaturedResponse
+import com.ziro.fit.model.ExploreMetadataResponse
 import com.ziro.fit.util.ApiErrorParser
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -59,6 +61,26 @@ class ExploreRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Result.failure(Exception(ApiErrorParser.getErrorMessage(ApiErrorParser.parse(e))))
+        }
+    }
+
+    suspend fun getMetadata(): Result<ExploreMetadataResponse> {
+        return try {
+            val response = api.getExploreMetadata()
+            if (response.data != null) Result.success(response.data)
+            else Result.failure(Exception("Metadata empty"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getFeatured(lat: Double? = null, long: Double? = null, cityId: String? = null): Result<ExploreFeaturedResponse> {
+        return try {
+            val response = api.getExploreFeatured(lat, long, cityId)
+            if (response.data != null) Result.success(response.data)
+            else Result.failure(Exception("Featured content empty"))
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }
