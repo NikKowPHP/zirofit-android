@@ -13,6 +13,31 @@ data class TrainerSummary(
     val profile: TrainerProfileSummary?
 )
 
+data class FeaturedTrainerSummary(
+    val id: String,
+    val name: String,
+    val avatarUrl: String?,
+    val rating: Double?,
+    val tier: String?,
+    val isVerified: Boolean?,
+    val specialties: List<String>?
+) {
+    fun toTrainerSummary(): TrainerSummary {
+        return TrainerSummary(
+            id = id,
+            name = name,
+            username = null,
+            profile = TrainerProfileSummary(
+                profilePhotoPath = avatarUrl,
+                certifications = specialties?.joinToString(", "),
+                averageRating = rating,
+                locations = null,
+                services = null
+            )
+        )
+    }
+}
+
 data class TrainerProfileSummary(
     val profilePhotoPath: String?,
     val certifications: String?, // Comma separated string in JSON

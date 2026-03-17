@@ -296,7 +296,16 @@ interface ZiroApi {
     // Trainer Discovery
     @GET("api/trainers")
     suspend fun getTrainers(
-        @Query("search") search: String? = null
+        @Query("search") search: String? = null,
+        @Query("page") page: Int? = null,
+        @Query("pageSize") pageSize: Int? = null,
+        @Query("location") location: String? = null,
+        @Query("sortBy") sortBy: String? = null,
+        @Query("minRating") minRating: Double? = null,
+        @Query("specialties") specialties: String? = null,
+        @Query("trainingTypes") trainingTypes: String? = null,
+        @Query("latitude") latitude: Double? = null,
+        @Query("longitude") longitude: Double? = null
     ): ApiResponse<GetTrainersResponse>
 
     @GET("api/trainers/{id}/public")

@@ -58,7 +58,7 @@ class ExploreViewModel @Inject constructor(
             repository.getFeatured(cityId = city?.id.takeIf { it != "current" }).onSuccess { featured ->
                 _uiState.update { it.copy(
                     featuredEvents = featured.featuredEvents,
-                    featuredTrainers = featured.featuredTrainers
+                    featuredTrainers = featured.featuredTrainers.map { it.toTrainerSummary() }
                 ) }
             }
 

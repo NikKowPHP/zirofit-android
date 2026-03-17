@@ -11,9 +11,31 @@ import javax.inject.Singleton
 class TrainerRepository @Inject constructor(
     private val api: ZiroApi
 ) {
-    suspend fun getTrainers(search: String? = null): Result<List<TrainerSummary>> {
+    suspend fun getTrainers(
+        search: String? = null,
+        page: Int? = null,
+        pageSize: Int? = null,
+        location: String? = null,
+        sortBy: String? = null,
+        minRating: Double? = null,
+        specialties: String? = null,
+        trainingTypes: String? = null,
+        latitude: Double? = null,
+        longitude: Double? = null
+    ): Result<List<TrainerSummary>> {
         return try {
-            val response = api.getTrainers(search)
+            val response = api.getTrainers(
+                search = search,
+                page = page,
+                pageSize = pageSize,
+                location = location,
+                sortBy = sortBy,
+                minRating = minRating,
+                specialties = specialties,
+                trainingTypes = trainingTypes,
+                latitude = latitude,
+                longitude = longitude
+            )
             Result.success(response.data?.trainers ?: emptyList())
         } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)

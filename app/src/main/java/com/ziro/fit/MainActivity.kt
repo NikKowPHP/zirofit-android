@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -199,11 +201,11 @@ fun ClientAppScreen(
                             }
                         )
                         NavigationBarItem(
-                            icon = { Icon(Icons.Default.Event, contentDescription = null) },
-                            label = { Text("Events") },
-                            selected = currentRoute == "events_list",
+                            icon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            label = { Text("Discover") },
+                            selected = currentRoute == "explore",
                             onClick = {
-                                navController.navigate("events_list") {
+                                navController.navigate("explore") {
                                     popUpTo(navController.graph.startDestinationId) { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
@@ -349,7 +351,7 @@ fun ClientAppScreen(
                         navController.popBackStack()
                     }
                 }
-                composable("events_list") {
+                composable("explore") {
                     ExploreScreen(
                         onNavigateToEvent = { eventId ->
                             navController.navigate("event_detail/$eventId")

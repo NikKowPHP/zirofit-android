@@ -24,7 +24,7 @@ data class ExploreMetadataResponse(
 
 data class ExploreFeaturedResponse(
     val featuredEvents: List<ExploreEvent>,
-    val featuredTrainers: List<TrainerSummary>
+    val featuredTrainers: List<FeaturedTrainerSummary>
 )
 
 data class ExploreEvent(
