@@ -9,6 +9,7 @@ data class LoginResponse(
     val message: String,
     val role: String,
     val accessToken: String,
+    val refreshToken: String?,
     val user: User
 )
 
@@ -23,4 +24,15 @@ data class RegisterResponse(
     val userId: String,
     val message: String,
     val requiresSubscription: Boolean?
+)
+
+data class RefreshTokenRequest(
+    val refreshToken: String
+)
+
+data class RefreshTokenResponse(
+    val accessToken: String,
+    val refreshToken: String,
+    val expiresAt: Long,
+    val user: User
 )

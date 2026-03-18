@@ -13,6 +13,8 @@ import com.ziro.fit.model.GetClientSessionsResponse
 import com.ziro.fit.model.LogSetRequest
 import com.ziro.fit.model.LoginRequest
 import com.ziro.fit.model.LoginResponse
+import com.ziro.fit.model.RefreshTokenRequest
+import com.ziro.fit.model.RefreshTokenResponse
 import com.ziro.fit.model.ServerLiveSessionResponse
 import com.ziro.fit.model.StartWorkoutRequest
 import com.ziro.fit.model.StartWorkoutResponse
@@ -52,6 +54,12 @@ interface ZiroApi {
 
     @POST("api/auth/register")
     suspend fun register(@Body request: RegisterRequest): ApiResponse<RegisterResponse>
+
+    @POST("api/auth/refresh")
+    suspend fun refreshAccessToken(@Body request: RefreshTokenRequest): ApiResponse<RefreshTokenResponse>
+
+    @POST("api/auth/refresh")
+    suspend fun refreshToken(@Body request: RefreshTokenRequest): ApiResponse<RefreshTokenResponse>
 
     @Multipart
     @POST("api/onboarding/complete")

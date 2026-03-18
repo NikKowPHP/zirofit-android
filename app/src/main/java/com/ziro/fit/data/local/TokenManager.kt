@@ -12,7 +12,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 
 @Singleton
 class TokenManager @Inject constructor(
-    @ApplicationContext context: Context
+    @ApplicationContext context: Context,
+    private val api: dagger.Lazy<com.ziro.fit.data.remote.ZiroApi>
 ) {
     private val _logoutSignal = MutableSharedFlow<Unit>(replay = 0)
     val logoutSignal: SharedFlow<Unit> = _logoutSignal.asSharedFlow()
@@ -36,8 +37,37 @@ class TokenManager @Inject constructor(
         return prefs.getString("access_token", null)
     }
 
+    fun saveRefreshToken(token: String) {
+        prefs.edit().putString("refresh_token", token).apply()
+    }
+
+    fun getRefreshToken(): String? {
+        return prefs.getString("refresh_token", null)
+    }
+
     fun clearToken() {
         prefs.edit().remove("access_token").apply()
+        prefs.edit().remove("refresh_token").apply()
+    }
+
+    suspend fun refreshToken(): Boolean {
+        val refreshToken = getRefreshToken() ?: return false
+        return try {
+            // Revalidate with server using the refresh token
+            val response = api.get().refreshToken(com.ziro.fit.model.RefreshTokenRequest(refreshToken))
+            val data = response.data
+            
+            if (response.success != false && data != null) {
+                saveToken(data.accessToken)
+                saveRefreshToken(data.refreshToken)
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            // If the refresh token itself is expired or invalid, the server returns 401/400
+            false
+        }
     }
 
     suspend fun triggerLogout() {

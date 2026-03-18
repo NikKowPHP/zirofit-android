@@ -87,6 +87,7 @@ class AuthViewModel @Inject constructor(
                 val loginData = response.data
                 if (loginData != null) {
                     tokenManager.saveToken(loginData.accessToken)
+                    loginData.refreshToken?.let { tokenManager.saveRefreshToken(it) }
                     val role = loginData.role
                     authState = AuthState.Authenticated(role, loginData.user.id, isOnboardingComplete = role != "pending")
                     syncPushToken() 

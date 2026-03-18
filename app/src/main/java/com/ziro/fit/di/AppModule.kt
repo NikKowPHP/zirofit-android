@@ -13,6 +13,8 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.TimeUnit
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -26,20 +28,46 @@ object AppModule {
     @Singleton
     fun provideAuthInterceptor(tokenManager: TokenManager): Interceptor {
         return Interceptor { chain ->
-            val requestBuilder = chain.request().newBuilder()
-            val token = tokenManager.getToken()
+            val originalRequest = chain.request()
+            val requestBuilder = originalRequest.newBuilder()
             
-            if (token != null) {
-                requestBuilder.addHeader("Authorization", "Bearer $token")
+            // 1. Attach current token
+            tokenManager.getToken()?.let {
+                requestBuilder.addHeader("Authorization", "Bearer $it")
             }
 
             var response = chain.proceed(requestBuilder.build())
 
+            // 2. Handle 401 Unauthorized globally
             if (response.code == 401) {
-                // If we get a 401, it means the token is invalid or expired
-                // We should clear the token and trigger a global logout
-                kotlinx.coroutines.runBlocking {
-                    tokenManager.triggerLogout()
+                synchronized(this) {
+                    val currentToken = tokenManager.getToken()
+                    val requestToken = originalRequest.header("Authorization")?.removePrefix("Bearer ")
+
+                    // 3. Check if another thread already refreshed the token
+                    val refreshedToken = if (requestToken != currentToken) {
+                        currentToken
+                    } else {
+                        // 4. Initiate refresh procedure
+                        val refreshSuccess = runBlocking {
+                            tokenManager.refreshToken()
+                        }
+                        if (refreshSuccess) tokenManager.getToken() else null
+                    }
+
+                    if (refreshedToken != null) {
+                        // 5. Revalidate: Retry the request with the new token
+                        response.close() // Close the failed response
+                        val newRequest = originalRequest.newBuilder()
+                            .header("Authorization", "Bearer $refreshedToken")
+                            .build()
+                        response = chain.proceed(newRequest)
+                    } else {
+                        // 6. Refresh failed or no refresh token: Force Logout
+                        runBlocking {
+                            tokenManager.triggerLogout()
+                        }
+                    }
                 }
             }
             
