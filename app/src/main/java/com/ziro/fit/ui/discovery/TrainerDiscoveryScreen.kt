@@ -41,150 +41,241 @@ fun TrainerDiscoveryScreen(
     val discoveryType by viewModel.discoveryType.collectAsState()
     val selectedSpecialty by viewModel.selectedSpecialty.collectAsState()
     val selectedLocation by viewModel.selectedLocation.collectAsState()
+    val minRating by viewModel.minRating.collectAsState()
     
     var isMapView by remember { mutableStateOf(false) }
     var showFilterSheet by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = StrongBackground,
-        topBar = {
-            TopAppBar(
-                title = { Text("Discover", color = Color.White) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = StrongSecondaryBackground),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { isMapView = !isMapView },
-                containerColor = StrongBlue
-            ) {
-                Icon(
-                    imageVector = if (isMapView) Icons.Default.List else Icons.Default.Map,
-                    contentDescription = if (isMapView) "Show List" else "Show Map",
-                    tint = Color.White
+    val hasActiveFilters = remember(selectedSpecialty, selectedLocation, minRating) {
+        selectedSpecialty != null || selectedLocation.isNotBlank() || minRating > 0.0
+    }
+
+    val headerHeight = if (hasActiveFilters) 235.dp else 200.dp
+
+    Box(modifier = Modifier.fillMaxSize().background(StrongBackground)) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (uiState.isLoading && uiState.trainers.isEmpty() && uiState.events.isEmpty()) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center),
+                    color = StrongBlue
                 )
-            }
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            Surface(
-                color = StrongSecondaryBackground,
-                shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp),
-                shadowElevation = 8.dp
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                        TrainerDiscoveryViewModel.DiscoveryType.values().forEachIndexed { index, type ->
-                            SegmentedButton(
-                                selected = discoveryType == type,
-                                onClick = { viewModel.discoveryType.value = type },
-                                shape = SegmentedButtonDefaults.itemShape(index = index, count = 3),
-                                colors = SegmentedButtonDefaults.colors(
-                                    activeContainerColor = StrongBlue,
-                                    activeContentColor = Color.White,
-                                    inactiveContainerColor = Color.Transparent,
-                                    inactiveContentColor = StrongTextSecondary
-                                )
-                            ) {
-                                Text(type.label)
+            } else if (isMapView) {
+                TrainerMapScreen(trainers = uiState.trainers, onTrainerClick = onTrainerClick)
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        top = headerHeight + 16.dp,
+                        bottom = 16.dp,
+                        start = 16.dp,
+                        end = 16.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (discoveryType == TrainerDiscoveryViewModel.DiscoveryType.SPECIALISTS || discoveryType == TrainerDiscoveryViewModel.DiscoveryType.ALL) {
+                        if (uiState.trainers.isEmpty() && !uiState.isLoading) {
+                            item { EmptyState("No specialists found") }
+                        } else {
+                            if (discoveryType == TrainerDiscoveryViewModel.DiscoveryType.ALL) {
+                                item { 
+                                    Text(
+                                        "Specialists", 
+                                        color = Color.White, 
+                                        fontSize = 20.sp, 
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    ) 
+                                }
                             }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { viewModel.searchQuery.value = it },
-                            modifier = Modifier.weight(1f),
-                            placeholder = { Text("Search...", color = StrongTextSecondary) },
-                            leadingIcon = { Icon(Icons.Default.Search, null, tint = StrongTextSecondary) },
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = StrongInputBackground,
-                                unfocusedContainerColor = StrongInputBackground,
-                                focusedBorderColor = Color.Transparent,
-                                unfocusedBorderColor = Color.Transparent,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true
-                        )
-                        
-                        Spacer(modifier = Modifier.width(12.dp))
-                        
-                        IconButton(
-                            onClick = { showFilterSheet = true },
-                            modifier = Modifier
-                                .background(if (hasActiveFilters(viewModel)) StrongBlue else StrongInputBackground, CircleShape)
-                        ) {
-                            Icon(Icons.Default.Tune, contentDescription = "Filter", tint = Color.White)
+                            items(uiState.trainers) { trainer ->
+                                TrainerCardItem(trainer, onTrainerClick)
+                            }
                         }
                     }
                     
-                    if (hasActiveFilters(viewModel)) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            selectedSpecialty?.let { spec ->
-                                item { FilterChipItem(spec) { viewModel.selectedSpecialty.value = null } }
+                    if (discoveryType == TrainerDiscoveryViewModel.DiscoveryType.EVENTS || discoveryType == TrainerDiscoveryViewModel.DiscoveryType.ALL) {
+                        if (uiState.events.isEmpty() && !uiState.isLoading) {
+                            item { EmptyState("No events found") }
+                        } else {
+                            if (discoveryType == TrainerDiscoveryViewModel.DiscoveryType.ALL) {
+                                item { 
+                                    Text(
+                                        "Events", 
+                                        color = Color.White, 
+                                        fontSize = 20.sp, 
+                                        fontWeight = FontWeight.Bold, 
+                                        modifier = Modifier.padding(top = 16.dp)
+                                    ) 
+                                }
                             }
-                            if (selectedLocation.isNotBlank()) {
-                                item { FilterChipItem(selectedLocation) { viewModel.selectedLocation.value = "" } }
+                            items(uiState.events) { event ->
+                                EventCardItem(event) { }
+                            }
+                        }
+                    }
+
+                    if (uiState.isLoading && (uiState.trainers.isNotEmpty() || uiState.events.isNotEmpty())) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    color = StrongBlue
+                                )
                             }
                         }
                     }
                 }
+            }
+        }
+
+        // Floating Header Overlay
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(StrongSecondaryBackground.copy(alpha = 0.95f))
+                .statusBarsPadding()
+        ) {
+            // Drag Handle
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(2.5.dp))
+                        .background(Color.Gray.copy(alpha = 0.4f))
+                )
             }
 
-            Box(modifier = Modifier.weight(1f)) {
-                if (uiState.isLoading && uiState.trainers.isEmpty() && uiState.events.isEmpty()) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = StrongBlue)
-                } else if (isMapView) {
-                    TrainerMapScreen(trainers = uiState.trainers, onTrainerClick = onTrainerClick)
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        if (discoveryType == TrainerDiscoveryViewModel.DiscoveryType.SPECIALISTS || discoveryType == TrainerDiscoveryViewModel.DiscoveryType.ALL) {
-                            if (uiState.trainers.isEmpty() && !uiState.isLoading) {
-                                item { EmptyState("No trainers found") }
-                            } else {
-                                if (discoveryType == TrainerDiscoveryViewModel.DiscoveryType.ALL) {
-                                    item { Text("Specialists", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold) }
-                                }
-                                items(uiState.trainers) { trainer ->
-                                    TrainerCardItem(trainer, onTrainerClick)
-                                }
-                            }
-                        }
-                        
-                        if (discoveryType == TrainerDiscoveryViewModel.DiscoveryType.EVENTS || discoveryType == TrainerDiscoveryViewModel.DiscoveryType.ALL) {
-                            if (uiState.events.isEmpty() && !uiState.isLoading) {
-                                item { EmptyState("No events found") }
-                            } else {
-                                if (discoveryType == TrainerDiscoveryViewModel.DiscoveryType.ALL) {
-                                    item { Text("Events", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp)) }
-                                }
-                                items(uiState.events) { event ->
-                                    EventCardItem(event) { }
-                                }
-                            }
+            // Header Content
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Title
+                Text(
+                    "Discover specialists and events",
+                    color = Color.White,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Discovery Type Picker
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    TrainerDiscoveryViewModel.DiscoveryType.values().forEachIndexed { index, type ->
+                        SegmentedButton(
+                            selected = discoveryType == type,
+                            onClick = { viewModel.discoveryType.value = type },
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = 3),
+                            colors = SegmentedButtonDefaults.colors(
+                                activeContainerColor = StrongBlue,
+                                activeContentColor = Color.White,
+                                inactiveContainerColor = Color.Transparent,
+                                inactiveContentColor = StrongTextSecondary
+                            )
+                        ) {
+                            Text(type.label)
                         }
                     }
                 }
+
+                // Search Bar & Filter Button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.searchQuery.value = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { 
+                            Text(
+                                if (discoveryType == TrainerDiscoveryViewModel.DiscoveryType.SPECIALISTS) 
+                                    "Specialty or Specialist Name" 
+                                else 
+                                    "Search events...",
+                                color = StrongTextSecondary
+                            ) 
+                        },
+                        leadingIcon = { Icon(Icons.Default.Search, null, tint = StrongTextSecondary) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = StrongInputBackground.copy(alpha = 0.5f),
+                            unfocusedContainerColor = StrongInputBackground.copy(alpha = 0.5f),
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true
+                    )
+                    
+                    Spacer(modifier = Modifier.width(12.dp))
+                    
+                    IconButton(
+                        onClick = { showFilterSheet = true },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(
+                                if (hasActiveFilters) StrongBlue else StrongInputBackground.copy(alpha = 0.5f), 
+                                CircleShape
+                            )
+                    ) {
+                        Icon(
+                            Icons.Default.FilterList, 
+                            contentDescription = "Filter", 
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                // Active Filter Chips
+                if (hasActiveFilters) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    ) {
+                        selectedSpecialty?.let { spec ->
+                            item {
+                                FilterChipItem(spec) { viewModel.selectedSpecialty.value = null }
+                            }
+                        }
+                        if (selectedLocation.isNotBlank()) {
+                            item {
+                                FilterChipItem(selectedLocation) { viewModel.selectedLocation.value = "" }
+                            }
+                        }
+                        if (minRating > 0) {
+                            item {
+                                FilterChipItem("${String.format("%.1f", minRating)}+ Stars") { viewModel.minRating.value = 0.0 }
+                            }
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
+        }
+
+        // FAB for Map/List toggle
+        FloatingActionButton(
+            onClick = { isMapView = !isMapView },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = StrongBlue
+        ) {
+            Icon(
+                imageVector = if (isMapView) Icons.Default.List else Icons.Default.Map,
+                contentDescription = if (isMapView) "Show List" else "Show Map",
+                tint = Color.White
+            )
         }
         
         if (showFilterSheet) {
@@ -194,10 +285,6 @@ fun TrainerDiscoveryScreen(
             )
         }
     }
-}
-
-private fun hasActiveFilters(viewModel: TrainerDiscoveryViewModel): Boolean {
-    return viewModel.selectedSpecialty.value != null || viewModel.selectedLocation.value.isNotBlank() || viewModel.minRating.value > 0.0
 }
 
 @Composable

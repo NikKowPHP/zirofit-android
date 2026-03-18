@@ -58,12 +58,12 @@ fun ExploreScreen(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(bottom = 100.dp)
             ) {
-                // 1. Featured Trainers Carousel - FIRST
+                // 1. Featured Trainers Carousel - FIRST (always first)
                 if (uiState.featuredTrainers.isNotEmpty()) {
                     item {
                         SectionHeaderWithAction(
                             title = "Featured Trainers",
-                            onSeeAllClick = { /* Navigate to all trainers */ }
+                            onSeeAllClick = onNavigateToMap
                         )
                     }
                     item {
@@ -81,7 +81,34 @@ fun ExploreScreen(
                     }
                 }
 
-                // 2. Featured Events Carousel - SECOND
+                // 2. All Trainers Section (after featured)
+                if (uiState.allTrainers.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        SectionHeaderWithAction(
+                            title = if (uiState.featuredTrainers.isNotEmpty()) "All Specialists" else "Find a Specialist",
+                            onSeeAllClick = onNavigateToMap
+                        )
+                    }
+                    items(uiState.allTrainers.take(10)) { trainer ->
+                        CompactTrainerCard(
+                            trainer = trainer,
+                            onClick = { onNavigateToTrainer(trainer.id) }
+                        )
+                    }
+                    if (uiState.allTrainers.size > 10) {
+                        item {
+                            TextButton(
+                                onClick = onNavigateToMap,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("View All ${uiState.allTrainers.size} Specialists", color = StrongBlue)
+                            }
+                        }
+                    }
+                }
+
+                // 3. Featured Events Carousel
                 if (uiState.featuredEvents.isNotEmpty()) {
                     item {
                         Spacer(modifier = Modifier.height(24.dp))
@@ -105,7 +132,7 @@ fun ExploreScreen(
                     }
                 }
 
-                // 3. Category Filter
+                // 4. Category Filter
                 item {
                     Spacer(modifier = Modifier.height(24.dp))
                     LazyRow(
@@ -127,7 +154,7 @@ fun ExploreScreen(
                     }
                 }
 
-                // 4. Upcoming Events - Grouped by Date
+                // 5. Upcoming Events - Grouped by Date
                 if (uiState.upcomingEvents.isEmpty() && !uiState.isLoading) {
                     item {
                         Spacer(modifier = Modifier.height(32.dp))
@@ -517,6 +544,83 @@ fun CompactEventCard(event: ExploreEvent, onClick: () -> Unit) {
                         text = "${event.spotsLeft} left",
                         color = if (event.isNearCapacity == true) StrongRed else Color.Gray,
                         fontSize = 10.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CompactTrainerCard(trainer: TrainerSummary, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = StrongSecondaryBackground),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AsyncImage(
+                model = trainer.profile?.profilePhotoPath,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = trainer.name,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    fontSize = 14.sp
+                )
+                trainer.profile?.certifications?.split(",")?.firstOrNull()?.let {
+                    Text(
+                        text = it.trim(),
+                        color = Color.Gray,
+                        fontSize = 12.sp,
+                        maxLines = 1
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = String.format("%.1f", trainer.profile?.averageRating ?: 5.0),
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(
+                        Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = StrongTextSecondary,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = trainer.profile?.locations?.firstOrNull()?.address ?: "Online",
+                        color = StrongTextSecondary,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

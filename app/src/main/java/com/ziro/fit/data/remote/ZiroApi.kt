@@ -357,6 +357,9 @@ interface ZiroApi {
     @GET("api/client/programs")
     suspend fun getClientPrograms(): List<ClientProgramAssignmentDto>
 
+    @GET("api/trainer/workout-templates")
+    suspend fun getWorkoutTemplates(): ApiResponse<WorkoutTemplatesResponse>
+
     @GET("api/client/program/active")
     suspend fun getActiveProgramProgress(): ApiResponse<ActiveProgramApiResponse>
 

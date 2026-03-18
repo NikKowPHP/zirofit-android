@@ -3,6 +3,7 @@ package com.ziro.fit.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ziro.fit.data.repository.ExploreRepository
+import com.ziro.fit.data.repository.TrainerRepository
 import com.ziro.fit.model.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -15,6 +16,7 @@ data class ExploreUiState(
     val categories: List<ExploreCategory> = emptyList(),
     val featuredEvents: List<ExploreEvent> = emptyList(),
     val featuredTrainers: List<TrainerSummary> = emptyList(),
+    val allTrainers: List<TrainerSummary> = emptyList(),
     val upcomingEvents: Map<String, List<ExploreEvent>> = emptyMap(),
     val selectedCity: ExploreCity? = null,
     val selectedCategory: ExploreCategory? = null,
@@ -23,7 +25,8 @@ data class ExploreUiState(
 
 @HiltViewModel
 class ExploreViewModel @Inject constructor(
-    private val repository: ExploreRepository
+    private val repository: ExploreRepository,
+    private val trainerRepository: TrainerRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ExploreUiState())
@@ -60,6 +63,11 @@ class ExploreViewModel @Inject constructor(
                     featuredEvents = featured.featuredEvents,
                     featuredTrainers = featured.featuredTrainers.map { it.toTrainerSummary() }
                 ) }
+            }
+
+            // Load All Trainers
+            trainerRepository.getTrainers().onSuccess { trainers ->
+                _uiState.update { it.copy(allTrainers = trainers) }
             }
 
             // Load Grouped Events

@@ -38,7 +38,6 @@ fun WorkoutsScreen(
     Scaffold(
         topBar = {
             Column {
-                // Custom Top Bar to match design
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -51,7 +50,13 @@ fun WorkoutsScreen(
                         style = MaterialTheme.typography.displaySmall
                     )
                     Row {
-                         IconButton(onClick = { /* TODO: Search */ }) {
+                        if (uiState.isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        }
+                        IconButton(onClick = { /* TODO: Search */ }) {
                             Icon(Icons.Default.Search, contentDescription = "Search")
                         }
                     }
@@ -88,8 +93,6 @@ fun WorkoutsScreen(
             }
             
             Spacer(modifier = Modifier.height(24.dp))
-            
-            Spacer(modifier = Modifier.height(24.dp))
 
             // Programs Section
             if (uiState.programs.isNotEmpty()) {
@@ -105,7 +108,7 @@ fun WorkoutsScreen(
                         .padding(bottom = 24.dp)
                 ) {
                     uiState.programs.forEach { program ->
-                         ProgramCard(
+                        ProgramCard(
                             program = program, 
                             onClick = { 
                                 onNavigateToProgramDetail(program.id)
@@ -127,121 +130,108 @@ fun WorkoutsScreen(
                 )
                 Row {
                     IconButton(onClick = { onNavigateToCreateTemplate?.invoke() }) {
-                         Icon(Icons.Default.Add, contentDescription = "Add Template")
+                        Icon(Icons.Default.Add, contentDescription = "Add Template")
                     }
                     IconButton(onClick = { /* TODO: Folders */ }) {
-                         Icon(Icons.Default.Folder, contentDescription = "Folders")
+                        Icon(Icons.Default.Folder, contentDescription = "Folders")
                     }
                     IconButton(onClick = { /* TODO: More */ }) {
-                         Icon(Icons.Default.MoreHoriz, contentDescription = "More")
+                        Icon(Icons.Default.MoreHoriz, contentDescription = "More")
                     }
                 }
             }
 
             // My Templates Section
-            if (uiState.userTemplates.isNotEmpty() || uiState.trainerTemplates.isNotEmpty()) {
-                val combinedTemplates = uiState.userTemplates + uiState.trainerTemplates
+            val combinedUserTemplates = uiState.userTemplates + uiState.trainerTemplates
+            
+            if (combinedUserTemplates.isNotEmpty()) {
                 Text(
-                    text = "My Templates (${combinedTemplates.size})",
+                    text = "My Templates (${combinedUserTemplates.size})",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
 
-                if (combinedTemplates.isEmpty()) {
-                     // Empty state for My Templates if logic permits (though we checked isNotEmpty above)
-                     Box(
-                         modifier = Modifier
-                             .fillMaxWidth()
-                             .height(120.dp)
-                             .clickable { /* TODO: Create Template */ },
-                             contentAlignment = Alignment.Center
-                     ) {
-                         // Dashed border or similar would be better here
-                         Text("Tap to Add", color = MaterialTheme.colorScheme.primary)
-                     }
-                } else {
-                    Row(
-                        modifier = Modifier
-                            .horizontalScroll(rememberScrollState())
-                            .padding(vertical = 8.dp)
-                    ) {
-                        combinedTemplates.forEach { template -> 
-                            var showMenu by remember { mutableStateOf(false) }
-                            Box {
-                                TemplateCard(
-                                    template = template, 
-                                    onClick = { viewModel.onTemplateClicked(template) },
-                                    onMenuClick = { showMenu = true }
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(vertical = 8.dp)
+                ) {
+                    combinedUserTemplates.forEach { template -> 
+                        var showMenu by remember { mutableStateOf(false) }
+                        Box {
+                            TemplateCard(
+                                template = template, 
+                                onClick = { viewModel.onTemplateClicked(template) },
+                                onMenuClick = { showMenu = true }
+                            )
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Edit") },
+                                    onClick = {
+                                        showMenu = false
+                                        onEditTemplate?.invoke(template.id)
+                                    }
                                 )
-                                DropdownMenu(
-                                    expanded = showMenu,
-                                    onDismissRequest = { showMenu = false }
-                                ) {
-                                    DropdownMenuItem(
-                                        text = { Text("Edit") },
-                                        onClick = {
-                                            showMenu = false
-                                            onEditTemplate?.invoke(template.id)
-                                        }
-                                    )
-                                    DropdownMenuItem(
-                                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
-                                        onClick = {
-                                            showMenu = false
-                                            viewModel.deleteTemplate(template.id)
-                                        }
-                                    )
-                                }
+                                DropdownMenuItem(
+                                    text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
+                                    onClick = {
+                                        showMenu = false
+                                        viewModel.deleteTemplate(template.id)
+                                    }
+                                )
                             }
                         }
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             } else {
-                 // Empty state placeholder matching screenshot
-                 Text(
+                Text(
                     text = "My Templates (0)",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(vertical = 8.dp)
-                 )
-                 Card(
+                )
+                Card(
                     modifier = Modifier
                         .size(width = 160.dp, height = 150.dp)
                         .padding(vertical = 8.dp)
-                        .clickable { /* TODO: Trigger add */ },
-                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f))
-                 ) {
-                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                             Text("Tap to Add", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-                             Text("or drag", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-                             Text("template here", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-                             Text("to move", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-                         }
-                     }
-                 }
+                        .clickable { onNavigateToCreateTemplate?.invoke() },
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f))
+                ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Tap to Add", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                            Text("or drag", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                            Text("template here", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                            Text("to move", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-
             // Example Templates Section
-            Text(
-                text = "Example Templates (${uiState.systemTemplates.size})",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-            
-             Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(vertical = 8.dp)
-            ) {
-                uiState.systemTemplates.forEach { template -> 
-                     TemplateCard(
-                        template = template, 
-                        onClick = { viewModel.onTemplateClicked(template) },
-                        onMenuClick = { /* TODO: Template options */ }
-                    )
+            if (uiState.systemTemplates.isNotEmpty()) {
+                Text(
+                    text = "Example Templates (${uiState.systemTemplates.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+                
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(vertical = 8.dp)
+                ) {
+                    uiState.systemTemplates.forEach { template -> 
+                        TemplateCard(
+                            template = template, 
+                            onClick = { viewModel.onTemplateClicked(template) },
+                            onMenuClick = { /* System templates are read-only */ }
+                        )
+                    }
                 }
             }
             
@@ -285,26 +275,26 @@ fun WorkoutsScreen(
                 
                 if (template.exercises.isNotEmpty()) {
                     template.exercises.forEachIndexed { index, exercise ->
-                         Row(
-                             modifier = Modifier
-                                 .fillMaxWidth()
-                                 .padding(vertical = 8.dp),
-                             verticalAlignment = Alignment.CenterVertically
-                         ) {
-                             Box(
-                                 modifier = Modifier
-                                     .size(24.dp)
-                                     .background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.CircleShape),
-                                 contentAlignment = Alignment.Center
-                             ) {
-                                 Text((index + 1).toString(), style = MaterialTheme.typography.labelSmall)
-                             }
-                             Spacer(modifier = Modifier.width(12.dp))
-                             Text(exercise, style = MaterialTheme.typography.bodyLarge)
-                         }
-                         if (index < template.exercises.size - 1) {
-                             HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
-                         }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text((index + 1).toString(), style = MaterialTheme.typography.labelSmall)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(exercise, style = MaterialTheme.typography.bodyLarge)
+                        }
+                        if (index < template.exercises.size - 1) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
+                        }
                     }
                 } else {
                     Text("No exercises in this template", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

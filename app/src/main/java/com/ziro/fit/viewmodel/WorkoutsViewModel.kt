@@ -34,9 +34,13 @@ class WorkoutsViewModel @Inject constructor(
         loadTemplates()
     }
 
+    fun refresh() {
+        loadTemplates()
+    }
+
     private fun loadTemplates() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
                 val templates = workoutRepository.getTemplates()
                 val programs = workoutRepository.getPrograms()

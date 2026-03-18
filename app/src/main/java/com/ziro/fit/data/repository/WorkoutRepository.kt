@@ -1,10 +1,7 @@
 package com.ziro.fit.data.repository
 
 import com.ziro.fit.data.remote.ZiroApi
-import com.ziro.fit.model.TemplateType
-import com.ziro.fit.model.WorkoutTemplate
-import com.ziro.fit.model.WorkoutTemplateDto
-import com.ziro.fit.model.ExerciseDto
+import com.ziro.fit.model.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -14,31 +11,32 @@ class WorkoutRepository @Inject constructor(
 ) {
     suspend fun getTemplates(): List<WorkoutTemplate> {
         return try {
-            val assignments = api.getClientPrograms()
-            val allTemplates = mutableListOf<WorkoutTemplate>()
-            
-            assignments.forEach { assignment ->
-                val program = assignment.program
-                // If trainerId is present, it's a trainer program. 
-                // If not, it's likely an AI or System program assigned to the user.
-                // We'll treat AI programs (null trainerId) as USER templates so they show in "My Templates".
-                val type = if (program.trainerId != null) TemplateType.TRAINER else TemplateType.USER
-                
-                program.templates?.forEach { templateDto ->
-                    allTemplates.add(
-                        WorkoutTemplate(
-                            id = templateDto.id,
-                            name = templateDto.name,
-                            exerciseCount = templateDto.exerciseCount,
-                            description = templateDto.description,
-                            lastPerformed = templateDto.lastPerformed,
-                            type = type,
-                            exercises = templateDto.exercises?.map { it.name } ?: emptyList()
-                        )
-                    )
-                }
+            val response = api.getWorkoutTemplates()
+            val data = response.data ?: return emptyList()
+
+            val userTemplates = data.templates.map { dto ->
+                WorkoutTemplate(
+                    id = dto.id,
+                    name = dto.name,
+                    exerciseCount = dto.exerciseCount,
+                    description = dto.description,
+                    type = TemplateType.USER,
+                    exercises = dto.exercises?.map { it.name } ?: emptyList()
+                )
             }
-            allTemplates
+
+            val systemTemplates = data.systemTemplates.map { dto ->
+                WorkoutTemplate(
+                    id = dto.id,
+                    name = dto.name,
+                    exerciseCount = dto.exerciseCount,
+                    description = dto.description,
+                    type = TemplateType.SYSTEM,
+                    exercises = dto.exercises?.map { it.name } ?: emptyList()
+                )
+            }
+
+            userTemplates + systemTemplates
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
@@ -71,9 +69,7 @@ class WorkoutRepository @Inject constructor(
             val serverTemplate = response.data 
                 ?: return Result.failure(Exception("Template not found"))
 
-            // Map ServerTemplate to WorkoutTemplateDto
             val exercises = serverTemplate.exercises.sortedBy { it.order }.map { step ->
-                // Try to get exercise name safely
                 val exerciseName = step.exercise?.name ?: run {
                     val noteName = step.notes?.let { note ->
                         val match = Regex("Exercise: (.*?)[\\.,]").find(note)
@@ -92,8 +88,7 @@ class WorkoutRepository @Inject constructor(
                 id = serverTemplate.id,
                 name = serverTemplate.name,
                 exerciseCount = exercises.size,
-                description = null, // ServerTemplate doesn't have description in the model we used?
-                lastPerformed = null,
+                description = serverTemplate.description,
                 exercises = exercises
             )
             

@@ -18,6 +18,14 @@ data class WorkoutTemplate(
     val exercises: List<String> = emptyList() // List of exercise names or IDs for summary
 )
 
+data class TemplateExerciseDto(
+    val id: String? = null,
+    val name: String,
+    val targetReps: String? = null,
+    val notes: String? = null,
+    val order: Int = 0
+)
+
 data class CreateWorkoutTemplateRequest(
     val name: String,
     val description: String?,

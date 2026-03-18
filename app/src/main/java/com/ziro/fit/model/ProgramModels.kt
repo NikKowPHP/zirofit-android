@@ -6,6 +6,11 @@ data class GetClientProgramsResponse(
     val trainerPrograms: List<ProgramDto> = emptyList() 
 )
 
+data class WorkoutTemplatesResponse(
+    val templates: List<WorkoutTemplateDto>,
+    val systemTemplates: List<WorkoutTemplateDto>
+)
+
 data class ProgramDto(
     val id: String,
     val name: String,
