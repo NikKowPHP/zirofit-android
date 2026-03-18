@@ -45,6 +45,11 @@ class WorkoutsViewModel @Inject constructor(
                 val templates = workoutRepository.getTemplates()
                 val programs = workoutRepository.getPrograms()
                 
+                println("DEBUG: Loaded ${templates.size} templates")
+                templates.forEach { t ->
+                    println("DEBUG: Template - ${t.name}, type=${t.type}, exercises=${t.exerciseCount}")
+                }
+                
                 _uiState.value = _uiState.value.copy(
                     userTemplates = templates.filter { it.type == TemplateType.USER },
                     systemTemplates = templates.filter { it.type == TemplateType.SYSTEM },
@@ -53,6 +58,7 @@ class WorkoutsViewModel @Inject constructor(
                     isLoading = false
                 )
             } catch (e: Exception) {
+                println("DEBUG: Error loading templates: ${e.message}")
                 _uiState.value = _uiState.value.copy(isLoading = false, error = e.message)
             }
         }

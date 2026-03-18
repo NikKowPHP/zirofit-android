@@ -56,7 +56,14 @@ fun WorkoutsScreen(
                                 strokeWidth = 2.dp
                             )
                         }
-                        IconButton(onClick = { /* TODO: Search */ }) {
+                        if (uiState.error != null) {
+                            Text(
+                                text = "Error: ${uiState.error}",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        IconButton(onClick = { viewModel.refresh() }) {
                             Icon(Icons.Default.Search, contentDescription = "Search")
                         }
                     }
@@ -253,13 +260,13 @@ fun WorkoutsScreen(
                     .padding(bottom = 32.dp)
             ) {
                 Text(
-                    text = template.name,
+                    text = template.name.ifEmpty { "Untitled" },
                     style = MaterialTheme.typography.headlineSmall
                 )
                 if (!template.description.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = template.description,
+                        text = template.description ?: "",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -290,7 +297,7 @@ fun WorkoutsScreen(
                                 Text((index + 1).toString(), style = MaterialTheme.typography.labelSmall)
                             }
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text(exercise, style = MaterialTheme.typography.bodyLarge)
+                            Text(exercise.ifEmpty { "Exercise" }, style = MaterialTheme.typography.bodyLarge)
                         }
                         if (index < template.exercises.size - 1) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))

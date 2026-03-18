@@ -12,31 +12,76 @@ class WorkoutRepository @Inject constructor(
     suspend fun getTemplates(): List<WorkoutTemplate> {
         return try {
             val response = api.getWorkoutTemplates()
-            val data = response.data ?: return emptyList()
+            val data = response.data 
+            
+            if (data == null) {
+                // Fallback: try getting from programs
+                return getTemplatesFromPrograms()
+            }
 
-            val userTemplates = data.templates.map { dto ->
-                WorkoutTemplate(
-                    id = dto.id,
-                    name = dto.name,
-                    exerciseCount = dto.exerciseCount,
-                    description = dto.description,
-                    type = TemplateType.USER,
-                    exercises = dto.exercises?.map { it.name } ?: emptyList()
+            val allTemplates = mutableListOf<WorkoutTemplate>()
+
+            // Map user templates
+            data.templates.forEach { dto ->
+                val count = dto._count?.exercises ?: dto.exerciseCount
+                allTemplates.add(
+                    WorkoutTemplate(
+                        id = dto.id,
+                        name = dto.name,
+                        exerciseCount = count,
+                        description = dto.description,
+                        type = TemplateType.USER,
+                        exercises = dto.exercises?.map { it.name } ?: emptyList()
+                    )
                 )
             }
 
-            val systemTemplates = data.systemTemplates.map { dto ->
-                WorkoutTemplate(
-                    id = dto.id,
-                    name = dto.name,
-                    exerciseCount = dto.exerciseCount,
-                    description = dto.description,
-                    type = TemplateType.SYSTEM,
-                    exercises = dto.exercises?.map { it.name } ?: emptyList()
+            // Map system templates
+            data.systemTemplates.forEach { dto ->
+                val count = dto._count?.exercises ?: dto.exerciseCount
+                allTemplates.add(
+                    WorkoutTemplate(
+                        id = dto.id,
+                        name = dto.name,
+                        exerciseCount = count,
+                        description = dto.description,
+                        type = TemplateType.SYSTEM,
+                        exercises = dto.exercises?.map { it.name } ?: emptyList()
+                    )
                 )
             }
 
-            userTemplates + systemTemplates
+            allTemplates
+        } catch (e: Exception) {
+            e.printStackTrace()
+            // Fallback on error
+            getTemplatesFromPrograms()
+        }
+    }
+    
+    private suspend fun getTemplatesFromPrograms(): List<WorkoutTemplate> {
+        return try {
+            val assignments = api.getClientPrograms()
+            val allTemplates = mutableListOf<WorkoutTemplate>()
+            
+            assignments.forEach { assignment ->
+                val program = assignment.program
+                val type = if (program.trainerId != null) TemplateType.TRAINER else TemplateType.USER
+                
+                program.templates?.forEach { templateDto ->
+                    allTemplates.add(
+                        WorkoutTemplate(
+                            id = templateDto.id,
+                            name = templateDto.name,
+                            exerciseCount = templateDto.exerciseCount,
+                            description = templateDto.description,
+                            type = type,
+                            exercises = templateDto.exercises?.map { it.name } ?: emptyList()
+                        )
+                    )
+                }
+            }
+            allTemplates
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()

@@ -46,7 +46,12 @@ data class WorkoutTemplateDto(
     val exerciseCount: Int = 0,
     val description: String? = null,
     val lastPerformed: String? = null,
-    val exercises: List<ExerciseDto>? = null
+    val exercises: List<ExerciseDto>? = null,
+    val _count: ExerciseCount? = null
+)
+
+data class ExerciseCount(
+    val exercises: Int = 0
 )
 
 data class ExerciseDto(

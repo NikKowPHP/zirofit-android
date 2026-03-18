@@ -38,7 +38,7 @@ fun TemplateCard(
                    verticalAlignment = Alignment.Top
                 ) {
                    Text(
-                       text = template.name,
+                       text = template.name.ifEmpty { "Untitled" },
                        style = MaterialTheme.typography.titleMedium,
                        maxLines = 2,
                        overflow = TextOverflow.Ellipsis,
@@ -66,18 +66,18 @@ fun TemplateCard(
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis
                     )
+                } else {
+                    Text(
+                        text = "${template.exerciseCount} exercises",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
                 }
             }
 
             if (template.lastPerformed != null) {
                  Row(verticalAlignment = Alignment.CenterVertically) {
-                     Icon(
-                         painter = androidx.compose.ui.res.painterResource(android.R.drawable.ic_menu_recent_history), // Placeholder icon
-                         contentDescription = null,
-                         modifier = Modifier.size(12.dp),
-                         tint = MaterialTheme.colorScheme.onSurfaceVariant
-                     )
-                     Spacer(modifier = Modifier.width(4.dp))
                      Text(
                          text = template.lastPerformed ?: "",
                          style = MaterialTheme.typography.labelSmall,
@@ -115,7 +115,7 @@ fun ProgramCard(
         ) {
             Column {
                 Text(
-                    text = program.name,
+                    text = program.name.ifEmpty { "Untitled Program" },
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     maxLines = 2,
