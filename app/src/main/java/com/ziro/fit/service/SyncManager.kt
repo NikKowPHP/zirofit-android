@@ -149,9 +149,9 @@ class SyncManager @Inject constructor(
         } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)
             // Self-healing: if 404 Not Found or session doesn't exist, drop the action to prevent blocking the queue.
-            if (apiError.statusCode == 404 || apiError.message.contains("session_not_found") || apiError.message.contains("Session not found")) {
-                Log.e("SyncManager", "Action ${action.type} failed with 404. Discarding item.")
-                return true 
+            if (apiError.statusCode == 404 || apiError.message?.contains("session_not_found") == true || apiError.message?.contains("Session not found") == true) {
+                Log.w("SyncManager", "Action ${action.type} (${action.id}) discarded due to 404 / session_not_found. Removing from queue.")
+                return true
             }
             Log.e("SyncManager", "Error performing action: $e")
             false

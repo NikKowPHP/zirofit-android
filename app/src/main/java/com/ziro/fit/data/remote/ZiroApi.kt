@@ -129,6 +129,8 @@ interface ZiroApi {
         @Body request: UpdateSessionRequest
     ): ApiResponse<Any>
     
+    @retrofit2.http.PUT("api/trainer/availability")
+    suspend fun updateWorkingHours(@Body request: com.ziro.fit.model.WorkingHours): ApiResponse<Any>
     @GET("api/exercises")
     suspend fun getExercises(
         @Query("search") search: String? = null,
@@ -147,6 +149,11 @@ interface ZiroApi {
 
     @retrofit2.http.DELETE("api/exercises/{id}")
     suspend fun deleteExercise(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
+
+    @GET("api/exercises/sync")
+    suspend fun syncExercises(
+        @Query("lastPulledAt") lastPulledAt: Long?
+    ): ApiResponse<SyncExercisesResponse>
 
 
     @POST("api/clients")
@@ -254,8 +261,17 @@ interface ZiroApi {
     @GET("api/profile/me/benefits")
     suspend fun getBenefits(): ApiResponse<ProfileBenefitsResponse>
 
+    @GET("api/profile/me/revenue")
+    suspend fun getRevenue(): ApiResponse<RevenueResponse>
+
     @GET("api/notifications")
     suspend fun getNotifications(): ApiResponse<GetNotificationsResponse>
+
+    @GET("api/trainer/booking-window")
+    suspend fun getBookingWindowSettings(): ApiResponse<BookingWindowSettingsResponse>
+
+    @PUT("api/trainer/booking-window")
+    suspend fun updateBookingWindowSettings(@Body request: BookingWindowSettings): ApiResponse<Any>
 
     // Generic Assessments Management - Removed ApiResponse wrapper
     @GET("api/trainer/assessments")
@@ -422,4 +438,30 @@ interface ZiroApi {
         @Query("long") long: Double? = null,
         @Query("cityId") cityId: String? = null
     ): ApiResponse<ExploreFeaturedResponse>
+
+    // Analytics
+    @GET("api/client/analytics")
+    suspend fun getClientAnalytics(
+        @Query("days") days: Int = 30
+    ): ApiResponse<ClientAnalyticsResponse>
+
+    // Daily Targets
+    @GET("api/client/targets")
+    suspend fun getDailyTargets(): ApiResponse<List<DailyTarget>>
+
+    @POST("api/client/targets")
+    suspend fun createDailyTarget(@Body request: CreateDailyTargetRequest): ApiResponse<DailyTarget>
+
+    @retrofit2.http.PUT("api/client/targets/{id}")
+    suspend fun updateDailyTarget(
+        @retrofit2.http.Path("id") id: String,
+        @Body request: UpdateDailyTargetRequest
+    ): ApiResponse<DailyTarget>
+
+    @retrofit2.http.DELETE("api/client/targets/{id}")
+    suspend fun deleteDailyTarget(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
+
+    // Surgical Logout
+    @POST("api/auth/signout")
+    suspend fun signOut(@Body request: SignOutRequest): ApiResponse<Any>
 }

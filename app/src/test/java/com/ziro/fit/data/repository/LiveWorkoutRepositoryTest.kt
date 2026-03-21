@@ -47,6 +47,7 @@ class LiveWorkoutRepositoryTest {
             targetSets = 3,
             targetReps = "10",
             restSeconds = 60,
+            notes = null,
             exercise = ServerExerciseInfo(id = "ex1", name = "Bench Press", equipment = null, videoUrl = null, description = null)
         )
         val template = ServerTemplate(id = "temp1", name = "Push Day", exercises = listOf(templateExercise))
@@ -175,5 +176,225 @@ class LiveWorkoutRepositoryTest {
 
         assertTrue(result.isFailure)
         assertEquals("Network Error", result.exceptionOrNull()?.message)
+    }
+
+    @Test
+    fun `getActiveSession absorbs REST steps into preceding exercise`() = runBlocking {
+        // Template: Exercise A (rest 60), REST (duration 30), Exercise B (rest 45)
+        val exerciseA = ServerTemplateExercise(
+            id = "step1",
+            exerciseId = "ex1",
+            order = 0,
+            targetSets = 3,
+            targetReps = "10",
+            restSeconds = 60,
+            isRest = false,
+            notes = null,
+            exercise = ServerExerciseInfo(id = "ex1", name = "Bench Press", equipment = null, videoUrl = null, description = null)
+        )
+        val restStep = ServerTemplateExercise(
+            id = "rest1",
+            exerciseId = null,
+            order = 1,
+            targetSets = null,
+            targetReps = null,
+            restSeconds = null,
+            isRest = true,
+            durationSeconds = 30,
+            notes = null,
+            exercise = null
+        )
+        val exerciseB = ServerTemplateExercise(
+            id = "step2",
+            exerciseId = "ex2",
+            order = 2,
+            targetSets = 2,
+            targetReps = "12",
+            restSeconds = 45,
+            isRest = false,
+            notes = null,
+            exercise = ServerExerciseInfo(id = "ex2", name = "Squats", equipment = null, videoUrl = null, description = null)
+        )
+        val template = ServerTemplate(id = "temp1", name = "Push Day", exercises = listOf(exerciseA, restStep, exerciseB))
+
+        // Logs for exercises
+        val logA = ServerExerciseLog(
+            id = "log1", createdAt = null, reps = 10, weight = 60.0, order = 0,
+            isCompleted = true, supersetKey = null, orderInSuperset = null,
+            exercise = ServerExerciseInfo(id = "ex1", name = "Bench Press", equipment = null, videoUrl = null, description = null)
+        )
+        val logB = ServerExerciseLog(
+            id = "log2", createdAt = null, reps = 12, weight = 80.0, order = 0,
+            isCompleted = true, supersetKey = null, orderInSuperset = null,
+            exercise = ServerExerciseInfo(id = "ex2", name = "Squats", equipment = null, videoUrl = null, description = null)
+        )
+
+        val sessionResponse = ServerLiveSessionResponse(
+            id = "sess1", startTime = "2023-01-01T10:00:00Z", endTime = null, status = "active",
+            notes = null, createdAt = null, updatedAt = null, workoutTemplateId = "temp1",
+            plannedDate = null, client = null, workoutTemplate = template,
+            exerciseLogs = listOf(logA, logB)
+        )
+
+        coEvery { api.getActiveSession() } returns ApiResponse(data = GetActiveSessionResponse(session = sessionResponse), success = true)
+
+        val result = repository.getActiveSession()
+
+        assertTrue(result.isSuccess)
+        val uiModel = result.getOrNull()
+        assertNotNull(uiModel)
+        // Should have 2 exercises (REST step is skipped)
+        assertEquals(2, uiModel!!.exercises.size)
+        
+        // First exercise should have absorbed REST: 60 + 30 = 90
+        val ex1 = uiModel.exercises[0]
+        assertEquals("Bench Press", ex1.exerciseName)
+        assertEquals(90, ex1.restSeconds)
+        
+        // Second exercise should have its own rest: 45
+        val ex2 = uiModel.exercises[1]
+        assertEquals("Squats", ex2.exerciseName)
+        assertEquals(45, ex2.restSeconds)
+    }
+
+    @Test
+    fun `getActiveSession absorbs multiple consecutive REST steps`() = runBlocking {
+        // Template: Exercise A (rest 60), REST (30), REST (20), Exercise B
+        val exerciseA = ServerTemplateExercise(
+            id = "step1", exerciseId = "ex1", order = 0, targetSets = 3, targetReps = "10",
+            restSeconds = 60, isRest = false, notes = null,
+            exercise = ServerExerciseInfo(id = "ex1", name = "Bench Press", equipment = null, videoUrl = null, description = null)
+        )
+        val rest1 = ServerTemplateExercise(
+            id = "rest1", exerciseId = null, order = 1, targetSets = null, targetReps = null,
+            restSeconds = null, isRest = true, durationSeconds = 30, notes = null, exercise = null
+        )
+        val rest2 = ServerTemplateExercise(
+            id = "rest2", exerciseId = null, order = 2, targetSets = null, targetReps = null,
+            restSeconds = null, isRest = true, durationSeconds = 20, notes = null, exercise = null
+        )
+        val exerciseB = ServerTemplateExercise(
+            id = "step2", exerciseId = "ex2", order = 3, targetSets = 2, targetReps = "12",
+            restSeconds = 45, isRest = false, notes = null,
+            exercise = ServerExerciseInfo(id = "ex2", name = "Squats", equipment = null, videoUrl = null, description = null)
+        )
+        val template = ServerTemplate(id = "temp1", name = "Push Day", exercises = listOf(exerciseA, rest1, rest2, exerciseB))
+
+        val logA = ServerExerciseLog(
+            id = "log1", createdAt = null, reps = 10, weight = 60.0, order = 0,
+            isCompleted = true, supersetKey = null, orderInSuperset = null,
+            exercise = ServerExerciseInfo(id = "ex1", name = "Bench Press", equipment = null, videoUrl = null, description = null)
+        )
+        val logB = ServerExerciseLog(
+            id = "log2", createdAt = null, reps = 12, weight = 80.0, order = 0,
+            isCompleted = true, supersetKey = null, orderInSuperset = null,
+            exercise = ServerExerciseInfo(id = "ex2", name = "Squats", equipment = null, videoUrl = null, description = null)
+        )
+
+        val sessionResponse = ServerLiveSessionResponse(
+            id = "sess1", startTime = "2023-01-01T10:00:00Z", endTime = null, status = "active",
+            notes = null, createdAt = null, updatedAt = null, workoutTemplateId = "temp1",
+            plannedDate = null, client = null, workoutTemplate = template,
+            exerciseLogs = listOf(logA, logB)
+        )
+
+        coEvery { api.getActiveSession() } returns ApiResponse(data = GetActiveSessionResponse(session = sessionResponse), success = true)
+
+        val result = repository.getActiveSession()
+
+        assertTrue(result.isSuccess)
+        val uiModel = result.getOrNull()
+        assertNotNull(uiModel)
+        assertEquals(2, uiModel!!.exercises.size)
+        
+        // First exercise should absorb both REST steps: 60 + 30 + 20 = 110
+        assertEquals(110, uiModel.exercises[0].restSeconds)
+        // Second exercise keeps its own rest
+        assertEquals(45, uiModel.exercises[1].restSeconds)
+    }
+
+    @Test
+    fun `getActiveSession ignores REST as first step`() = runBlocking {
+        // Template: REST (30), Exercise A (rest 60)
+        val restStep = ServerTemplateExercise(
+            id = "rest1", exerciseId = null, order = 0, targetSets = null, targetReps = null,
+            restSeconds = null, isRest = true, durationSeconds = 30, notes = null, exercise = null
+        )
+        val exerciseA = ServerTemplateExercise(
+            id = "step1", exerciseId = "ex1", order = 1, targetSets = 3, targetReps = "10",
+            restSeconds = 60, isRest = false, notes = null,
+            exercise = ServerExerciseInfo(id = "ex1", name = "Bench Press", equipment = null, videoUrl = null, description = null)
+        )
+        val template = ServerTemplate(id = "temp1", name = "Push Day", exercises = listOf(restStep, exerciseA))
+
+        val logA = ServerExerciseLog(
+            id = "log1", createdAt = null, reps = 10, weight = 60.0, order = 0,
+            isCompleted = true, supersetKey = null, orderInSuperset = null,
+            exercise = ServerExerciseInfo(id = "ex1", name = "Bench Press", equipment = null, videoUrl = null, description = null)
+        )
+
+        val sessionResponse = ServerLiveSessionResponse(
+            id = "sess1", startTime = "2023-01-01T10:00:00Z", endTime = null, status = "active",
+            notes = null, createdAt = null, updatedAt = null, workoutTemplateId = "temp1",
+            plannedDate = null, client = null, workoutTemplate = template,
+            exerciseLogs = listOf(logA)
+        )
+
+        coEvery { api.getActiveSession() } returns ApiResponse(data = GetActiveSessionResponse(session = sessionResponse), success = true)
+
+        val result = repository.getActiveSession()
+
+        assertTrue(result.isSuccess)
+        val uiModel = result.getOrNull()
+        assertNotNull(uiModel)
+        // Should have 1 exercise (REST step is skipped)
+        assertEquals(1, uiModel!!.exercises.size)
+        // Exercise should have its own rest (60), not absorbed from preceding REST (which doesn't exist)
+        assertEquals(60, uiModel.exercises[0].restSeconds)
+    }
+
+    @Test
+    fun `getActiveSession exercise without following REST uses own restSeconds`() = runBlocking {
+        // Template: Exercise A (rest 60), Exercise B (rest 45) - no REST steps
+        val exerciseA = ServerTemplateExercise(
+            id = "step1", exerciseId = "ex1", order = 0, targetSets = 3, targetReps = "10",
+            restSeconds = 60, isRest = false, notes = null,
+            exercise = ServerExerciseInfo(id = "ex1", name = "Bench Press", equipment = null, videoUrl = null, description = null)
+        )
+        val exerciseB = ServerTemplateExercise(
+            id = "step2", exerciseId = "ex2", order = 1, targetSets = 2, targetReps = "12",
+            restSeconds = 45, isRest = false, notes = null,
+            exercise = ServerExerciseInfo(id = "ex2", name = "Squats", equipment = null, videoUrl = null, description = null)
+        )
+        val template = ServerTemplate(id = "temp1", name = "Push Day", exercises = listOf(exerciseA, exerciseB))
+
+        val logA = ServerExerciseLog(
+            id = "log1", createdAt = null, reps = 10, weight = 60.0, order = 0,
+            isCompleted = true, supersetKey = null, orderInSuperset = null,
+            exercise = ServerExerciseInfo(id = "ex1", name = "Bench Press", equipment = null, videoUrl = null, description = null)
+        )
+        val logB = ServerExerciseLog(
+            id = "log2", createdAt = null, reps = 12, weight = 80.0, order = 0,
+            isCompleted = true, supersetKey = null, orderInSuperset = null,
+            exercise = ServerExerciseInfo(id = "ex2", name = "Squats", equipment = null, videoUrl = null, description = null)
+        )
+
+        val sessionResponse = ServerLiveSessionResponse(
+            id = "sess1", startTime = "2023-01-01T10:00:00Z", endTime = null, status = "active",
+            notes = null, createdAt = null, updatedAt = null, workoutTemplateId = "temp1",
+            plannedDate = null, client = null, workoutTemplate = template,
+            exerciseLogs = listOf(logA, logB)
+        )
+
+        coEvery { api.getActiveSession() } returns ApiResponse(data = GetActiveSessionResponse(session = sessionResponse), success = true)
+
+        val result = repository.getActiveSession()
+
+        assertTrue(result.isSuccess)
+        val uiModel = result.getOrNull()
+        assertNotNull(uiModel)
+        assertEquals(2, uiModel!!.exercises.size)
+        assertEquals(60, uiModel.exercises[0].restSeconds)
+        assertEquals(45, uiModel.exercises[1].restSeconds)
     }
 }

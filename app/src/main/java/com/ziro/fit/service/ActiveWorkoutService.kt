@@ -10,6 +10,8 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.ziro.fit.MainActivity
 import com.ziro.fit.R
+import com.ziro.fit.model.SetStatus
+import com.ziro.fit.model.WorkoutSetUi
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import javax.inject.Inject
@@ -34,10 +36,15 @@ class ActiveWorkoutService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP_SERVICE) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            ACTION_STOP_SERVICE -> {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            ACTION_LOG_SET -> logSetFromNotification()
+            ACTION_TOGGGLE_TIMER -> toggleTimer()
+            ACTION_END_WORKOUT -> endWorkoutFromNotification()
         }
 
         startForegroundService()
@@ -45,10 +52,11 @@ class ActiveWorkoutService : Service() {
     }
 
     private fun startForegroundService() {
+        val state = workoutStateManager.state.value
         val notification = buildNotification(
-            title = "Active Workout",
-            content = "00:00",
-            isResting = false
+            title = state.activeSession?.title ?: "Active Workout",
+            content = formatSeconds(state.elapsedSeconds),
+            isResting = state.isRestActive
         )
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -58,7 +66,7 @@ class ActiveWorkoutService : Service() {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) 
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH 
                 else 
-                    0 // Fallback to default/manifest for older versions
+                    0
             )
         } else {
             startForeground(NOTIFICATION_ID, notification)
@@ -71,22 +79,19 @@ class ActiveWorkoutService : Service() {
             
             workoutStateManager.state.collect { state ->
                 if (state.activeSession == null) {
-                    stopSelf() // Stop service if no session
+                    stopSelf()
                     return@collect
                 }
 
                 val timeString = formatSeconds(state.elapsedSeconds)
                 var title = state.activeSession.title
                 var content = "Duration: $timeString"
-                var showChronometer = true
 
                 if (state.isRestActive) {
                     title = "Resting..."
                     content = "Time remaining: ${state.restSecondsRemaining}s"
-                    showChronometer = false
                     wasResting = true
                 } else if (wasResting) {
-                    // Rest just finished
                     notifyRestFinished()
                     wasResting = false
                 }
@@ -101,34 +106,78 @@ class ActiveWorkoutService : Service() {
     private fun buildNotification(title: String, content: String, isResting: Boolean): Notification {
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            action = "OPEN_LIVE_WORKOUT"
+            action = ACTION_OPEN_WORKOUT
         }
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent, 
+            this, REQUEST_CODE_CONTENT, intent, 
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
-        // Action to Finish (sends broadcast)
-        // Note: Implementing functionality via BroadcastReceiver
-        /* 
-        val finishIntent = Intent(this, WorkoutActionReceiver::class.java).apply { action = ACTION_FINISH }
-        val finishPendingIntent = PendingIntent.getBroadcast(this, 1, finishIntent, PendingIntent.FLAG_IMMUTABLE) 
-        */
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(content)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // Ensure this resource exists or use a generic one
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
-            .setOnlyAlertOnce(true) // Prevent sound on every update
+            .setOnlyAlertOnce(true)
             .setOngoing(true)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+
+        addNotificationActions(builder, isResting)
 
         if (isResting) {
             builder.setColor(getColor(android.R.color.holo_blue_light))
         }
 
         return builder.build()
+    }
+
+    private fun addNotificationActions(builder: NotificationCompat.Builder, isResting: Boolean) {
+        val logSetIntent = Intent(this, WorkoutActionReceiver::class.java).apply {
+            action = ACTION_LOG_SET
+        }
+        val logSetPendingIntent = PendingIntent.getBroadcast(
+            this, REQUEST_CODE_LOG_SET, logSetIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        builder.addAction(
+            R.drawable.ic_action_log_set,
+            getString(R.string.notification_action_log_set),
+            logSetPendingIntent
+        )
+
+        val toggleIntent = Intent(this, WorkoutActionReceiver::class.java).apply {
+            action = ACTION_TOGGGLE_TIMER
+        }
+        val togglePendingIntent = PendingIntent.getBroadcast(
+            this, REQUEST_CODE_TOGGGLE, toggleIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (isResting) {
+            builder.addAction(
+                R.drawable.ic_action_resume,
+                getString(R.string.notification_action_resume),
+                togglePendingIntent
+            )
+        } else {
+            builder.addAction(
+                R.drawable.ic_action_pause,
+                getString(R.string.notification_action_pause),
+                togglePendingIntent
+            )
+        }
+
+        val endIntent = Intent(this, WorkoutActionReceiver::class.java).apply {
+            action = ACTION_END_WORKOUT
+        }
+        val endPendingIntent = PendingIntent.getBroadcast(
+            this, REQUEST_CODE_END, endIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        builder.addAction(
+            R.drawable.ic_action_end,
+            getString(R.string.notification_action_end_workout),
+            endPendingIntent
+        )
     }
 
     private fun notifyRestFinished() {
@@ -158,24 +207,22 @@ class ActiveWorkoutService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val manager = getSystemService(NotificationManager::class.java)
             
-            // 1. Service Channel (Silent updates)
             val serviceChannel = NotificationChannel(
                 CHANNEL_ID,
-                "Active Workout",
+                getString(R.string.notification_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows active workout timer"
+                description = getString(R.string.notification_channel_description)
                 setShowBadge(false)
             }
             manager.createNotificationChannel(serviceChannel)
 
-            // 2. Alert Channel (Rest Timer)
             val alertChannel = NotificationChannel(
                 REST_CHANNEL_ID,
-                "Workout Alerts",
+                getString(R.string.rest_timer_channel_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Alerts for rest timer completion"
+                description = getString(R.string.rest_timer_channel_description)
                 enableVibration(true)
                 enableLights(true)
             }
@@ -194,20 +241,86 @@ class ActiveWorkoutService : Service() {
         }
     }
 
+    private fun logSetFromNotification() {
+        serviceScope.launch {
+            val session = workoutStateManager.state.value.activeSession ?: return@launch
+            
+            val targetExercise = session.exercises.firstOrNull { ex ->
+                ex.sets.any { !it.isCompleted }
+            } ?: session.exercises.firstOrNull()
+
+            if (targetExercise != null) {
+                val targetSet = targetExercise.sets.firstOrNull { !it.isCompleted }
+                    ?: targetExercise.sets.lastOrNull()
+
+                if (targetSet != null) {
+                    val weight = targetSet.weight.ifEmpty { "0" }
+                    val reps = targetSet.reps.ifEmpty { "0" }
+                    
+                    val newSet = WorkoutSetUi(
+                        logId = java.util.UUID.randomUUID().toString(),
+                        setNumber = targetExercise.sets.size + 1,
+                        weight = weight,
+                        reps = reps,
+                        isCompleted = true,
+                        order = targetExercise.sets.maxOfOrNull { it.order }?.plus(1) ?: 0,
+                        rpe = null,
+                        status = SetStatus.NORMAL
+                    )
+                    
+                    val updatedExercises = session.exercises.map { ex ->
+                        if (ex.exerciseId == targetExercise.exerciseId) {
+                            val updatedSets = ex.sets + newSet
+                            ex.copy(sets = updatedSets)
+                        } else ex
+                    }
+                    workoutStateManager.updateSession(session.copy(exercises = updatedExercises))
+                }
+            }
+        }
+    }
+
+    private fun toggleTimer() {
+        val state = workoutStateManager.state.value
+        if (state.isRestActive) {
+            workoutStateManager.stopRestTimer()
+        } else {
+            workoutStateManager.startRestTimer(60)
+        }
+    }
+
+    private fun endWorkoutFromNotification() {
+        serviceScope.launch {
+            workoutStateManager.updateSession(null)
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         serviceScope.cancel()
     }
 
     companion object {
-        const val ACTION_STOP_SERVICE = "STOP_WORKOUT_SERVICE"
-        const val ACTION_FINISH = "FINISH_WORKOUT"
+        const val ACTION_STOP_SERVICE = "com.ziro.fit.STOP_WORKOUT_SERVICE"
+        const val ACTION_LOG_SET = "com.ziro.fit.ACTION_LOG_SET"
+        const val ACTION_TOGGGLE_TIMER = "com.ziro.fit.ACTION_TOGGGLE_TIMER"
+        const val ACTION_END_WORKOUT = "com.ziro.fit.ACTION_END_WORKOUT"
+        const val ACTION_OPEN_WORKOUT = "com.ziro.fit.OPEN_LIVE_WORKOUT"
+
+        private const val REQUEST_CODE_CONTENT = 0
+        private const val REQUEST_CODE_LOG_SET = 1
+        private const val REQUEST_CODE_TOGGGLE = 2
+        private const val REQUEST_CODE_END = 3
     }
 }
 
-// Receiver for notification actions (Future expansion)
 class WorkoutActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        // Handle pause/finish actions here by communicating with Manager/Repository
+        val serviceIntent = Intent(context, ActiveWorkoutService::class.java).apply {
+            action = intent.action
+        }
+        context.startService(serviceIntent)
     }
 }

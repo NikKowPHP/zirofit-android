@@ -5,12 +5,15 @@ import com.ziro.fit.model.Exercise
 import com.ziro.fit.model.GetExercisesResponse
 import com.ziro.fit.model.LiveWorkoutUiModel
 import com.ziro.fit.model.LogSetRequest
+import com.ziro.fit.model.LogSetResponse
+import com.ziro.fit.model.NewRecord
 import com.ziro.fit.model.ServerLiveSessionResponse
-import com.ziro.fit.model.StartWorkoutRequest
+import com.ziro.fit.model.SetStatus
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
 import com.ziro.fit.model.FinishWorkoutRequest
 import com.ziro.fit.model.FinishWorkoutResponse
+import com.ziro.fit.model.StartWorkoutRequest
 import com.ziro.fit.util.ApiErrorParser
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,10 +49,28 @@ class LiveWorkoutRepository @Inject constructor(
         }
     }
 
-    suspend fun logSet(sessionId: String, exerciseId: String, reps: Int, weight: Double, order: Int, isCompleted: Boolean? = null, logId: String? = null, rpe: Double? = null): Result<Unit> {
+    // logSet returns NewRecord list when the server detects PRs (mirrors iOS: newRecords in saveSet response)
+    suspend fun logSet(
+        sessionId: String,
+        exerciseId: String,
+        reps: Int,
+        weight: Double,
+        order: Int,
+        isCompleted: Boolean? = null,
+        logId: String? = null,
+        rpe: Double? = null,
+        status: SetStatus = SetStatus.NORMAL
+    ): Result<List<NewRecord>> {
         return try {
-            api.logSet(LogSetRequest(sessionId, exerciseId, reps, weight, order, isCompleted, logId, rpe))
-            Result.success(Unit)
+            val statusStr = when (status) {
+                SetStatus.NORMAL -> null
+                SetStatus.WARM_UP -> "warm_up"
+                SetStatus.DROP_SET -> "drop_set"
+                SetStatus.FAILURE -> "failure"
+            }
+            val request = LogSetRequest(sessionId, exerciseId, reps, weight, order, isCompleted, logId, rpe, statusStr)
+            api.logSet(request)
+            Result.success(emptyList()) // TODO: extend when server returns newRecords in response
         } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
@@ -131,13 +152,52 @@ class LiveWorkoutRepository @Inject constructor(
         // 1. Group actual logs by Exercise ID
         val logsByExercise = data.exerciseLogs.groupBy { it.exercise.id }
 
-        // 2. Build list from Template (The "Planned" Exercises)
+        // 2. Collect all superset groups from logs (supersetKey → list of exerciseIds)
+        val supersetGroups = mutableMapOf<String, MutableList<String>>()
+        data.exerciseLogs.forEach { log ->
+            log.supersetKey?.let { key ->
+                supersetGroups.getOrPut(key) { mutableListOf() }.add(log.exercise.id)
+            }
+        }
+
+        // Generate stable superset IDs for exercises without one but sharing a group
+        val exerciseToSuperSetId = mutableMapOf<String, String>()
+        supersetGroups.forEach { (supersetKey, exerciseIds) ->
+            if (exerciseIds.size >= 2) {
+                exerciseIds.forEach { exerciseId ->
+                    exerciseToSuperSetId[exerciseId] = supersetKey
+                }
+            }
+        }
+
+        // 3. Build list from Template (The "Planned" Exercises)
         val uiExercises = mutableListOf<WorkoutExerciseUi>()
         
         // Track which exercises we've handled to identify ad-hoc ones later
         val processedExerciseIds = mutableSetOf<String>()
 
-        data.workoutTemplate?.exercises?.sortedBy { it.order }?.forEach { templateStep ->
+        val sortedTemplateExercises = data.workoutTemplate?.exercises?.sortedBy { it.order } ?: emptyList()
+        for (i in sortedTemplateExercises.indices) {
+            val templateStep = sortedTemplateExercises[i]
+            
+            // Skip REST steps - they are absorbed into the preceding exercise's rest
+            if (templateStep.isRest == true) {
+                continue
+            }
+            
+            // Calculate rest duration by looking ahead at consecutive REST steps
+            var restDuration = templateStep.restSeconds
+            var j = i + 1
+            while (j < sortedTemplateExercises.size) {
+                val nextStep = sortedTemplateExercises[j]
+                if (nextStep.isRest == true) {
+                    restDuration = (restDuration ?: 0) + (nextStep.durationSeconds ?: 0)
+                    j++
+                } else {
+                    break
+                }
+            }
+            
             // SAFTEY FIX: Fallback if exercise info or ID is missing from API
             val exerciseId = templateStep.exerciseId ?: templateStep.id 
             
@@ -177,7 +237,8 @@ class LiveWorkoutRepository @Inject constructor(
                         weight = existingLog.weight?.toString() ?: "",
                         reps = existingLog.reps.toString(),
                         isCompleted = true, // It exists, so it's logged
-                        order = index
+                        order = index,
+                        status = SetStatus.NORMAL // ServerExerciseLog has no status field yet; extend when API supports it
                     )
                 } else {
                     // Ghost Set (Placeholder based on template)
@@ -187,7 +248,8 @@ class LiveWorkoutRepository @Inject constructor(
                         weight = "", // Start empty
                         reps = "", // Start empty
                         isCompleted = false,
-                        order = index
+                        order = index,
+                        status = SetStatus.NORMAL
                     )
                 }
             }
@@ -197,13 +259,14 @@ class LiveWorkoutRepository @Inject constructor(
                     exerciseId = exerciseId,
                     exerciseName = exerciseName,
                     targetReps = templateStep.targetReps,
-                    restSeconds = templateStep.restSeconds,
-                    sets = setsUi
+                    restSeconds = restDuration,
+                    sets = setsUi,
+                    superSetId = exerciseToSuperSetId[exerciseId]
                 )
             )
         }
 
-        // 3. Handle Ad-Hoc Exercises (Logged but not in Template)
+        // 3b. Handle Ad-Hoc Exercises (Logged but not in Template)
         logsByExercise.forEach { (exerciseId, logs) ->
             if (!processedExerciseIds.contains(exerciseId)) {
                 val firstLog = logs.first()
@@ -215,7 +278,8 @@ class LiveWorkoutRepository @Inject constructor(
                         weight = (log.weight ?: 0.0).toString(),
                         reps = log.reps.toString(),
                         isCompleted = true,
-                        order = log.order
+                        order = log.order,
+                        status = SetStatus.NORMAL
                     )
                 }
 
@@ -224,8 +288,9 @@ class LiveWorkoutRepository @Inject constructor(
                         exerciseId = exerciseId,
                         exerciseName = firstLog.exercise.name,
                         targetReps = null, // No target for ad-hoc
-                        restSeconds = null, // No rest target for ad-hoc by default, effectively freestyle
-                        sets = setsUi
+                        restSeconds = null,
+                        sets = setsUi,
+                        superSetId = exerciseToSuperSetId[exerciseId]
                     )
                 )
             }
@@ -235,7 +300,11 @@ class LiveWorkoutRepository @Inject constructor(
             id = data.id,
             title = data.workoutTemplate?.name ?: "Freestyle Workout",
             startTime = data.startTime,
-            exercises = uiExercises
+            exercises = uiExercises,
+            clientId = data.client?.id,
+            clientName = data.client?.name,
+            totalPackageSessions = null,
+            remainingPackageSessions = null
         )
     }
 }

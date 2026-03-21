@@ -236,59 +236,82 @@ private suspend fun createMarkerBitmap(
     count: Int?
 ): Bitmap? {
     return try {
-        val imageLoader = ImageLoader(context)
-        val request = ImageRequest.Builder(context)
-            .data(trainer.profile?.profilePhotoPath)
-            .size(120, 120)
-            .allowHardware(false)
-            .build()
-
-        val result = imageLoader.execute(request)
-        if (result is SuccessResult) {
-            val drawable = result.drawable
-            val baseBitmap = drawable.toBitmap(120, 120)
-
+        if (count != null && count > 1) {
             val combined = Bitmap.createBitmap(140, 150, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(combined)
 
-            canvas.drawBitmap(baseBitmap, 10f, 0f, null)
-
-            val ratingBg = android.graphics.Paint().apply {
-                color = android.graphics.Color.parseColor("#1B2228")
+            val bgPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.parseColor("#9C27B0")
+                isAntiAlias = true
             }
-            canvas.drawRect(10f, 95f, 130f, 120f, ratingBg)
+            val rect = android.graphics.RectF(0f, 0f, 140f, 150f)
+            val radius = 20f
+            canvas.drawRoundRect(rect, radius, radius, bgPaint)
 
-            val starPaint = android.graphics.Paint().apply {
-                color = android.graphics.Color.parseColor("#FFD700")
-                textSize = 20f
-            }
-            canvas.drawText("★", 15f, 112f, starPaint)
-
-            val textPaint = android.graphics.Paint().apply {
+            val circlePaint = android.graphics.Paint().apply {
                 color = android.graphics.Color.WHITE
-                textSize = 22f
+                isAntiAlias = true
+            }
+            canvas.drawCircle(70f, 75f, 30f, circlePaint)
+            canvas.drawCircle(70f, 55f, 30f, circlePaint)
+            canvas.drawCircle(70f, 35f, 30f, circlePaint)
+
+            val badgePaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.parseColor("#3B82F6")
+                isAntiAlias = true
+            }
+            canvas.drawCircle(120f, 15f, 15f, badgePaint)
+
+            val badgeTextPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.WHITE
+                textSize = 20f
                 isFakeBoldText = true
+                textAlign = android.graphics.Paint.Align.CENTER
+                isAntiAlias = true
             }
-            canvas.drawText(String.format("%.1f", trainer.profile?.averageRating ?: 5.0), 32f, 112f, textPaint)
-
-            if (count != null && count > 1) {
-                val badgePaint = android.graphics.Paint().apply {
-                    color = android.graphics.Color.parseColor("#3B82F6")
-                }
-                canvas.drawCircle(130f, 15f, 15f, badgePaint)
-
-                val badgeTextPaint = android.graphics.Paint().apply {
-                    color = android.graphics.Color.WHITE
-                    textSize = 20f
-                    isFakeBoldText = true
-                    textAlign = android.graphics.Paint.Align.CENTER
-                }
-                canvas.drawText("$count", 130f, 20f, badgeTextPaint)
-            }
+            canvas.drawText("$count", 120f, 20f, badgeTextPaint)
 
             combined
         } else {
-            null
+            val imageLoader = ImageLoader(context)
+            val request = ImageRequest.Builder(context)
+                .data(trainer.profile?.profilePhotoPath)
+                .size(120, 120)
+                .allowHardware(false)
+                .build()
+
+            val result = imageLoader.execute(request)
+            if (result is SuccessResult) {
+                val drawable = result.drawable
+                val baseBitmap = drawable.toBitmap(120, 120)
+
+                val combined = Bitmap.createBitmap(140, 150, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(combined)
+
+                canvas.drawBitmap(baseBitmap, 10f, 0f, null)
+
+                val ratingBg = android.graphics.Paint().apply {
+                    color = android.graphics.Color.parseColor("#1B2228")
+                }
+                canvas.drawRect(10f, 95f, 130f, 120f, ratingBg)
+
+                val starPaint = android.graphics.Paint().apply {
+                    color = android.graphics.Color.parseColor("#FFD700")
+                    textSize = 20f
+                }
+                canvas.drawText("★", 15f, 112f, starPaint)
+
+                val textPaint = android.graphics.Paint().apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 22f
+                    isFakeBoldText = true
+                }
+                canvas.drawText(String.format("%.1f", trainer.profile?.averageRating ?: 5.0), 32f, 112f, textPaint)
+
+                combined
+            } else {
+                null
+            }
         }
     } catch (e: Exception) {
         e.printStackTrace()

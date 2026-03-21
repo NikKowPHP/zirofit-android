@@ -42,7 +42,8 @@ fun ExerciseBrowserContent(
     exercises: List<Exercise>,
     isLoading: Boolean,
     onSearch: (String) -> Unit,
-    onAddExercises: (List<Exercise>) -> Unit
+    onAddExercises: (List<Exercise>) -> Unit,
+    singleSelect: Boolean = false
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val selectedExercises = remember { mutableStateListOf<Exercise>() }
@@ -197,10 +198,14 @@ fun ExerciseBrowserContent(
                                 exercise = exercise,
                                 isSelected = isSelected,
                                 onClick = {
-                                    if (isSelected) {
-                                        selectedExercises.removeAll { it.id == exercise.id }
+                                    if (singleSelect) {
+                                        onAddExercises(listOf(exercise))
                                     } else {
-                                        selectedExercises.add(exercise)
+                                        if (isSelected) {
+                                            selectedExercises.removeAll { it.id == exercise.id }
+                                        } else {
+                                            selectedExercises.add(exercise)
+                                        }
                                     }
                                 }
                             )
@@ -210,9 +215,9 @@ fun ExerciseBrowserContent(
             }
         }
         
-        // Floating Add Button
+        // Floating Add Button (hidden in singleSelect mode)
         AnimatedVisibility(
-            visible = selectedExercises.isNotEmpty(),
+            visible = selectedExercises.isNotEmpty() && !singleSelect,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter)

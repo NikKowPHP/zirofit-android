@@ -43,13 +43,39 @@
                     android:scheme="zirofit"
                     android:host="chat" />
             </intent-filter>
-            <!-- NEW: Payment Return Deep Links -->
+            <!-- Handle deep links for payment returns (Stripe Connect) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Handles: zirofit://payment/success and zirofit://payment/cancel -->
                 <data android:scheme="zirofit" android:host="payment" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="zirofit" android:host="stripe-return" />
+            </intent-filter>
+            <!-- Handle deep links for auth callback -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="zirofit" android:host="auth-callback" />
+            </intent-filter>
+            <!-- Handle zirofitapp:// auth callback scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="zirofitapp" android:host="auth-callback" />
+            </intent-filter>
+            <!-- Handle zirofitapp://login (email verification redirect) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="zirofitapp" android:host="login" />
             </intent-filter>
         </activity>
 

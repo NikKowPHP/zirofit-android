@@ -2,11 +2,24 @@ package com.ziro.fit.ui.workout
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +27,8 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -29,12 +44,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import kotlin.math.abs
+import kotlinx.coroutines.launch
 import androidx.core.content.ContextCompat
+import com.ziro.fit.service.MatchConfidence
+import com.ziro.fit.model.SetStatus
 import com.ziro.fit.model.WorkoutExerciseUi
 import com.ziro.fit.model.WorkoutSetUi
 import com.ziro.fit.ui.components.ExerciseBrowserContent
@@ -46,6 +67,63 @@ enum class SessionFocusField { WEIGHT, REPS, RPE }
 data class FocusTarget(val exerciseId: String, val setIndex: Int, val field: SessionFocusField)
 enum class WorkoutInputOverlay { KEYBOARD, PLATE_CALCULATOR, RPE_PICKER, NONE }
 
+// Superset grouping — mirrors iOS WorkoutExercise grouping by superSetId
+sealed class GroupedExerciseItem {
+    data class Header(val superSetId: String) : GroupedExerciseItem()
+    data class Exercise(val exercise: WorkoutExerciseUi) : GroupedExerciseItem()
+}
+
+private fun buildGroupedExerciseItems(exercises: List<WorkoutExerciseUi>): List<GroupedExerciseItem> {
+    val result = mutableListOf<GroupedExerciseItem>()
+    val supersetGroups = mutableMapOf<String, MutableList<WorkoutExerciseUi>>()
+    val standaloneExercises = mutableListOf<WorkoutExerciseUi>()
+    
+    exercises.forEach { exercise ->
+        val groupId = exercise.superSetId
+        if (groupId != null) {
+            supersetGroups.getOrPut(groupId) { mutableListOf() }.add(exercise)
+        } else {
+            standaloneExercises.add(exercise)
+        }
+    }
+    
+    supersetGroups.forEach { (_, groupExercises) ->
+        result.add(GroupedExerciseItem.Header(groupExercises.first().superSetId ?: ""))
+        groupExercises.forEach { result.add(GroupedExerciseItem.Exercise(it)) }
+    }
+    
+    standaloneExercises.forEach { result.add(GroupedExerciseItem.Exercise(it)) }
+    
+    return result
+}
+
+@Composable
+private fun SupersetHeader(superSetId: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .padding(top = 8.dp),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Link,
+            contentDescription = null,
+            tint = StrongBlue,
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = "SUPERSET",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            color = StrongBlue,
+            letterSpacing = 1.sp
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LiveWorkoutScreen(
@@ -53,9 +131,10 @@ fun LiveWorkoutScreen(
     onNavigateBack: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
-    var showExerciseSheet by remember { mutableStateOf(false) }
-    var showCancelDialog by remember { mutableStateOf(false) }
-    var showFinishDialog by remember { mutableStateOf(false) }
+     var showExerciseSheet by remember { mutableStateOf(false) }
+     var showCancelDialog by remember { mutableStateOf(false) }
+     var showFinishDialog by remember { mutableStateOf(false) }
+     var showUnloggedSetsDialog by remember { mutableStateOf(false) }
     
     val exerciseSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     
@@ -65,6 +144,10 @@ fun LiveWorkoutScreen(
     var focusedTarget by remember { mutableStateOf<FocusTarget?>(null) }
     var inputOverlay by remember { mutableStateOf(WorkoutInputOverlay.NONE) }
     var activeInputText by remember { mutableStateOf("") }
+
+    // LazyListState for programmatic scrolling
+    val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
@@ -139,9 +222,10 @@ fun LiveWorkoutScreen(
                 if (currentSet != null) {
                     val updatedSet = currentSet.copy(
                         weight = if (target.field == SessionFocusField.WEIGHT) activeInputText else currentSet.weight,
-                        reps = if (target.field == SessionFocusField.REPS) activeInputText else currentSet.reps
+                        reps = if (target.field == SessionFocusField.REPS) activeInputText else currentSet.reps,
+                        status = currentSet.status
                     )
-                    viewModel.logSet(target.exerciseId, updatedSet)
+                    viewModel.logSet(target.exerciseId, updatedSet, currentSet.status)
                 }
 
                 if (exercise != null && target.setIndex + 1 < exercise.sets.size) {
@@ -180,52 +264,95 @@ fun LiveWorkoutScreen(
                     isTimerRunning = true, // Default to true as explicit pause state is managed implicitly
                     isRestActive = state.isRestActive,
                     restSecondsRemaining = state.restSecondsRemaining,
+                    restTotalSeconds = state.restTotalSeconds,
                     onMinimize = {
                         syncInput()
                         onNavigateBack()
                     }
                 )
 
-                if (state.isLoading) {
+                 if (state.isLoading) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = StrongBlue)
                     }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = 140.dp, top = 10.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        val exercises = state.activeSession?.exercises ?: emptyList()
-                        if (exercises.isEmpty()) {
-                            item {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().padding(top = 60.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(60.dp), tint = Color.Gray.copy(alpha = 0.3f))
-                                    Spacer(Modifier.height(20.dp))
-                                    Text("Start by adding an exercise", fontSize = 18.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
-                                    Spacer(Modifier.height(20.dp))
-                                    Button(onClick = { showExerciseSheet = true }, colors = ButtonDefaults.buttonColors(containerColor = StrongBlue), shape = RoundedCornerShape(12.dp)) {
-                                        Text("Add Exercise")
-                                    }
+                 } else {
+                     val exercises = state.activeSession?.exercises ?: emptyList()
+                     val groupedItems = if (exercises.isEmpty()) emptyList() else buildGroupedExerciseItems(exercises)
+                     val exerciseToGroupedIndexMap = remember(exercises, groupedItems) {
+                         if (exercises.isEmpty()) emptyMap() else run {
+                             val map = mutableMapOf<String, Int>()
+                             var groupedIndex = 0
+                             exercises.forEach { exercise ->
+                                 while (groupedIndex < groupedItems.size) {
+                                     when (val item = groupedItems[groupedIndex]) {
+                                         is GroupedExerciseItem.Exercise -> {
+                                             if (item.exercise.exerciseId == exercise.exerciseId) {
+                                                 map[exercise.exerciseId] = groupedIndex
+                                                 groupedIndex++
+                                                 break
+                                             }
+                                             groupedIndex++
+                                         }
+                                         is GroupedExerciseItem.Header -> {
+                                             groupedIndex++
+                                         }
+                                     }
+                                 }
+                             }
+                             map
+                         }
+                     }
+
+                     // Scroll to focused exercise when focusedTarget changes
+                     LaunchedEffect(focusedTarget) {
+                         focusedTarget?.let { target ->
+                             val index = exerciseToGroupedIndexMap[target.exerciseId]
+                             if (index != null) {
+                                 listState.animateScrollToItem(index, scrollOffset = -200)
+                             }
+                         }
+                     }
+
+                     LazyColumn(
+                         modifier = Modifier.fillMaxSize(),
+                         contentPadding = PaddingValues(bottom = 140.dp, top = 10.dp),
+                         verticalArrangement = Arrangement.spacedBy(20.dp),
+                         state = listState
+                     ) {
+                    if (exercises.isEmpty()) {
+                        item {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(top = 60.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(60.dp), tint = Color.Gray.copy(alpha = 0.3f))
+                                Spacer(Modifier.height(20.dp))
+                                Text("Start by adding an exercise", fontSize = 18.sp, fontWeight = FontWeight.Medium, color = Color.Gray)
+                                Spacer(Modifier.height(20.dp))
+                                Button(onClick = { showExerciseSheet = true }, colors = ButtonDefaults.buttonColors(containerColor = StrongBlue), shape = RoundedCornerShape(12.dp)) {
+                                    Text("Add Exercise")
                                 }
                             }
-                        } else {
-                            itemsIndexed(exercises) { _, exercise ->
-                                ExerciseCard(
-                                    exercise = exercise,
-                                    focusedTarget = focusedTarget,
-                                    activeInputText = activeInputText,
-                                    onTriggerInput = { triggerInput(it) },
-                                    onSetToggle = { set -> 
-                                        syncInput()
-                                        viewModel.logSet(exercise.exerciseId, set) 
-                                    },
-                                    onAddSet = { viewModel.addSetToExercise(exercise.exerciseId) },
-                                    onRemove = { /* ViewModel remove exercise not exposed yet, mock for now */ }
-                                )
+                        }
+                    } else {
+
+                        itemsIndexed(groupedItems) { _, item ->
+                                when (item) {
+                                    is GroupedExerciseItem.Header -> SupersetHeader(superSetId = item.superSetId)
+                                    is GroupedExerciseItem.Exercise -> ExerciseCard(
+                                        exercise = item.exercise,
+                                        focusedTarget = focusedTarget,
+                                        activeInputText = activeInputText,
+                                        onTriggerInput = { triggerInput(it) },
+                                        onSetToggle = { set -> 
+                                            syncInput()
+                                            viewModel.logSet(item.exercise.exerciseId, set) 
+                                        },
+                                        onAddSet = { viewModel.addSetToExercise(item.exercise.exerciseId) },
+                                        onRemove = { /* ViewModel remove exercise not exposed yet, mock for now */ },
+                                        onToggleSuperset = { viewModel.toggleSuperset(item.exercise.exerciseId) }
+                                    )
+                                }
                             }
                             
                             item {
@@ -261,10 +388,11 @@ fun LiveWorkoutScreen(
                 LiveWorkoutControls(
                     isTimerRunning = true,
                     onTogglePause = { /* Implement pause logic if added to ViewModel */ },
-                    onFinish = { 
-                        if (isBlank) showCancelDialog = true 
-                        else showFinishDialog = true 
-                    },
+                     onFinish = { 
+                         if (isBlank) showCancelDialog = true 
+                         else if (viewModel.hasUnloggedSets()) showUnloggedSetsDialog = true 
+                         else showFinishDialog = true 
+                     },
                     isBlank = isBlank,
                     onMicTap = {
                         val intent = android.content.Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -286,14 +414,66 @@ fun LiveWorkoutScreen(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 120.dp),
                         colors = CardDefaults.cardColors(containerColor = StrongSecondaryBackground)
                     ) {
-                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                Text("Voice Command Detected", color = Color.Gray, fontSize = 14.sp)
+                         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Column {
+                                    Text("Voice Command Detected", color = Color.Gray, fontSize = 14.sp)
+                                    // Show confidence indicator
+                                    val confidenceColor = when (command.matchConfidence) {
+                                        MatchConfidence.EXACT -> StrongGreen
+                                        MatchConfidence.STARTS_WITH -> Color(0xFFFF9800)
+                                        MatchConfidence.FUZZY -> Color(0xFFFF5722)
+                                        MatchConfidence.NONE -> Color.Gray
+                                    }
+                                    val confidenceLabel = when (command.matchConfidence) {
+                                        MatchConfidence.EXACT -> "✓ Exact match"
+                                        MatchConfidence.STARTS_WITH -> "≈ Starts with"
+                                        MatchConfidence.FUZZY -> "? Fuzzy match"
+                                        MatchConfidence.NONE -> ""
+                                    }
+                                    if (confidenceLabel.isNotEmpty()) {
+                                        Text(
+                                            text = confidenceLabel,
+                                            fontSize = 11.sp,
+                                            color = confidenceColor,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(command.exercise ?: "Active Exercise", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = StrongTextPrimary)
+                                    if (command.exercise != null) {
+                                        Button(
+                                            onClick = { viewModel.showVoiceCorrectionPicker() },
+                                            modifier = Modifier
+                                                .padding(horizontal = 8.dp)
+                                                .height(32.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = Color.Blue.copy(alpha = 0.1f),
+                                                contentColor = StrongBlue
+                                            ),
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text("Change", fontSize = 12.sp)
+                                        }
+                                    }
+                                }
+
                                 IconButton(onClick = { viewModel.dismissVoiceCommand() }, modifier = Modifier.size(24.dp)) {
                                     Icon(Icons.Default.Close, contentDescription = null, tint = Color.Gray)
                                 }
                             }
-                            Text(command.exercise ?: "Active Exercise", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = StrongTextPrimary)
                             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                                 if (command.sets != null) {
                                     Column { Text("Sets", color=Color.Gray, fontSize=12.sp); Text("${command.sets}", fontSize=16.sp, color=StrongTextPrimary) }
@@ -383,6 +563,65 @@ fun LiveWorkoutScreen(
                 }
             }
 
+            // PR Toast Overlay — mirrors iOS showNewRecordsToast (shown on session end)
+            AnimatedVisibility(
+                visible = state.showNewRecordsToast,
+                enter = slideInVertically(initialOffsetY = { -it }),
+                exit = slideOutVertically(targetOffsetY = { -it }),
+                modifier = Modifier.zIndex(500f)
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .padding(top = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1B5E20)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("🏆", fontSize = 32.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = "New Personal Record!",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        if (state.newRecords.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            state.newRecords.take(3).forEach { record ->
+                                Text(
+                                    text = record.exerciseName.ifEmpty { "Exercise" },
+                                    fontSize = 14.sp,
+                                    color = Color.White.copy(alpha = 0.8f)
+                                )
+                            }
+                            if (state.newRecords.size > 3) {
+                                Text("+${state.newRecords.size - 3} more", fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
+                            }
+                        } else if ((state.workoutSuccessStats?.recordsBroken ?: 0) > 0) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "${state.workoutSuccessStats?.recordsBroken} PR${if ((state.workoutSuccessStats?.recordsBroken ?: 0) > 1) "s" else ""} broken!",
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { viewModel.dismissNewRecordsToast() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Awesome!", color = Color.White)
+                        }
+                    }
+                }
+            }
+
             if (showCancelDialog) {
                 AlertDialog(
                     onDismissRequest = { showCancelDialog = false },
@@ -407,32 +646,66 @@ fun LiveWorkoutScreen(
                 )
             }
 
-            if (showFinishDialog) {
-                AlertDialog(
-                    onDismissRequest = { showFinishDialog = false },
-                    title = { Text("Finish Workout?") },
-                    text = { Text("Are you ready to log this session? Unfinished valid sets will be completed automatically.") },
-                    confirmButton = {
-                        Button(
-                            onClick = { 
-                                showFinishDialog = false
-                                viewModel.finishWorkout() 
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = StrongGreen)
-                        ) {
-                            Text("Finish Workout")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showFinishDialog = false }) {
-                            Text("Cancel", color = StrongTextPrimary)
-                        }
-                    },
-                    containerColor = StrongSurface,
-                    titleContentColor = StrongTextPrimary,
-                    textContentColor = StrongTextSecondary
-                )
-            }
+             if (showFinishDialog) {
+                 AlertDialog(
+                     onDismissRequest = { showFinishDialog = false },
+                     title = { Text("Finish Workout?") },
+                     text = { Text("Are you ready to log this session? Unfinished valid sets will be completed automatically.") },
+                     confirmButton = {
+                         Button(
+                             onClick = { 
+                                 showFinishDialog = false
+                                 viewModel.finishWorkout() 
+                             },
+                             colors = ButtonDefaults.buttonColors(containerColor = StrongGreen)
+                         ) {
+                             Text("Finish Workout")
+                         }
+                     },
+                     dismissButton = {
+                         TextButton(onClick = { showFinishDialog = false }) {
+                             Text("Cancel", color = StrongTextPrimary)
+                         }
+                     },
+                     containerColor = StrongSurface,
+                     titleContentColor = StrongTextPrimary,
+                     textContentColor = StrongTextSecondary
+                 )
+             }
+
+             if (showUnloggedSetsDialog) {
+                 AlertDialog(
+                     onDismissRequest = { showUnloggedSetsDialog = false },
+                     title = { Text("Complete Unfinished Sets?") },
+                     text = { Text("You have sets that haven't been logged. How would you like to proceed?") },
+                     confirmButton = {
+                         Button(
+                             onClick = { 
+                                 showUnloggedSetsDialog = false
+                                 viewModel.completeUnloggedSets()
+                                 showFinishDialog = true
+                             },
+                             colors = ButtonDefaults.buttonColors(containerColor = StrongBlue)
+                         ) {
+                             Text("Complete")
+                         }
+                     },
+                     dismissButton = {
+                         TextButton(
+                             onClick = { 
+                                 showUnloggedSetsDialog = false
+                                 viewModel.discardUnloggedSets()
+                                 showFinishDialog = true
+                             }
+                         ) {
+                             Text("Discard", color = StrongRed)
+                         }
+                     },
+                     containerColor = StrongSurface,
+                     titleContentColor = StrongTextPrimary,
+                     textContentColor = StrongTextSecondary
+                 )
+             }
 
             state.error?.let { errorMessage ->
                 AlertDialog(
@@ -495,6 +768,7 @@ fun LiveWorkoutHeader(
     isTimerRunning: Boolean,
     isRestActive: Boolean,
     restSecondsRemaining: Int,
+    restTotalSeconds: Int,
     onMinimize: () -> Unit
 ) {
     val timeString = if (elapsedSeconds >= 3600) {
@@ -503,11 +777,81 @@ fun LiveWorkoutHeader(
          String.format("%d:%02d", elapsedSeconds / 60, elapsedSeconds % 60)
     }
 
-    Column(modifier = Modifier.fillMaxWidth().background(StrongBackground).pointerInput(Unit) {
-        detectVerticalDragGestures { _, dragAmount ->
-            if (dragAmount > 50) onMinimize()
+    val context = LocalContext.current
+    val vibrator = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val manager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            manager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
-    }) {
+    }
+
+    val offset: Animatable<Float, AnimationVector1D> = remember { Animatable(0f) }
+    var lastTime by remember { mutableStateOf(0L) }
+    var maxVelocity by remember { mutableStateOf(0f) }
+    val density = LocalDensity.current
+    val coroutineScope = rememberCoroutineScope()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(StrongBackground)
+            .offset { IntOffset(x = 0, y = offset.value.toInt()) }
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragStart = {
+                        lastTime = System.currentTimeMillis()
+                        maxVelocity = 0f
+                    },
+                    onDragEnd = {
+                        val thresholdPx = with(density) { 120.dp.toPx() }
+                        val velocityThresholdPx = with(density) { 500.dp.toPx() }
+                        val shouldMinimize = offset.value > thresholdPx || maxVelocity > velocityThresholdPx
+
+                        if (shouldMinimize) {
+                            // Haptic feedback
+                            if (vibrator.hasVibrator()) {
+                                vibrator.vibrate(VibrationEffect.createOneShot(20, 120))
+                            }
+                            // Animate off-screen quickly
+                            coroutineScope.launch {
+                                offset.animateTo(
+                                    targetValue = with(density) { 2000.dp.toPx() },
+                                    animationSpec = tween(durationMillis = 150, easing = LinearEasing)
+                                )
+                                onMinimize()
+                            }
+                        } else {
+                            // Snap back with spring
+                            coroutineScope.launch {
+                                offset.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = spring(dampingRatio = 0.8f, stiffness = 200f)
+                                )
+                            }
+                        }
+                    }
+                ) { change, dragAmount ->
+                    val currentTime = System.currentTimeMillis()
+                    val timeDelta = currentTime - lastTime
+                    if (timeDelta > 0) {
+                        val velocity = dragAmount * 1000f / timeDelta
+                        if (abs(velocity) > maxVelocity) {
+                            maxVelocity = abs(velocity)
+                        }
+                    }
+                    lastTime = currentTime
+
+                    if (dragAmount > 0) {
+                        coroutineScope.launch {
+                            offset.snapTo(offset.value + dragAmount)
+                        }
+                    }
+                }
+            }
+    ) {
         Box(
             modifier = Modifier
                 .padding(top = 12.dp)
@@ -548,6 +892,45 @@ fun LiveWorkoutHeader(
                 }
             }
         }
+
+        if (isRestActive && restTotalSeconds > 0) {
+            RestProgressBar(
+                progress = restSecondsRemaining.toFloat() / restTotalSeconds.toFloat(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(bottom = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun RestProgressBar(
+    progress: Float,
+    modifier: Modifier = Modifier,
+    color: Color = Color(0xFFFFA500),
+    backgroundColor: Color = Color.Gray.copy(alpha = 0.2f)
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = 1000, easing = LinearEasing),
+        label = "restProgress"
+    )
+    
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .background(backgroundColor)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(fraction = animatedProgress)
+                .background(color)
+        )
     }
 }
 
@@ -611,8 +994,10 @@ fun ExerciseCard(
     onTriggerInput: (FocusTarget) -> Unit,
     onSetToggle: (WorkoutSetUi) -> Unit,
     onAddSet: () -> Unit,
-    onRemove: () -> Unit
+    onRemove: () -> Unit,
+    onToggleSuperset: () -> Unit = {}
 ) {
+    val isInSuperset = exercise.superSetId != null
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -629,9 +1014,29 @@ fun ExerciseCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(exercise.exerciseName, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = StrongTextPrimary)
+                if (isInSuperset) {
+                    Text("Superset", fontSize = 11.sp, color = StrongBlue.copy(alpha = 0.8f), fontWeight = FontWeight.Medium)
+                }
             }
             
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Superset toggle button — mirrors iOS link/unlink gesture
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(if (isInSuperset) StrongBlue.copy(alpha = 0.15f) else StrongBackground.copy(alpha = 0.5f))
+                        .clickable { onToggleSuperset() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isInSuperset) Icons.Default.Link else Icons.Default.LinkOff,
+                        contentDescription = if (isInSuperset) "Unlink from superset" else "Create superset",
+                        tint = if (isInSuperset) StrongBlue else Color.Gray,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+
                 Box(modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
                     .background(StrongBackground.copy(alpha = 0.5f))
@@ -722,21 +1127,53 @@ fun SetRow(
     val weightText = if (isWeightFocused && activeInputText.isNotEmpty()) activeInputText else if (set.weight.isEmpty() || set.weight == "0.0" || set.weight == "0") "-" else set.weight
     val repsText = if (isRepsFocused && activeInputText.isNotEmpty()) activeInputText else if (set.reps.isEmpty() || set.reps == "0") "-" else set.reps
 
+    val isGhostSet = set.logId == null
+    val statusBadgeColor = when (set.status) {
+        SetStatus.WARM_UP -> Color(0xFFFF9800)
+        SetStatus.DROP_SET -> Color(0xFF9C27B0)
+        SetStatus.FAILURE -> Color(0xFFF44336)
+        SetStatus.NORMAL -> Color.Transparent
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(if (set.isCompleted) StrongGreen.copy(alpha = 0.12f) else Color.Transparent)
+            .background(
+                when {
+                    set.isCompleted -> StrongGreen.copy(alpha = 0.12f)
+                    isGhostSet -> Color.Gray.copy(alpha = 0.04f)
+                    else -> Color.Transparent
+                }
+            )
             .padding(horizontal = 16.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(26.dp)
-                .clip(CircleShape)
-                .background(if (set.isCompleted) StrongGreen else Color.Gray.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(set.setNumber.toString(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (set.isCompleted) Color.White else Color.Gray)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(CircleShape)
+                    .background(if (set.isCompleted) StrongGreen else Color.Gray.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(set.setNumber.toString(), fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (set.isCompleted) Color.White else Color.Gray)
+            }
+            if (set.status != SetStatus.NORMAL) {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(statusBadgeColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = set.status.indicator,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
         }
         Spacer(Modifier.weight(1f))
         

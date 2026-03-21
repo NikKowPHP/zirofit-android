@@ -1,5 +1,6 @@
 package com.ziro.fit
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -17,6 +18,8 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +31,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
@@ -44,10 +48,15 @@ import com.ziro.fit.ui.discovery.EventsListScreen
 import com.ziro.fit.ui.discovery.EventDetailScreen
 import com.ziro.fit.ui.discovery.ExploreScreen
 import com.ziro.fit.ui.theme.ZirofitTheme
+import com.ziro.fit.ui.theme.*
 import com.ziro.fit.ui.checkins.CheckInListScreen
 import com.ziro.fit.ui.checkins.CheckInDetailScreen
 import com.ziro.fit.ui.auth.RegisterScreen
+import com.ziro.fit.ui.auth.EmailConfirmationScreen
 import com.ziro.fit.ui.onboarding.RoleSelectionScreen
+import com.ziro.fit.model.AppMode
+import com.ziro.fit.ui.components.ModeTabBar
+import com.ziro.fit.ui.components.TabItem
 import com.ziro.fit.viewmodel.AuthState
 import com.ziro.fit.viewmodel.AuthViewModel
 import com.ziro.fit.viewmodel.UserViewModel
@@ -56,6 +65,7 @@ import com.ziro.fit.viewmodel.WorkoutViewModel
 
 
 import com.ziro.fit.service.GlobalChatManager
+import com.ziro.fit.auth.GoogleAuthManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -65,12 +75,28 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var globalChatManager: GlobalChatManager
 
+    @Inject
+    lateinit var googleAuthManager: GoogleAuthManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        googleAuthManager.processIntent(intent)
         setContent {
             ZirofitTheme {
-                AppNavigation(globalChatManager = globalChatManager)
+                AppNavigation(
+                    globalChatManager = globalChatManager,
+                    googleAuthManager = googleAuthManager
+                )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        googleAuthManager.processIntent(intent)
+        val uri = intent.data
+        if (uri != null && uri.scheme == "zirofitapp" && uri.host == "login" && uri.getQueryParameter("verified") == "true") {
+            intent.putExtra("email_verified", true)
         }
     }
 }
@@ -78,7 +104,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation(
     authViewModel: AuthViewModel = hiltViewModel(),
-    globalChatManager: GlobalChatManager
+    globalChatManager: GlobalChatManager,
+    googleAuthManager: GoogleAuthManager
 ) {
     val state = authViewModel.authState
 
@@ -99,60 +126,170 @@ fun AppNavigation(
             is AuthState.Loading -> "loading"
             is AuthState.Unauthenticated -> "login"
             is AuthState.Authenticated -> {
-                if (!state.isOnboardingComplete) "onboarding" 
-                else if (state.role == "client") "client_app" 
+                if (!state.isOnboardingComplete) "onboarding"
+                else if (state.role == "client") "client_app"
                 else "trainer_app"
             }
             is AuthState.Error -> "login"
+            is AuthState.EmailConfirmationRequired -> "login"
+        }
+    }
+
+    val context = LocalContext.current
+    var showEmailVerifiedMessage by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        googleAuthManager.processIntent((context as? Activity)?.intent)
+        val intent = (context as? Activity)?.intent
+        val uri = intent?.data
+        if (uri != null && uri.scheme == "zirofitapp" && uri.host == "login" && uri.getQueryParameter("verified") == "true") {
+            showEmailVerifiedMessage = true
+            authViewModel.resetToUnauthenticated()
+        }
+        if (intent?.getBooleanExtra("email_verified", false) == true) {
+            showEmailVerifiedMessage = true
+            authViewModel.resetToUnauthenticated()
         }
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when (currentScreen) {
             "loading" -> LoadingScreen()
-            "login" -> AuthNavigation(authViewModel = authViewModel, initialRoute = "login")
+            "login" -> AuthNavigation(
+                authViewModel = authViewModel,
+                googleAuthManager = googleAuthManager,
+                initialRoute = if (showEmailVerifiedMessage) "login?verified=true" else "login",
+                verifiedFromDeepLink = showEmailVerifiedMessage,
+                onVerifiedMessageShown = { showEmailVerifiedMessage = false }
+            )
             "onboarding" -> RoleSelectionScreen(
-                onOnboardingComplete = { role -> 
-                    authViewModel.completeLocalOnboarding(role) 
+                onOnboardingComplete = { role ->
+                    authViewModel.completeLocalOnboarding(role)
                 }
             )
-            "client_app" -> ClientAppScreen(authViewModel = authViewModel, globalChatManager = globalChatManager)
-            "trainer_app" -> MainAppScreen(onLogout = authViewModel::logout)
+            else -> {
+                when (authViewModel.activeMode) {
+                    AppMode.TRAINER -> MainAppScreen(
+                        authViewModel = authViewModel,
+                        onLogout = { authViewModel.logoutAll() }
+                    )
+                    AppMode.PERSONAL -> ClientAppScreen(
+                        authViewModel = authViewModel,
+                        globalChatManager = globalChatManager
+                    )
+                }
+            }
         }
     }
 }
 
-// Separate nav host for Auth (Login <-> Register)
 @Composable
-fun AuthNavigation(authViewModel: AuthViewModel, initialRoute: String) {
+fun AuthNavigation(
+    authViewModel: AuthViewModel,
+    googleAuthManager: GoogleAuthManager,
+    initialRoute: String,
+    verifiedFromDeepLink: Boolean = false,
+    onVerifiedMessageShown: () -> Unit = {}
+) {
     val navController = rememberNavController()
     val isLoading = authViewModel.uiLoading
     val error = authViewModel.uiError
-    
+    val authState = authViewModel.authState
+    val context = LocalContext.current
+
+    val emailConfirmationEmail = (authState as? AuthState.EmailConfirmationRequired)?.email
+
+    LaunchedEffect(googleAuthManager) {
+        googleAuthManager.authOutcome.collect { outcome ->
+            when (outcome) {
+                is com.ziro.fit.auth.GoogleAuthOutcome.Success -> {
+                    authViewModel.handleGoogleAuthResult(
+                        outcome.result.accessToken,
+                        outcome.result.refreshToken,
+                        outcome.result.userId,
+                        outcome.result.role
+                    )
+                }
+                is com.ziro.fit.auth.GoogleAuthOutcome.Error -> {
+                    authViewModel.clearError()
+                }
+                is com.ziro.fit.auth.GoogleAuthOutcome.Cancelled -> {
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(authState) {
+        if (authState is AuthState.EmailConfirmationRequired) {
+            navController.navigate("email_confirmation") {
+                popUpTo("register") { inclusive = true }
+            }
+        }
+    }
+
+    LaunchedEffect(verifiedFromDeepLink) {
+        if (verifiedFromDeepLink) {
+            navController.navigate("login?verified=true") {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
+
     NavHost(navController = navController, startDestination = initialRoute) {
         composable("login") {
             LoginScreen(
-                onLogin = authViewModel::login, 
-                onNavigateToRegister = { 
+                onLogin = authViewModel::login,
+                onGoogleSignIn = { googleAuthManager.launchGoogleSignIn(context) },
+                onNavigateToRegister = {
                     authViewModel.clearError()
-                    navController.navigate("register") 
+                    navController.navigate("register")
                 },
                 onClearError = authViewModel::clearError,
                 isLoading = isLoading,
                 error = error
             )
         }
+        composable("login?verified=true") {
+            LoginScreen(
+                onLogin = { email, pass ->
+                    onVerifiedMessageShown()
+                    authViewModel.login(email, pass)
+                },
+                onGoogleSignIn = { googleAuthManager.launchGoogleSignIn(context) },
+                onNavigateToRegister = {
+                    onVerifiedMessageShown()
+                    authViewModel.clearError()
+                    navController.navigate("register")
+                },
+                onClearError = authViewModel::clearError,
+                isLoading = isLoading,
+                error = error,
+                successMessage = "Your email has been verified. You can now sign in."
+            )
+        }
         composable("register") {
              RegisterScreen(
                  onRegister = authViewModel::register,
-                 onNavigateToLogin = { 
+                 onNavigateToLogin = {
                      authViewModel.clearError()
-                     navController.popBackStack() 
+                     navController.popBackStack()
                  },
                  onClearError = authViewModel::clearError,
                  isLoading = isLoading,
                  error = error
              )
+        }
+        composable("email_confirmation") {
+            EmailConfirmationScreen(
+                email = emailConfirmationEmail ?: "",
+                onBackToLogin = {
+                    authViewModel.clearError()
+                    authViewModel.resetToUnauthenticated()
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }
@@ -178,65 +315,43 @@ fun ClientAppScreen(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    val selectedTab = remember { mutableStateOf<TabItem>(TabItem.HOME) }
+    val currentMode = authViewModel.activeMode
 
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(authViewModel.activeMode) {
+        selectedTab.value = TabItem.HOME
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
 
         Scaffold(
             bottomBar = {
                 if (currentRoute != "live_workout") {
-                    NavigationBar {
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.Menu, contentDescription = null) }, // Using generic icon for dashboard
-                            label = { Text("Dashboard") },
-                            selected = currentRoute == "client_dashboard",
-                            onClick = {
-                                navController.navigate("client_dashboard") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                    ModeTabBar(
+                        currentMode = currentMode,
+                        selectedTab = selectedTab.value,
+                        onTabSelected = { tab ->
+                            selectedTab.value = tab
+                            val route = when (tab) {
+                                TabItem.CALENDAR -> "client_workouts"
+                                TabItem.PROGRAMS -> "explore"
+                                TabItem.HOME -> "client_dashboard"
+                                TabItem.CLIENTS -> "client_workouts"
+                                TabItem.MORE -> "profile"
                             }
-                        )
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.Search, contentDescription = null) },
-                            label = { Text("Discover") },
-                            selected = currentRoute == "explore",
-                            onClick = {
-                                navController.navigate("explore") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                            navController.navigate(route) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                        )
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.DateRange, contentDescription = null) }, // Using DateRange as placeholder for Workouts
-                            label = { Text("Workouts") },
-                            selected = currentRoute == "client_workouts",
-                            onClick = {
-                                navController.navigate("client_workouts") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            label = { Text("Profile") },
-                            selected = currentRoute == "profile",
-                            onClick = {
-                                navController.navigate("profile") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
-                    }
+                        },
+                        onModeSwitch = { newMode ->
+                            authViewModel.setMode(newMode)
+                        }
+                    )
                 }
             }
         ) { innerPadding ->
@@ -339,9 +454,11 @@ fun ClientAppScreen(
                     route = "payment_success",
                     deepLinks = listOf(navDeepLink { uriPattern = "zirofit://payment/success" })
                 ) {
-                    com.ziro.fit.ui.components.PaymentSuccessDialog(
-                        onDismiss = { navController.navigate("client_dashboard") }
-                    )
+                    LaunchedEffect(Unit) {
+                        navController.navigate("profile/payouts") {
+                            popUpTo("client_dashboard")
+                        }
+                    }
                 }
                 composable(
                     route = "payment_cancel",
@@ -349,6 +466,16 @@ fun ClientAppScreen(
                 ) {
                     LaunchedEffect(Unit) {
                         navController.popBackStack()
+                    }
+                }
+                composable(
+                    route = "stripe_return",
+                    deepLinks = listOf(navDeepLink { uriPattern = "zirofit://stripe-return" })
+                ) {
+                    LaunchedEffect(Unit) {
+                        navController.navigate("profile/payouts") {
+                            popUpTo("client_dashboard")
+                        }
                     }
                 }
                 composable("explore") {
@@ -525,82 +652,85 @@ fun ClientAppScreen(
                 )
             }
         }
+
+        if (workoutState.showConflictDialog) {
+            AlertDialog(
+                onDismissRequest = { workoutViewModel.dismissConflictDialog() },
+                title = { Text("Workout in Progress") },
+                text = {
+                    Text("A workout is already in progress${workoutState.conflictingSessionTitle?.let { " ($it)" } ?: ""}. Resume current or end & start new?")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        workoutViewModel.forceStartNew()
+                        navController.navigate("live_workout") { launchSingleTop = true }
+                    }) {
+                        Text("Start New", color = StrongRed)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        workoutViewModel.resumeCurrent()
+                        navController.navigate("live_workout") { launchSingleTop = true }
+                    }) {
+                        Text("Resume", color = StrongTextPrimary)
+                    }
+                },
+                containerColor = StrongSurface,
+                titleContentColor = StrongTextPrimary,
+                textContentColor = StrongTextSecondary
+            )
+        }
     }
 }
 
+
 @Composable
-fun MainAppScreen(onLogout: () -> Unit) {
+fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
     val navController = rememberNavController()
-    // Use the shared ViewModel for global workout state
     val workoutViewModel: WorkoutViewModel = hiltViewModel()
     val workoutState by workoutViewModel.uiState.collectAsState()
-    
-    // Refresh active session when the main app screen is loaded (e.g. after login or app restart)
+
     LaunchedEffect(Unit) {
         workoutViewModel.refreshActiveSession()
     }
-    
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
+    val selectedTab = remember { mutableStateOf<TabItem>(TabItem.HOME) }
     var offsetX by remember { mutableStateOf(0f) }
     var offsetY by remember { mutableStateOf(0f) }
+
+    LaunchedEffect(authViewModel.activeMode) {
+        selectedTab.value = TabItem.HOME
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             bottomBar = {
-                // Only show bottom bar for main tabs
                 if (currentRoute != "live_workout") {
-                    NavigationBar {
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-                            label = { Text("Calendar") },
-                            selected = currentRoute == "calendar",
-                            onClick = {
-                                navController.navigate("calendar") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                    ModeTabBar(
+                        currentMode = authViewModel.activeMode,
+                        selectedTab = selectedTab.value,
+                        onTabSelected = { tab ->
+                            selectedTab.value = tab
+                            val route = when (tab) {
+                                TabItem.CALENDAR -> "calendar"
+                                TabItem.PROGRAMS -> "trainer_programs"
+                                TabItem.HOME -> "trainer_home"
+                                TabItem.CLIENTS -> "clients"
+                                TabItem.MORE -> "more"
                             }
-                        )
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            label = { Text("Clients") },
-                            selected = currentRoute == "clients",
-                            onClick = {
-                                navController.navigate("clients") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                            navController.navigate(route) {
+                                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
                             }
-                        )
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.Person, contentDescription = null) },
-                            label = { Text("Profile") },
-                            selected = currentRoute == "profile",
-                            onClick = {
-                                navController.navigate("profile") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
-                        NavigationBarItem(
-                            icon = { Icon(Icons.Default.Menu, contentDescription = null) },
-                            label = { Text("More") },
-                            selected = currentRoute == "more",
-                            onClick = {
-                                navController.navigate("more") {
-                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
-                    }
+                        },
+                        onModeSwitch = { newMode ->
+                            authViewModel.setMode(newMode)
+                        }
+                    )
                 }
             }
         ) { innerPadding ->
@@ -612,12 +742,8 @@ fun MainAppScreen(onLogout: () -> Unit) {
                 composable("calendar") {
                     CalendarScreen(
                         workoutViewModel = workoutViewModel,
-                        onNavigateToLiveWorkout = {
-                            navController.navigate("live_workout")
-                        },
-                        onNavigateToCreateSession = { date ->
-                            navController.navigate("create_session?date=$date")
-                        }
+                        onNavigateToLiveWorkout = { navController.navigate("live_workout") },
+                        onNavigateToCreateSession = { date -> navController.navigate("create_session?date=$date") }
                     )
                 }
                 composable("clients") {
@@ -756,11 +882,55 @@ fun MainAppScreen(onLogout: () -> Unit) {
                     val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
                     com.ziro.fit.ui.profile.subscreens.BillingScreen(viewModel = profileViewModel, onNavigateBack = { navController.popBackStack() })
                 }
-                composable("profile/payouts") {
-                    com.ziro.fit.ui.profile.subscreens.PayoutsScreen(onNavigateBack = { navController.popBackStack() })
+                composable(
+                    route = "profile/payouts?refresh={refresh}",
+                    arguments = listOf(
+                        navArgument("refresh") {
+                            type = NavType.BoolType
+                            defaultValue = false
+                        }
+                    )
+                ) { backStackEntry ->
+                    val refresh = backStackEntry.arguments?.getBoolean("refresh") ?: false
+                    com.ziro.fit.ui.profile.subscreens.PayoutsScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        shouldRefresh = refresh
+                    )
                 }
+                  composable(
+                      route = "payment_success",
+                      deepLinks = listOf(navDeepLink { uriPattern = "zirofit://payment/success" })
+                  ) {
+                      LaunchedEffect(Unit) {
+                          navController.navigate("profile/payouts?refresh=true") {
+                              popUpTo("calendar")
+                          }
+                      }
+                  }
+                 composable(
+                     route = "payment_cancel",
+                     deepLinks = listOf(navDeepLink { uriPattern = "zirofit://payment/cancel" })
+                 ) {
+                     LaunchedEffect(Unit) {
+                         navController.popBackStack()
+                     }
+                 }
+                  composable(
+                      route = "stripe_return",
+                      deepLinks = listOf(navDeepLink { uriPattern = "zirofit://stripe-return" })
+                  ) {
+                      LaunchedEffect(Unit) {
+                          navController.navigate("profile/payouts?refresh=true") {
+                              popUpTo("calendar")
+                          }
+                      }
+                  }
                 composable("profile/revenue") {
-                    com.ziro.fit.ui.profile.subscreens.RevenueScreen(onNavigateBack = { navController.popBackStack() })
+                    val revenueViewModel: com.ziro.fit.viewmodel.RevenueViewModel = hiltViewModel()
+                    com.ziro.fit.ui.profile.subscreens.RevenueScreen(
+                        onNavigateBack = { navController.popBackStack() },
+                        viewModel = revenueViewModel
+                    )
                 }
                 composable("profile/benefits") {
                     val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
@@ -931,6 +1101,35 @@ fun MainAppScreen(onLogout: () -> Unit) {
                 )
             }
         }
+
+        if (workoutState.showConflictDialog) {
+            AlertDialog(
+                onDismissRequest = { workoutViewModel.dismissConflictDialog() },
+                title = { Text("Workout in Progress") },
+                text = {
+                    Text("A workout is already in progress${workoutState.conflictingSessionTitle?.let { " ($it)" } ?: ""}. Resume current or end & start new?")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        workoutViewModel.forceStartNew()
+                        navController.navigate("live_workout") { launchSingleTop = true }
+                    }) {
+                        Text("Start New", color = StrongRed)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        workoutViewModel.resumeCurrent()
+                        navController.navigate("live_workout") { launchSingleTop = true }
+                    }) {
+                        Text("Resume", color = StrongTextPrimary)
+                    }
+                },
+                containerColor = StrongSurface,
+                titleContentColor = StrongTextPrimary,
+                textContentColor = StrongTextSecondary
+            )
+        }
     }
 }
 
@@ -943,16 +1142,17 @@ fun LoadingScreen() {
 
 @Composable
 fun LoginScreen(
-    onLogin: (String, String) -> Unit, 
-    onNavigateToRegister: () -> Unit, 
+    onLogin: (String, String) -> Unit,
+    onGoogleSignIn: () -> Unit,
+    onNavigateToRegister: () -> Unit,
     onClearError: () -> Unit,
     isLoading: Boolean = false,
-    error: String? = null
+    error: String? = null,
+    successMessage: String? = null
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    // Clear error when typing
     LaunchedEffect(email, password) {
         onClearError()
     }
@@ -1013,10 +1213,44 @@ fun LoginScreen(
                 }
             }
         }
-        
+
+        androidx.compose.animation.AnimatedVisibility(
+            visible = successMessage != null,
+            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = successMessage ?: "",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+
         OutlinedTextField(
-            value = email, 
-            onValueChange = { email = it }, 
+            value = email,
+            onValueChange = { email = it },
             label = { Text("Email Address") },
             shape = RoundedCornerShape(12.dp),
             keyboardOptions = KeyboardOptions(
@@ -1067,6 +1301,41 @@ fun LoginScreen(
             } else {
                 Text("Sign In", style = MaterialTheme.typography.titleMedium)
             }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            HorizontalDivider(modifier = Modifier.weight(1f))
+            Text(
+                text = "or",
+                modifier = Modifier.padding(horizontal = 16.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            HorizontalDivider(modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = onGoogleSignIn,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(12.dp),
+            enabled = !isLoading
+        ) {
+            Icon(
+                imageVector = Icons.Default.AccountCircle,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Sign in with Google", style = MaterialTheme.typography.titleMedium)
         }
 
         Spacer(modifier = Modifier.height(24.dp))

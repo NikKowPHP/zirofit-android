@@ -1,25 +1,36 @@
 package com.ziro.fit.ui.profile.subscreens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ziro.fit.viewmodel.RevenueUiState
+import com.ziro.fit.viewmodel.RevenueViewModel
+import java.text.NumberFormat
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RevenueScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: RevenueViewModel
 ) {
-    val totalEarnings = "$12,450.00"
-    val availableForPayout = "$1,200.00"
+    val uiState by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadRevenue()
+    }
 
     Scaffold(
         topBar = {
@@ -33,57 +44,129 @@ fun RevenueScreen(
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Main Balance
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(
-                    modifier = Modifier.padding(32.dp).fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text("Available for Payout", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
-                    Text(availableForPayout, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
-                    Button(
-                        onClick = { /* Handle withdraw */ },
-                        modifier = Modifier.fillMaxWidth()
+            when {
+                uiState.isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                uiState.error != null -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("Withdraw Now")
+                        Text(
+                            text = "Error: ${uiState.error}",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadRevenue() }) {
+                            Text("Retry")
+                        }
                     }
                 }
-            }
-
-            // Stats Grid
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                RevenueStatCard(title = "Lifetime", value = totalEarnings, modifier = Modifier.weight(1f))
-                RevenueStatCard(title = "Last Payout", value = "$3,400", modifier = Modifier.weight(1f))
-            }
-
-            // Transactions
-            Text("Recent Transactions", style = MaterialTheme.typography.titleLarge)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    TransactionRow("Program Sale: Leg Day Pro", "Today", "+$49.99")
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    TransactionRow("Personal Session: John Doe", "Yesterday", "+$75.00")
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    TransactionRow("Platform Fee (5%)", "Yesterday", "-$6.25", isNegative = true)
+                else -> {
+                    RevenueContent(uiState = uiState)
                 }
             }
         }
     }
+}
+
+@Composable
+private fun RevenueContent(uiState: RevenueUiState) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(32.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("Available for Payout", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
+                Text(
+                    text = uiState.availableForPayout,
+                    style = MaterialTheme.typography.displayMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                    Button(
+                        onClick = { },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                    Text("Withdraw Now")
+                }
+            }
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            RevenueStatCard(
+                title = "Lifetime",
+                value = uiState.totalEarnings,
+                modifier = Modifier.weight(1f)
+            )
+            RevenueStatCard(
+                title = "Last Payout",
+                value = "$3,400",
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Text("Recent Transactions", style = MaterialTheme.typography.titleLarge)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            val transactions = uiState.revenueData?.transactions ?: emptyList()
+            if (transactions.isEmpty()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "No transactions yet",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray
+                    )
+                }
+            } else {
+                LazyColumn(modifier = Modifier.padding(16.dp)) {
+                    items(transactions) { transaction ->
+                        TransactionRow(
+                            title = transaction.title,
+                            date = transaction.date,
+                            amount = formatTransactionAmount(transaction.amount),
+                            isNegative = transaction.type == "fee"
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatTransactionAmount(amount: Double): String {
+    val format = NumberFormat.getCurrencyInstance(Locale.US)
+    val formatted = format.format(kotlin.math.abs(amount))
+    return if (amount < 0) "-$formatted" else "+$formatted"
 }
 
 @Composable

@@ -26,7 +26,8 @@ data class ProfileUiState(
     val externalLinks: List<ExternalLink> = emptyList(),
     val billing: ProfileBilling? = null,
     val benefits: List<Benefit> = emptyList(),
-    val notifications: List<Notification> = emptyList()
+    val notifications: List<Notification> = emptyList(),
+    val bookingWindowSettings: BookingWindowSettings? = null
 )
 
 @HiltViewModel
@@ -108,6 +109,49 @@ class ProfileViewModel @Inject constructor(
                 _uiState.update { it.copy(isLoading = false, availability = data) }
             }.onFailure { e ->
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    fun fetchBookingWindowSettings() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val result = repository.getBookingWindowSettings()
+            result.onSuccess { data ->
+                _uiState.update { it.copy(isLoading = false, bookingWindowSettings = data) }
+            }.onFailure { e ->
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    fun saveBookingWindowSettings(advanceNoticeHours: Int, bookingHorizonHours: Int) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val settings = BookingWindowSettings(advanceNoticeHours, bookingHorizonHours)
+            val result = repository.updateBookingWindowSettings(settings)
+            result.onSuccess {
+                _uiState.update { it.copy(isLoading = false, bookingWindowSettings = settings) }
+            }.onFailure { e ->
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+        }
+    }
+
+    
+    fun saveWorkingHours(workingHours: com.ziro.fit.model.WorkingHours) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val result = repository.updateWorkingHours(workingHours)
+            result.onSuccess {
+            
+                fetchAvailability()
+            }.onFailure { e ->
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
+            }
+            
+            if (_uiState.value.isLoading) {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }

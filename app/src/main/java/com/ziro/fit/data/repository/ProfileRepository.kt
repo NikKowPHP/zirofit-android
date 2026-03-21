@@ -2,6 +2,8 @@ package com.ziro.fit.data.repository
 
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -164,6 +166,37 @@ class ProfileRepository @Inject constructor(
         }
     }
 
+    suspend fun getBookingWindowSettings(): Result<BookingWindowSettings> {
+        return try {
+            val response = api.getBookingWindowSettings()
+            if ((response.success ?: true) && response.data != null) {
+                val settings = response.data!!.bookingWindowSettings
+                if (settings != null) {
+                    Result.success(settings)
+                } else {
+                    Result.failure(Exception("Booking window settings not found"))
+                }
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to fetch booking window settings"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateBookingWindowSettings(settings: BookingWindowSettings): Result<Unit> {
+        return try {
+            val response = api.updateBookingWindowSettings(settings)
+            if (response.success != false) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to update booking window settings"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getBenefits(): Result<ProfileBenefitsResponse> {
         return try {
             val response = api.getBenefits()
@@ -213,6 +246,32 @@ class ProfileRepository @Inject constructor(
             }
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    suspend fun updateWorkingHours(workingHours: com.ziro.fit.model.WorkingHours): Result<Unit> {
+        return try {
+            val response = api.updateWorkingHours(workingHours)
+            if (response.success != false) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to update working hours"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    fun getRevenue(): Flow<Result<RevenueResponse>> = flow {
+        try {
+            val response = api.getRevenue()
+            if ((response.success ?: true) && response.data != null) {
+                emit(Result.success(response.data!!))
+            } else {
+                emit(Result.failure(Exception(response.message ?: "Failed to fetch revenue")))
+            }
+        } catch (e: Exception) {
+            emit(Result.failure(e))
         }
     }
 }

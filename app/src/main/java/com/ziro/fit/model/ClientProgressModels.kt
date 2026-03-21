@@ -38,7 +38,9 @@ data class ClientProgressResponse(
     val volumeHistory: List<VolumeDataPoint>,
     val exercisePerformance: List<ExercisePerformance>? = null,
     val favoriteExercises: List<FavoriteExercise>? = null,
-    val worstPerformingExercises: List<WorstPerformingExercise>? = null
+    val worstPerformingExercises: List<WorstPerformingExercise>? = null,
+    val heatmap: List<HeatmapData>? = null,
+    val insightsMessage: String? = null
 )
 
 data class VolumeDataPoint(

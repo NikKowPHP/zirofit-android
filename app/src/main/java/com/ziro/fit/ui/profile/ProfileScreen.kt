@@ -9,6 +9,11 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import com.ziro.fit.model.BookingWindowSettings
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,8 +27,11 @@ data class ProfileMenuItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
+    isTrainer: Boolean = false,
     onLogout: () -> Unit,
-    onNavigateToSubScreen: (String) -> Unit
+    onNavigateToSubScreen: (String) -> Unit,
+    onSaveBookingSettings: ((Int, Int) -> Unit)? = null,
+    initialBookingWindowSettings: BookingWindowSettings? = null
 ) {
     val menuItems = listOf(
         ProfileMenuItem("Core Info", "Manage your personal details", "profile/core_info"),
@@ -67,6 +75,54 @@ fun ProfileScreen(
                     modifier = Modifier.clickable { onNavigateToSubScreen(item.route) }
                 )
                 Divider()
+            }
+            if (isTrainer) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        val initialAdvance = (initialBookingWindowSettings?.advanceNoticeHours?.toFloat() ?: 24f)
+                        val initialHorizon = (initialBookingWindowSettings?.bookingHorizonHours?.toFloat() ?: 168f)
+                        var advanceNotice by remember { mutableStateOf(initialAdvance) }
+                        var horizon by remember { mutableStateOf(initialHorizon) }
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(text = "Booking Settings", style = MaterialTheme.typography.titleMedium)
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(text = "Advance Notice: ${advanceNotice.toInt()} hours")
+                            Slider(
+                                value = advanceNotice,
+                                onValueChange = { advanceNotice = it },
+                                valueRange = 1f..72f,
+                                steps = 71
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(text = "Booking Horizon: ${horizon.toInt()} hours")
+                            Slider(
+                                value = horizon,
+                                onValueChange = { horizon = it },
+                                valueRange = 1f..168f,
+                                steps = 167
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                Button(onClick = {
+                                    onSaveBookingSettings?.invoke(advanceNotice.toInt(), horizon.toInt())
+                                }) {
+                                    Text("Save")
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

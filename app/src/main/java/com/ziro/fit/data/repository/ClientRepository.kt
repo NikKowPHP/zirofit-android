@@ -38,6 +38,21 @@ class ClientRepository @Inject constructor(
         }
     }
 
+    suspend fun searchClients(query: String): Result<List<Client>> {
+        return try {
+            val response = api.getClients()
+            val filteredClients = response.data!!.clients.filter { client ->
+                client.name.contains(query, ignoreCase = true) ||
+                client.email.contains(query, ignoreCase = true) ||
+                client.phone?.contains(query, ignoreCase = true) == true
+            }
+            Result.success(filteredClients)
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
+
     suspend fun createClient(name: String, email: String, phone: String?, status: String): Result<Client> {
         return try {
             val request = CreateClientRequest(name, email, phone, status)

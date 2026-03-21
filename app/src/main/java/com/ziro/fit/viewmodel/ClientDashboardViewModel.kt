@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ziro.fit.data.repository.ClientDashboardRepository
 import com.ziro.fit.model.ClientDashboardData
+import com.ziro.fit.model.AnalyticsWidget
+import com.ziro.fit.model.AnalyticsWidgetType
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,6 +25,9 @@ sealed class ClientDashboardUiState {
         val isProgressLoading: Boolean = false,
         val isRefreshing: Boolean = false,
         val activeProgram: com.ziro.fit.model.ActiveProgramProgress? = null,
+        val volumeTrend: Double? = null,
+        val consistencyTrend: Double? = null,
+        val frequencyTrend: Double? = null,
         val widgets: List<com.ziro.fit.model.AnalyticsWidget> = listOf(
             com.ziro.fit.model.AnalyticsWidget("1", com.ziro.fit.model.AnalyticsWidgetType.WORKOUTS_PER_WEEK, true, 0),
             com.ziro.fit.model.AnalyticsWidget("2", com.ziro.fit.model.AnalyticsWidgetType.CONSISTENCY, true, 1),
@@ -170,18 +175,74 @@ class ClientDashboardViewModel @Inject constructor(
         val currentState = uiState as? ClientDashboardUiState.Success ?: return
         viewModelScope.launch {
             uiState = currentState.copy(isProgressLoading = true)
-            repository.getClientProgress()
-                .onSuccess { response ->
-                    val newState = uiState as? ClientDashboardUiState.Success ?: return@onSuccess
-                    uiState = newState.copy(
-                        progress = response,
-                        isProgressLoading = false
-                    )
-                }
-                .onFailure {
-                     val newState = uiState as? ClientDashboardUiState.Success ?: return@onFailure
-                     uiState = newState.copy(isProgressLoading = false)
-                }
+            val progressResult = repository.getClientProgress()
+            val analyticsResult = repository.getClientAnalytics()
+            
+            val progress = progressResult.getOrNull()
+            val analytics = analyticsResult.getOrNull()
+            
+            val combinedProgress = if (progress != null && analytics != null) {
+                progress.copy(heatmap = analytics.heatmap)
+            } else {
+                progress
+            }
+            
+            val trends = calculateTrends(combinedProgress)
+            
+            val newState = uiState as? ClientDashboardUiState.Success ?: return@launch
+            uiState = newState.copy(
+                progress = combinedProgress,
+                isProgressLoading = false,
+                volumeTrend = trends.first,
+                consistencyTrend = trends.second,
+                frequencyTrend = trends.third
+            )
         }
+    }
+
+    private fun calculateTrends(progress: com.ziro.fit.model.ClientProgressResponse?): Triple<Double?, Double?, Double?> {
+        if (progress == null) return Triple(null, null, null)
+        
+        val volumeHistory = progress.volumeHistory
+        if (volumeHistory.isEmpty()) return Triple(null, null, null)
+        
+        val sortedHistory = volumeHistory.sortedBy { it.date }
+        val totalEntries = sortedHistory.size
+        
+        if (totalEntries < 60) {
+            if (totalEntries >= 30) {
+                return Triple(0.0, null, null)
+            }
+            return Triple(null, null, null)
+        }
+        
+        val currentPeriod = sortedHistory.takeLast(30)
+        val previousPeriod = sortedHistory.dropLast(30).takeLast(30)
+        
+        val currentVolumeSum = currentPeriod.sumOf { it.totalVolume }
+        val previousVolumeSum = previousPeriod.sumOf { it.totalVolume }
+        val volumeTrend = if (previousVolumeSum > 0) {
+            ((currentVolumeSum - previousVolumeSum) / previousVolumeSum) * 100
+        } else {
+            null
+        }
+        
+        val currentConsistency = currentPeriod.size.toDouble()
+        val previousConsistency = previousPeriod.size.toDouble()
+        val consistencyTrend = if (previousConsistency > 0) {
+            ((currentConsistency - previousConsistency) / previousConsistency) * 100
+        } else {
+            null
+        }
+        
+        val currentFrequency = currentPeriod.size / 7.0
+        val previousFrequency = previousPeriod.size / 7.0
+        val frequencyTrend = if (previousFrequency > 0) {
+            ((currentFrequency - previousFrequency) / previousFrequency) * 100
+        } else {
+            null
+        }
+        
+        return Triple(volumeTrend, consistencyTrend, frequencyTrend)
     }
 }

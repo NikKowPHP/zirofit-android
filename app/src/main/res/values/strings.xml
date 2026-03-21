@@ -1,3 +1,13 @@
 <resources>
     <string name="app_name">Zirofit</string>
+
+    <!-- Notification action strings -->
+    <string name="notification_action_log_set">Log Set</string>
+    <string name="notification_action_pause">Pause</string>
+    <string name="notification_action_resume">Resume</string>
+    <string name="notification_action_end_workout">End Workout</string>
+    <string name="notification_channel_name">Active Workout</string>
+    <string name="notification_channel_description">Shows active workout timer</string>
+    <string name="rest_timer_channel_name">Workout Alerts</string>
+    <string name="rest_timer_channel_description">Alerts for rest timer completion</string>
 </resources>

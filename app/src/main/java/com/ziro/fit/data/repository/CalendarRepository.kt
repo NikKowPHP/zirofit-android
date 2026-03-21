@@ -47,20 +47,32 @@ class CalendarRepository @Inject constructor(
 
     suspend fun getCalendarSummary(date: LocalDate): Result<List<com.ziro.fit.model.ClientSummaryItem>> {
         return try {
-            // Buffer: 1 month back, 1 month forward for smooth month view scrolling
             val start = date.minusMonths(1).withDayOfMonth(1).atStartOfDay()
             val end = date.plusMonths(1).withDayOfMonth(date.plusMonths(1).lengthOfMonth()).atTime(23, 59, 59)
-
             val formatter = DateTimeFormatter.ISO_DATE_TIME
-
             val response = api.getCalendarClientsSummary(
                 startDate = start.format(formatter),
                 endDate = end.format(formatter)
             )
-
             Result.success(response.data?.summary ?: emptyList())
         } catch (e: Exception) {
-            // Log error but don't crash UI, maybe return empty list or propagate error
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
+
+    // Used for session recovery — scan a date range for session_in_progress events (mirrors iOS 30-day calendar scan)
+    suspend fun getEventsInRange(startDate: LocalDate, endDate: LocalDate): Result<List<com.ziro.fit.model.CalendarEvent>> {
+        return try {
+            val start = startDate.atStartOfDay()
+            val end = endDate.atTime(23, 59, 59)
+            val formatter = DateTimeFormatter.ISO_DATE_TIME
+            val response = api.getCalendarEvents(
+                startDate = start.format(formatter),
+                endDate = end.format(formatter)
+            )
+            Result.success(response.data?.events ?: emptyList())
+        } catch (e: Exception) {
             val apiError = ApiErrorParser.parse(e)
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }

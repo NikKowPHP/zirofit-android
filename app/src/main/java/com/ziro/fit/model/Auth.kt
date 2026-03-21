@@ -17,13 +17,15 @@ data class RegisterRequest(
     val name: String,
     val email: String,
     val password: String,
-    val role: String = "pending"
+    val role: String = "pending",
+    val redirect: String? = null
 )
 
 data class RegisterResponse(
     val userId: String,
     val message: String,
-    val requiresSubscription: Boolean?
+    val requiresSubscription: Boolean?,
+    val confirmationRequired: Boolean = false
 )
 
 data class RefreshTokenRequest(
