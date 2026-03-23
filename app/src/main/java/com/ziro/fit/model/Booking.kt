@@ -9,7 +9,9 @@ data class Booking(
     val clientName: String? = null,
     val clientEmail: String? = null,
     val clientNotes: String? = null,
-    val clientId: String? = null
+    val clientId: String? = null,
+    val dataSharingApproved: Boolean? = false,
+    val dataSharingApprovedAt: String? = null
 )
 
 enum class BookingStatus {

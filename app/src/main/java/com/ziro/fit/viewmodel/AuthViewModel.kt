@@ -17,6 +17,8 @@ import com.ziro.fit.model.AppMode
 import com.ziro.fit.model.LoginRequest
 import com.ziro.fit.model.RegisterRequest
 import com.ziro.fit.model.SignOutRequest
+import com.ziro.fit.model.ForgotPasswordRequest
+import com.ziro.fit.model.UpdatePasswordRequest
 import com.ziro.fit.util.ApiErrorParser
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
@@ -196,6 +198,31 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    fun handleAppleAuthResult(idToken: String, authCode: String, email: String?, userId: String, role: String) {
+        viewModelScope.launch {
+            uiLoading = true
+            uiError = null
+            try {
+                val currentMode = tokenManager.activeMode.value
+                tokenManager.saveToken(idToken, currentMode)
+
+                val detectedMode = detectModeFromRole(role)
+                if (detectedMode != currentMode) {
+                    tokenManager.clearToken(currentMode)
+                    tokenManager.setActiveMode(detectedMode)
+                    tokenManager.saveToken(idToken, detectedMode)
+                }
+
+                authState = AuthState.Authenticated(role, userId, isOnboardingComplete = role != "pending")
+                markModeAuthenticated(detectedMode, userId)
+                syncPushToken()
+                triggerPrefetch(detectedMode)
+            } finally {
+                uiLoading = false
+            }
+        }
+    }
+
     fun register(name: String, email: String, pass: String) {
         viewModelScope.launch {
             uiLoading = true
@@ -306,7 +333,6 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             when (mode) {
                 AppMode.TRAINER -> {
-                    launch { dashboardRepository.getClientDashboard() }
                     launch { calendarRepository.getEvents(LocalDate.now()) }
                     launch { calendarRepository.getCalendarSummary(LocalDate.now()) }
                     launch { exerciseRepository.getExercises(null, 1) }
@@ -389,11 +415,95 @@ class AuthViewModel @Inject constructor(
         isPersonalAuthenticated = false
     }
 
+    fun forgotPassword(email: String) {
+        viewModelScope.launch {
+            uiLoading = true
+            uiError = null
+            try {
+                val response = api.forgotPassword(ForgotPasswordRequest(email))
+                if (response.success != false && response.data != null) {
+                    uiLoading = false
+                } else {
+                    uiError = response.message ?: "Failed to send reset email"
+                    uiLoading = false
+                }
+            } catch (e: Exception) {
+                val apiError = ApiErrorParser.parse(e)
+                uiError = ApiErrorParser.getErrorMessage(apiError)
+                uiLoading = false
+            }
+        }
+    }
+
+    fun updatePassword(password: String) {
+        viewModelScope.launch {
+            uiLoading = true
+            uiError = null
+            try {
+                val response = api.updatePassword(UpdatePasswordRequest(password))
+                if (response.success != false && response.data != null) {
+                    uiLoading = false
+                } else {
+                    uiError = response.message ?: "Failed to update password"
+                    uiLoading = false
+                }
+            } catch (e: Exception) {
+                val apiError = ApiErrorParser.parse(e)
+                uiError = ApiErrorParser.getErrorMessage(apiError)
+                uiLoading = false
+            }
+        }
+    }
+
     fun clearError() {
         uiError = null
     }
 
     fun resetToUnauthenticated() {
         authState = AuthState.Unauthenticated
+    }
+
+    fun handleAppleAuthResult(idToken: String, authorizationCode: String, fullName: String?) {
+        viewModelScope.launch {
+            uiLoading = true
+            uiError = null
+            try {
+                val response = api.appleAuth(
+                    com.ziro.fit.model.AppleAuthRequest(
+                        idToken = idToken,
+                        authorizationCode = authorizationCode,
+                        fullName = fullName
+                    )
+                )
+                val loginData = response.data
+                if (loginData != null) {
+                    val currentMode = tokenManager.activeMode.value
+                    tokenManager.saveToken(loginData.accessToken, currentMode)
+                    loginData.refreshToken?.let { tokenManager.saveRefreshToken(it, currentMode) }
+
+                    val detectedMode = detectModeFromRole(loginData.role)
+                    if (detectedMode != currentMode) {
+                        tokenManager.clearToken(currentMode)
+                        tokenManager.setActiveMode(detectedMode)
+                        tokenManager.saveToken(loginData.accessToken, detectedMode)
+                        loginData.refreshToken?.let { tokenManager.saveRefreshToken(it, detectedMode) }
+                    }
+
+                    val role = loginData.role
+                    val userId = loginData.user.id
+                    authState = AuthState.Authenticated(role, userId, isOnboardingComplete = role != "pending")
+                    markModeAuthenticated(detectedMode, userId)
+                    syncPushToken()
+                    triggerPrefetch(detectedMode)
+                } else {
+                    uiError = response.message ?: "Apple authentication failed"
+                    uiLoading = false
+                }
+            } catch (e: Exception) {
+                val apiError = ApiErrorParser.parse(e)
+                uiError = ApiErrorParser.getErrorMessage(apiError)
+                uiLoading = false
+            }
+        }
     }
 }

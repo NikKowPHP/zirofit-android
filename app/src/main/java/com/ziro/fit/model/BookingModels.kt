@@ -28,3 +28,9 @@ data class UpdateBookingRequest(
 data class BookingResponse(
     val booking: Booking
 )
+
+data class ConfirmBookingRequest(
+    val dataSharingApproved: Boolean = false
+)
+
+data class DeclineBookingRequest()

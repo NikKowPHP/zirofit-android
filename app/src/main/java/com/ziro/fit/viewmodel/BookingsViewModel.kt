@@ -19,7 +19,16 @@ data class BookingsUiState(
     val bookings: List<Booking> = emptyList(),
     val error: String? = null,
     val successMessage: String? = null
-)
+) {
+    val pendingBookings: List<Booking>
+        get() = bookings.filter { it.status == BookingStatus.PENDING }
+
+    val confirmedBookings: List<Booking>
+        get() = bookings.filter { it.status == BookingStatus.CONFIRMED }
+
+    val cancelledBookings: List<Booking>
+        get() = bookings.filter { it.status == BookingStatus.CANCELLED }
+}
 
 @HiltViewModel
 class BookingsViewModel @Inject constructor(
@@ -128,6 +137,64 @@ class BookingsViewModel @Inject constructor(
                             successMessage = "Booking deleted"
                         )
                     }
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isLoading = false, error = error.message) }
+                }
+            )
+        }
+    }
+
+    fun confirmBooking(
+        bookingId: String,
+        dataSharingApproved: Boolean,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val result = bookingsRepository.confirmBooking(bookingId, dataSharingApproved)
+            result.fold(
+                onSuccess = { updatedBooking ->
+                    val currentList = _uiState.value.bookings.toMutableList()
+                    val index = currentList.indexOfFirst { it.id == bookingId }
+                    if (index != -1) {
+                        currentList[index] = updatedBooking
+                    }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            bookings = currentList,
+                            successMessage = "Booking confirmed"
+                        )
+                    }
+                    onSuccess()
+                },
+                onFailure = { error ->
+                    _uiState.update { it.copy(isLoading = false, error = error.message) }
+                }
+            )
+        }
+    }
+
+    fun declineBooking(bookingId: String, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            val result = bookingsRepository.declineBooking(bookingId)
+            result.fold(
+                onSuccess = { updatedBooking ->
+                    val currentList = _uiState.value.bookings.toMutableList()
+                    val index = currentList.indexOfFirst { it.id == bookingId }
+                    if (index != -1) {
+                        currentList[index] = updatedBooking
+                    }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            bookings = currentList,
+                            successMessage = "Booking declined"
+                        )
+                    }
+                    onSuccess()
                 },
                 onFailure = { error ->
                     _uiState.update { it.copy(isLoading = false, error = error.message) }

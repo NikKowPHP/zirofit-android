@@ -83,4 +83,56 @@ class ExploreRepository @Inject constructor(
             Result.failure(e)
         }
     }
+
+    suspend fun getTrainerEvents(): Result<List<ExploreEvent>> {
+        return try {
+            val response = api.getTrainerEvents()
+            if (response.data != null) {
+                Result.success(response.data.events)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to load trainer events"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(ApiErrorParser.parse(e))))
+        }
+    }
+
+    suspend fun createEvent(event: ExploreEvent): Result<ExploreEvent> {
+        return try {
+            val response = api.createEvent(event)
+            if (response.data != null) {
+                Result.success(response.data.event)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to create event"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(ApiErrorParser.parse(e))))
+        }
+    }
+
+    suspend fun updateEvent(id: String, event: ExploreEvent): Result<ExploreEvent> {
+        return try {
+            val response = api.updateEvent(id, event)
+            if (response.data != null) {
+                Result.success(response.data.event)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to update event"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(ApiErrorParser.parse(e))))
+        }
+    }
+
+    suspend fun deleteEvent(id: String): Result<Unit> {
+        return try {
+            val response = api.deleteEvent(id)
+            if (response.success != false) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to delete event"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(ApiErrorParser.parse(e))))
+        }
+    }
 }

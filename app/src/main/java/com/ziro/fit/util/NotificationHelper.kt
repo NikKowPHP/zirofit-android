@@ -22,6 +22,8 @@ class NotificationHelper @Inject constructor(
     companion object {
         const val CHANNEL_ID = "chat_notifications"
         const val CHANNEL_NAME = "Chat Messages"
+        const val EVENT_CHANNEL_ID = "event_notifications"
+        const val EVENT_CHANNEL_NAME = "Event Updates"
     }
 
     init {
@@ -38,8 +40,17 @@ class NotificationHelper @Inject constructor(
                 description = "Notifications for new messages from your trainer"
                 enableVibration(true)
             }
+            val eventChannel = NotificationChannel(
+                EVENT_CHANNEL_ID,
+                EVENT_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = "Notifications about your event submissions"
+                enableVibration(true)
+            }
             val manager = context.getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
+            manager.createNotificationChannel(eventChannel)
         }
     }
 
@@ -80,5 +91,40 @@ class NotificationHelper @Inject constructor(
         val manager = context.getSystemService(NotificationManager::class.java)
         // Use senderId.hashCode as notification ID to group by sender, or distinct for every message
         manager.notify(conversationId.hashCode(), notification)
+    }
+
+    fun showEventNotification(
+        notificationId: Int,
+        title: String,
+        message: String,
+        eventId: String
+    ) {
+        val deepLinkIntent = Intent(
+            Intent.ACTION_VIEW,
+            "zirofit://events".toUri(),
+            context,
+            MainActivity::class.java
+        )
+
+        val pendingIntent = TaskStackBuilder.create(context).run {
+            addNextIntentWithParentStack(deepLinkIntent)
+            getPendingIntent(
+                notificationId,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+
+        val notification = NotificationCompat.Builder(context, EVENT_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .build()
+
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.notify(notificationId, notification)
     }
 }

@@ -38,3 +38,23 @@ data class RefreshTokenResponse(
     val expiresAt: Long,
     val user: User
 )
+
+data class AppleAuthRequest(
+    val idToken: String,
+    val authorizationCode: String,
+    val fullName: String? = null
+)
+
+data class AppleAuthResponse(
+    val message: String,
+    val role: String,
+    val accessToken: String,
+    val refreshToken: String?,
+    val user: User
+)
+
+data class ForgotPasswordRequest(val email: String)
+data class ForgotPasswordResponse(val message: String)
+
+data class UpdatePasswordRequest(val password: String)
+data class UpdatePasswordResponse(val message: String)

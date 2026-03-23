@@ -42,6 +42,21 @@ import com.ziro.fit.data.model.ReviewCheckInRequest
 import com.ziro.fit.data.model.CheckInConfig
 import com.ziro.fit.data.model.CheckInSubmissionRequest
 import com.ziro.fit.data.model.CheckInHistoryItem
+import com.ziro.fit.model.BlogListResponse
+import com.ziro.fit.model.BlogPost
+import com.ziro.fit.model.AdminBlogListResponse
+import com.ziro.fit.model.AdminBlogPost
+import com.ziro.fit.model.CreateBlogPostRequest
+import com.ziro.fit.model.UpdateBlogPostRequest
+import com.ziro.fit.model.ForgotPasswordRequest
+import com.ziro.fit.model.ForgotPasswordResponse
+import com.ziro.fit.model.UpdatePasswordRequest
+import com.ziro.fit.model.UpdatePasswordResponse
+import com.ziro.fit.model.BillingPortalResponse
+import com.ziro.fit.model.AdminEventsResponse
+import com.ziro.fit.model.EventModerationDetailResponse
+import com.ziro.fit.model.EventModerationActionRequest
+import com.ziro.fit.model.EventModerationUpdateResponse
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -54,6 +69,15 @@ interface ZiroApi {
 
     @POST("api/auth/register")
     suspend fun register(@Body request: RegisterRequest): ApiResponse<RegisterResponse>
+
+    @POST("api/auth/forgot-password")
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): ApiResponse<ForgotPasswordResponse>
+
+    @POST("api/auth/update-password")
+    suspend fun updatePassword(@Body request: UpdatePasswordRequest): ApiResponse<UpdatePasswordResponse>
+
+    @POST("api/auth/apple")
+    suspend fun appleAuth(@Body request: com.ziro.fit.model.AppleAuthRequest): ApiResponse<com.ziro.fit.model.AppleAuthResponse>
 
     @POST("api/auth/refresh")
     suspend fun refreshAccessToken(@Body request: RefreshTokenRequest): ApiResponse<RefreshTokenResponse>
@@ -299,6 +323,17 @@ interface ZiroApi {
         @Body request: UpdateBookingRequest
     ): ApiResponse<BookingResponse>
 
+    @retrofit2.http.PUT("api/bookings/{id}/confirm")
+    suspend fun confirmBooking(
+        @retrofit2.http.Path("id") id: String,
+        @Body request: ConfirmBookingRequest
+    ): ApiResponse<BookingResponse>
+
+    @retrofit2.http.PUT("api/bookings/{id}/decline")
+    suspend fun declineBooking(
+        @retrofit2.http.Path("id") id: String
+    ): ApiResponse<BookingResponse>
+
     @retrofit2.http.DELETE("api/bookings/{id}")
     suspend fun deleteBooking(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
 
@@ -428,6 +463,19 @@ interface ZiroApi {
     @POST("api/events/{id}/join")
     suspend fun joinFreeEvent(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
 
+    // Trainer Events CRUD
+    @GET("api/trainer/events")
+    suspend fun getTrainerEvents(): ApiResponse<TrainerEventsListResponse>
+
+    @POST("api/trainer/events")
+    suspend fun createEvent(@Body event: ExploreEvent): ApiResponse<EventCreateResponse>
+
+    @PUT("api/trainer/events/{id}")
+    suspend fun updateEvent(@retrofit2.http.Path("id") id: String, @Body event: ExploreEvent): ApiResponse<EventCreateResponse>
+
+    @DELETE("api/trainer/events/{id}")
+    suspend fun deleteEvent(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
+
     // Explore Metadata and Featured
     @GET("api/explore/metadata")
     suspend fun getExploreMetadata(): ApiResponse<ExploreMetadataResponse>
@@ -464,4 +512,53 @@ interface ZiroApi {
     // Surgical Logout
     @POST("api/auth/signout")
     suspend fun signOut(@Body request: SignOutRequest): ApiResponse<Any>
+
+    // Public Blog
+    @GET("api/blog")
+    suspend fun getBlogPosts(
+        @Query("page") page: Int = 1,
+        @Query("pageSize") pageSize: Int = 10
+    ): ApiResponse<BlogListResponse>
+
+    @GET("api/blog/{slug}")
+    suspend fun getBlogPost(@retrofit2.http.Path("slug") slug: String): ApiResponse<BlogPost>
+
+    // Admin Blog
+    @GET("api/admin/blog")
+    suspend fun getAdminBlogPosts(): ApiResponse<AdminBlogListResponse>
+
+    @POST("api/admin/blog")
+    suspend fun createBlogPost(@Body request: CreateBlogPostRequest): ApiResponse<AdminBlogPost>
+
+    @GET("api/admin/blog/{id}")
+    suspend fun getAdminBlogPost(@retrofit2.http.Path("id") id: String): ApiResponse<AdminBlogPost>
+
+    @PUT("api/admin/blog/{id}")
+    suspend fun updateBlogPost(
+        @retrofit2.http.Path("id") id: String,
+        @Body request: UpdateBlogPostRequest
+    ): ApiResponse<AdminBlogPost>
+
+    @DELETE("api/admin/blog/{id}")
+    suspend fun deleteBlogPost(@retrofit2.http.Path("id") id: String): ApiResponse<Any>
+
+    // Billing
+    @POST("api/billing/portal")
+    suspend fun getBillingPortalUrl(): ApiResponse<BillingPortalResponse>
+
+    @GET("api/billing/subscription")
+    suspend fun getBillingSubscription(): ApiResponse<SubscriptionInfo>
+
+    // Admin Events
+    @GET("api/admin/events")
+    suspend fun getPendingEvents(): ApiResponse<AdminEventsResponse>
+
+    @GET("api/admin/events/{id}")
+    suspend fun getEventForModeration(@retrofit2.http.Path("id") id: String): ApiResponse<EventModerationDetailResponse>
+
+    @PATCH("api/admin/events/{id}")
+    suspend fun moderateEvent(
+        @retrofit2.http.Path("id") id: String,
+        @Body request: EventModerationActionRequest
+    ): ApiResponse<EventModerationUpdateResponse>
 }

@@ -88,44 +88,27 @@ class ClientDashboardViewModel @Inject constructor(
                 }
                 .onFailure { e ->
                     if (e.message == "ProfileNotFound") {
-                        // Fallback to basic user info
-                        try {
-                            val userResponse = api.getMe()
-                            val user = userResponse.data
-                            if (user != null) {
-                                val fallbackData = ClientDashboardData(
-                                    id = user.id,
-                                    name = user.name ?: "User",
-                                    email = user.email,
-                                    trainer = null,
-                                    workoutSessions = emptyList(),
-                                    measurements = emptyList()
-                                )
-                                // Also try to fetch trainer info and active program for fallback
-                                viewModelScope.launch {
-                                    val trainerResult = trainerRepository.getLinkedTrainer()
-                                    val linkedTrainer = trainerResult.getOrNull()
-                                    
-                                    val activeProgramResult = repository.getActiveProgramProgress()
-                                    val activeProgram = activeProgramResult.getOrNull()
-                                    
-                                    uiState = ClientDashboardUiState.Success(
-                                        fallbackData, 
-                                        linkedTrainer, 
-                                        isRefreshing = false,
-                                        activeProgram = activeProgram
-                                    )
-                                }
-                            } else {
-                                uiState = ClientDashboardUiState.Error("Profile not found and failed to fetch user info")
-                            }
-                        } catch (ex: Exception) {
-                            uiState = ClientDashboardUiState.Error("Profile not found and failed to fetch user info")
+                        viewModelScope.launch {
+                            val trainerResult = trainerRepository.getLinkedTrainer()
+                            val linkedTrainer = trainerResult.getOrNull()
+                            
+                            val fallbackData = ClientDashboardData(
+                                id = "",
+                                name = "User",
+                                email = null,
+                                trainer = linkedTrainer,
+                                workoutSessions = emptyList(),
+                                measurements = emptyList()
+                            )
+                            
+                            uiState = ClientDashboardUiState.Success(
+                                fallbackData, 
+                                linkedTrainer, 
+                                isRefreshing = false,
+                                activeProgram = null
+                            )
                         }
                     } else {
-                        // If refreshing, revert to success state with error message event (simplified here)
-                        // For now we just go to error state to be safe, or we could handle it better.
-                        // But since we are replacing the logic block:
                          uiState = ClientDashboardUiState.Error(e.message ?: "Unknown error")
                     }
                 }

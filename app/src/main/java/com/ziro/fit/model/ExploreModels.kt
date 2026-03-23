@@ -51,7 +51,9 @@ data class ExploreEvent(
     val capacity: Int?,
     val isBooked: Boolean?,
     val isNearCapacity: Boolean?,
-    val trainer: EventTrainer?
+    val trainer: EventTrainer?,
+    val status: String? = null,
+    val rejectionReason: String? = null
 ) {
     val resolvedHostName: String?
         get() = hostName ?: trainerName ?: trainer?.name
@@ -61,6 +63,15 @@ data class ExploreEvent(
         
     val spotsLeft: Int
         get() = maxOf(0, (capacity ?: 0) - (enrolledCount ?: 0))
+
+    val isPending: Boolean
+        get() = status == "PENDING"
+
+    val isRejected: Boolean
+        get() = status == "REJECTED"
+
+    val isApproved: Boolean
+        get() = status == "APPROVED"
 }
 
 data class EventTrainer(
@@ -86,5 +97,13 @@ data class PaginationData(
 )
 
 data class EventDetailResponse(
+    val event: ExploreEvent
+)
+
+data class TrainerEventsListResponse(
+    val events: List<ExploreEvent>
+)
+
+data class EventCreateResponse(
     val event: ExploreEvent
 )

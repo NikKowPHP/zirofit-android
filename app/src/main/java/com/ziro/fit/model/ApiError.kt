@@ -18,5 +18,6 @@ data class ApiErrorResponse(
 data class ApiError(
     val message: String,
     val statusCode: Int? = null,
-    val validationErrors: Map<String, List<String>>? = null
+    val validationErrors: Map<String, List<String>>? = null,
+    val isCancellation: Boolean = false
 )

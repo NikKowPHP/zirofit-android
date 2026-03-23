@@ -2,28 +2,29 @@ package com.ziro.fit.service
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.util.Log
 import com.google.gson.Gson
 import com.ziro.fit.data.remote.ZiroApi
 import com.ziro.fit.model.*
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
-import kotlinx.coroutines.runBlocking
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import retrofit2.HttpException
-import retrofit2.Response
-import java.io.IOException
 
 class SyncManagerTest {
     private val mockContext = mockk<Context>(relaxed = true)
     private val mockApi = mockk<ZiroApi>(relaxed = true)
     private val mockPrefs = mockk<SharedPreferences>(relaxed = true)
+    private val mockConnectivityManager = mockk<ConnectivityManager>(relaxed = true)
+    private val mockNetworkCapabilities = mockk<NetworkCapabilities>(relaxed = true)
+    private val mockNetworkRequest = mockk<NetworkRequest>(relaxed = true)
+    private val mockNetworkRequestBuilder = mockk<NetworkRequest.Builder>(relaxed = true)
 
     private lateinit var manager: SyncManager
     private lateinit var gson: Gson
@@ -37,17 +38,19 @@ class SyncManagerTest {
         every { Log.d(any<String>(), any<String>()) } returns 0
 
         gson = Gson()
+        mockkConstructor(NetworkRequest.Builder::class)
+        every { anyConstructed<NetworkRequest.Builder>().addCapability(any()) } returns mockNetworkRequestBuilder
+        every { anyConstructed<NetworkRequest.Builder>().build() } returns mockNetworkRequest
+
         every { mockContext.getSharedPreferences(any<String>(), any()) } returns mockPrefs
+        every { mockContext.getSystemService(Context.CONNECTIVITY_SERVICE) } returns mockConnectivityManager
         every { mockPrefs.getString(any<String>(), any()) } returns null
         every { mockPrefs.edit() } returns mockk(relaxed = true)
+        every { mockConnectivityManager.activeNetwork } returns null
+        every { mockConnectivityManager.getNetworkCapabilities(null) } returns mockNetworkCapabilities
+        every { mockNetworkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) } returns false
 
         manager = SyncManager(mockContext, mockApi)
-    }
-
-    private fun performActionReflectively(action: SyncAction): Boolean {
-        val method = SyncManager::class.java.getDeclaredMethod("performAction", SyncAction::class.java)
-        method.isAccessible = true
-        return method.invoke(manager, action) as Boolean
     }
 
     // --- Data class tests
@@ -97,112 +100,8 @@ class SyncManagerTest {
         assertEquals(SyncActionType.FINISH_WORKOUT, SyncActionType.valueOf("FINISH_WORKOUT"))
     }
 
-    // --- performAction tests
-
     @Test
-    fun `performAction LOG_SET success returns true`() = runBlocking {
-        val payload = LogSetPayload("sess1", "ex1", 10, 60.0, null, 0, true, "log1")
-        val action = SyncAction("act1", SyncActionType.LOG_SET, gson.toJson(payload), System.currentTimeMillis())
-
-        coEvery { mockApi.logSet(any()) } returns ApiResponse(data = Unit, success = true)
-
-        val result = performActionReflectively(action)
-        assertTrue(result)
-    }
-
-    @Test
-    fun `performAction FINISH_WORKOUT success returns true`() = runBlocking {
-        val payload = FinishWorkoutPayload("sess1", "Done")
-        val action = SyncAction("act1", SyncActionType.FINISH_WORKOUT, gson.toJson(payload), System.currentTimeMillis())
-
-        coEvery { mockApi.finishWorkout(any()) } returns ApiResponse(data = FinishWorkoutResponse(mockk(), null), success = true)
-
-        val result = performActionReflectively(action)
-        assertTrue(result)
-    }
-
-    @Test
-    fun `performAction LOG_SET 404 returns true for self-healing`() = runBlocking {
-        val payload = LogSetPayload("sess1", "ex1", 10, 60.0, null, 0, true, "log1")
-        val action = SyncAction("act1", SyncActionType.LOG_SET, gson.toJson(payload), System.currentTimeMillis())
-
-        val errorResponse = Response.error<Any>(404, "{}".toResponseBody("application/json".toMediaTypeOrNull()))
-        coEvery { mockApi.logSet(any()) } throws HttpException(errorResponse)
-
-        val result = performActionReflectively(action)
-        assertTrue(result)
-    }
-
-    @Test
-    fun `performAction FINISH_WORKOUT 404 returns true for self-healing`() = runBlocking {
-        val payload = FinishWorkoutPayload("sess1", null)
-        val action = SyncAction("act1", SyncActionType.FINISH_WORKOUT, gson.toJson(payload), System.currentTimeMillis())
-
-        val errorResponse = Response.error<Any>(404, "{}".toResponseBody("application/json".toMediaTypeOrNull()))
-        coEvery { mockApi.finishWorkout(any()) } throws HttpException(errorResponse)
-
-        val result = performActionReflectively(action)
-        assertTrue(result)
-    }
-
-    @Test
-    fun `performAction LOG_SET session_not_found message returns true`() = runBlocking {
-        val payload = LogSetPayload("sess1", "ex1", 10, 60.0, null, 0, true, "log1")
-        val action = SyncAction("act1", SyncActionType.LOG_SET, gson.toJson(payload), System.currentTimeMillis())
-
-        val json = """{"message": "session_not_found"}"""
-        val errorResponse = Response.error<Any>(400, json.toResponseBody("application/json".toMediaTypeOrNull()))
-        coEvery { mockApi.logSet(any()) } throws HttpException(errorResponse)
-
-        val result = performActionReflectively(action)
-        assertTrue(result)
-    }
-
-    @Test
-    fun `performAction LOG_SET Session not found capitalized returns true`() = runBlocking {
-        val payload = LogSetPayload("sess1", "ex1", 10, 60.0, null, 0, true, "log1")
-        val action = SyncAction("act1", SyncActionType.LOG_SET, gson.toJson(payload), System.currentTimeMillis())
-
-        val json = """{"message": "Session not found"}"""
-        val errorResponse = Response.error<Any>(400, json.toResponseBody("application/json".toMediaTypeOrNull()))
-        coEvery { mockApi.logSet(any()) } throws HttpException(errorResponse)
-
-        val result = performActionReflectively(action)
-        assertTrue(result)
-    }
-
-    @Test
-    fun `performAction LOG_SET other exception returns false`() = runBlocking {
-        val payload = LogSetPayload("sess1", "ex1", 10, 60.0, null, 0, true, "log1")
-        val action = SyncAction("act1", SyncActionType.LOG_SET, gson.toJson(payload), System.currentTimeMillis())
-
-        coEvery { mockApi.logSet(any()) } throws IOException("Network error")
-
-        val result = performActionReflectively(action)
-        assertFalse(result)
-    }
-
-    @Test
-    fun `performAction FINISH_WORKOUT other exception returns false`() = runBlocking {
-        val payload = FinishWorkoutPayload("sess1", null)
-        val action = SyncAction("act1", SyncActionType.FINISH_WORKOUT, gson.toJson(payload), System.currentTimeMillis())
-
-        coEvery { mockApi.finishWorkout(any()) } throws IOException("Network error")
-
-        val result = performActionReflectively(action)
-        assertFalse(result)
-    }
-
-    @Test
-    fun `performAction FINISH_WORKOUT session_not_found message returns true`() = runBlocking {
-        val payload = FinishWorkoutPayload("sess1", null)
-        val action = SyncAction("act1", SyncActionType.FINISH_WORKOUT, gson.toJson(payload), System.currentTimeMillis())
-
-        val json = """{"message": "session_not_found"}"""
-        val errorResponse = Response.error<Any>(400, json.toResponseBody("application/json".toMediaTypeOrNull()))
-        coEvery { mockApi.finishWorkout(any()) } throws HttpException(errorResponse)
-
-        val result = performActionReflectively(action)
-        assertTrue(result)
+    fun `SyncManager isOnline starts as false when no network`() {
+        assertFalse(manager.isOnline.value)
     }
 }

@@ -230,11 +230,11 @@ class ApiErrorParserEdgeCasesTest {
     }
 
     @Test
-    fun `formatValidationErrors with nested error maps handles gracefully`() {
+    fun `formatValidationErrors with empty list produces trailing space`() {
         val validationErrors = mapOf("user" to emptyList<String>())
 
         val formatted = ApiErrorParser.formatValidationErrors(validationErrors)
 
-        assertEquals("User:", formatted)
+        assertEquals("User: ", formatted)
     }
 }

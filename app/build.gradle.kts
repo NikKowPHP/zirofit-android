@@ -48,6 +48,23 @@ android {
     buildFeatures {
         buildConfig = true
     }
+    defaultConfig {
+        testInstrumentationRunnerArguments += mapOf(
+            "E2E_TRAINER_EMAIL" to (project.findProperty("E2E_TRAINER_EMAIL") as String? ?: "e2e-test-trainer@ziro.fit"),
+            "E2E_TRAINER_PASSWORD" to (project.findProperty("E2E_TRAINER_PASSWORD") as String? ?: "test-password-123"),
+            "E2E_CLIENT_EMAIL" to (project.findProperty("E2E_CLIENT_EMAIL") as String? ?: "calendar.client@test.com"),
+            "E2E_CLIENT_PASSWORD" to (project.findProperty("E2E_CLIENT_PASSWORD") as String? ?: "test-password-123"),
+        )
+    }
+    packaging {
+        resources {
+            excludes += "META-INF/LICENSE.md"
+            excludes += "META-INF/LICENSE-notice.md"
+            excludes += "META-INF/NOTICE.md"
+            excludes += "META-INF/AL2.0"
+            excludes += "META-INF/LGPL2.1"
+        }
+    }
 }
 
 secrets {
@@ -100,6 +117,12 @@ dependencies {
     androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.hilt.android.testing)
     kaptAndroidTest(libs.hilt.compiler)
+
+    // E2E Testing - Kaspresso (UI Automator + Compose support)
+    androidTestImplementation("com.kaspersky.android-components:kaspresso:1.5.0")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

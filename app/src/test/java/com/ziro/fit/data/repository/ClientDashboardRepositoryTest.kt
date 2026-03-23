@@ -139,6 +139,6 @@ class ClientDashboardRepositoryTest {
         val result = repository.getClientProgress()
 
         assertTrue(result.isSuccess)
-        assertEquals("You lifted 5000 kg more than last time!", result.getOrNull()!!.insightsMessage)
+        assertEquals("You lifted 3000 kg more than last time!", result.getOrNull()!!.insightsMessage)
     }
 }

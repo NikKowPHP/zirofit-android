@@ -1,30 +1,47 @@
 package com.ziro.fit.ui.auth
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ziro.fit.ui.components.ZiroPrimaryButton
+import com.ziro.fit.ui.components.ZiroTextField
+import com.ziro.fit.ui.theme.ZiroAccent
 
 @Composable
 fun RegisterScreen(
     onRegister: (String, String, String) -> Unit,
+    onGoogleSignIn: () -> Unit,
     onNavigateToLogin: () -> Unit,
     onClearError: () -> Unit,
     isLoading: Boolean = false,
-    error: String? = null
+    error: String? = null,
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -32,7 +49,6 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var validationError by remember { mutableStateOf<String?>(null) }
 
-    // Clear validation error when user types
     LaunchedEffect(name, email, password, confirmPassword) {
         if (validationError != null) validationError = null
     }
@@ -40,49 +56,35 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(40.dp))
         Text(
-            text = "Join ZIRO.FIT", 
-            style = MaterialTheme.typography.displaySmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            text = "ZIRO.FIT",
+            style = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.Bold, color = ZiroAccent)
         )
-        
+        Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "Start your fitness journey today",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            "Create an account",
+            style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onBackground)
         )
-        
-        Spacer(modifier = Modifier.height(48.dp))
-        
-        // Error Banner
-        AnimatedVisibility(
-            visible = error != null || validationError != null,
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
-        ) {
+        Spacer(modifier = Modifier.height(32.dp))
+
+        AnimatedVisibility(visible = error != null || validationError != null) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                ),
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ErrorOutline, 
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                    Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         text = error ?: validationError ?: "",
@@ -93,114 +95,62 @@ fun RegisterScreen(
                 }
             }
         }
-        
-        OutlinedTextField(
+
+        ZiroTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("Full Name") },
-            shape = RoundedCornerShape(12.dp),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            placeholder = "Full Name",
+            icon = { Icon(Icons.Default.Lock, null, tint = Color.Gray) },
+            keyboardType = KeyboardType.Text
         )
-        
         Spacer(modifier = Modifier.height(12.dp))
-        
-        OutlinedTextField(
+        ZiroTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email Address") },
-            shape = RoundedCornerShape(12.dp),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            placeholder = "Email",
+            icon = { Icon(Icons.Default.Email, null, tint = Color.Gray) },
+            keyboardType = KeyboardType.Email
         )
-        
         Spacer(modifier = Modifier.height(12.dp))
-        
-        OutlinedTextField(
+        ZiroTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
-            shape = RoundedCornerShape(12.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Next
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            placeholder = "Password",
+            icon = { Icon(Icons.Default.Lock, null, tint = Color.Gray) },
+            isPassword = true
         )
-
         Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
+        ZiroTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
-            shape = RoundedCornerShape(12.dp),
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            placeholder = "Confirm Password",
+            icon = { Icon(Icons.Default.Lock, null, tint = Color.Gray) },
+            isPassword = true
         )
 
         Spacer(modifier = Modifier.height(32.dp))
-        
-        Button(
+
+        ZiroPrimaryButton(
+            text = "Create Account",
             onClick = {
                 onClearError()
-                if (name.isBlank() || email.isBlank() || password.isBlank()) {
-                    validationError = "Please fill in all fields"
-                } else if (password != confirmPassword) {
-                    validationError = "Passwords do not match"
-                } else if (password.length < 8) {
-                    validationError = "Password must be at least 8 characters"
-                } else {
-                    onRegister(name, email, password)
+                when {
+                    name.isBlank() || email.isBlank() || password.isBlank() -> validationError = "Please fill in all fields"
+                    password != confirmPassword -> validationError = "Passwords do not match"
+                    password.length < 8 -> validationError = "Password must be at least 8 characters"
+                    else -> onRegister(name, email, password)
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            enabled = !isLoading
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text("Create Account", style = MaterialTheme.typography.titleMedium)
-            }
-        }
+            isLoading = isLoading,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Already have an account?",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Already have an account?", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             TextButton(onClick = onNavigateToLogin) {
-                Text(
-                    text = "Log In",
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Sign In", fontWeight = FontWeight.SemiBold, color = ZiroAccent)
             }
         }
     }

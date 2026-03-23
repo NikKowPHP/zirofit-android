@@ -1,9 +1,7 @@
 package com.ziro.fit.ui.components
 
-import android.content.Context
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -17,24 +15,24 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.People
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,34 +44,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ziro.fit.model.AppMode
+import com.ziro.fit.ui.theme.ZiroAccent
 import com.ziro.fit.util.HapticNotification
 import com.ziro.fit.util.HapticStyle
 import kotlin.math.roundToInt
 
 enum class TabItem(
-    val label: String,
-    val icon: ImageVector,
-    val trainerIcon: ImageVector = icon
+    val trainerLabel: String,
+    val personalLabel: String,
+    val trainerIcon: ImageVector,
+    val personalIcon: ImageVector
 ) {
-    CALENDAR("Calendar", Icons.Default.DateRange),
-    PROGRAMS("Programs", Icons.Default.List, Icons.Default.Search),
-    HOME("Home", Icons.Default.Home),
-    CLIENTS("Clients", Icons.Default.People, Icons.Default.DateRange),
-    MORE("More", Icons.Default.Menu);
+    CALENDAR("Calendar", "Calendar", Icons.Default.CalendarMonth, Icons.Default.CalendarMonth),
+    PROGRAMS("Programs", "Explore", Icons.Default.Search, Icons.Default.Search),
+    HOME("Home", "Home", Icons.Default.Home, Icons.Default.Home),
+    CLIENTS("Clients", "Workouts", Icons.Default.People, Icons.AutoMirrored.Filled.List),
+    MORE("More", "More", Icons.Default.Menu, Icons.Default.Menu),
+    ANALYTICS("Analytics", "Analytics", Icons.Default.BarChart, Icons.Default.BarChart);
+    
+    fun label(mode: AppMode) = if (mode == AppMode.TRAINER) trainerLabel else personalLabel
+    fun icon(mode: AppMode) = if (mode == AppMode.TRAINER) trainerIcon else personalIcon
 
     companion object {
         fun trainerTabs() = listOf(CALENDAR, PROGRAMS, HOME, CLIENTS, MORE)
-        fun personalTabs() = listOf(CALENDAR, PROGRAMS, HOME, CLIENTS, MORE)
+        fun personalTabs() = listOf(PROGRAMS, CLIENTS, HOME, ANALYTICS, MORE)
         fun tabsFor(mode: AppMode) = if (mode == AppMode.TRAINER) trainerTabs() else personalTabs()
     }
 }
@@ -125,7 +127,7 @@ fun ModeTabBar(
                 indication = null
             ) {
             },
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 28.dp, bottomEnd = 28.dp),
+        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
         shadowElevation = 12.dp
     ) {
@@ -170,24 +172,46 @@ fun ModeTabBar(
 
             Box(modifier = Modifier.height(4.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+            NavigationBar(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp),
+                containerColor = Color.Transparent,
+                tonalElevation = 0.dp
             ) {
                 tabs.forEach { tab ->
-                    val icon = if (currentMode == AppMode.TRAINER) tab.trainerIcon else tab.icon
+                    val icon = tab.icon(currentMode)
+                    val label = tab.label(currentMode)
                     val isSelected = tab == selectedTab
 
-                    TabButton(
-                        icon = icon,
-                        label = tab.label,
-                        isSelected = isSelected,
+                    NavigationBarItem(
+                        selected = isSelected,
                         onClick = {
                             HapticManagerCompat.impact(HapticStyle.LIGHT)
                             onTabSelected(tab)
                         },
-                        modifier = Modifier.weight(1f)
+                        icon = {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = label,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = label,
+                                fontSize = 10.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = ZiroAccent,
+                            selectedTextColor = ZiroAccent,
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray,
+                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer
+                        ),
+                        alwaysShowLabel = true
                     )
                 }
             }
@@ -225,73 +249,6 @@ private fun TabPillButton(
             color = textColor,
             fontSize = 12.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-        )
-    }
-}
-
-@Composable
-private fun TabButton(
-    icon: ImageVector,
-    label: String,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val iconColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "iconColor"
-    )
-    val iconScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.15f else 1f,
-        animationSpec = spring(stiffness = Spring.StiffnessMedium),
-        label = "iconScale"
-    )
-
-    Column(
-        modifier = modifier
-            .clickable(onClick = onClick)
-            .padding(vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(28.dp)
-                .then(
-                    if (isSelected) {
-                        Modifier
-                            .shadow(4.dp, CircleShape)
-                            .background(
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                                CircleShape
-                            )
-                            .padding(4.dp)
-                    } else {
-                        Modifier
-                    }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = iconColor,
-                modifier = Modifier
-                    .size(if (isSelected) 22.dp else 20.dp)
-                    .offset {
-                        IntOffset(
-                            x = ((iconScale - 1f) * 20 * 0.5f).roundToInt(),
-                            y = ((iconScale - 1f) * 20 * 0.5f).roundToInt()
-                        )
-                    }
-            )
-        }
-        Text(
-            text = label,
-            color = iconColor,
-            fontSize = 10.sp,
-            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            modifier = Modifier.padding(top = 2.dp)
         )
     }
 }

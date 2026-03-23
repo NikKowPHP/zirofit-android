@@ -4,7 +4,9 @@ import android.app.Application
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ziro.fit.data.local.TokenManager
 import com.ziro.fit.data.repository.LiveWorkoutRepository
+import com.ziro.fit.model.AppMode
 import com.ziro.fit.model.Exercise
 import com.ziro.fit.model.LiveWorkoutUiModel
 import com.ziro.fit.service.MatchConfidence
@@ -93,7 +95,8 @@ enum class VoiceCommandType {
      private val voiceLogManager: VoiceLogManager,
      private val voiceFeedbackManager: VoiceFeedbackManager,
      private val calendarRepository: com.ziro.fit.data.repository.CalendarRepository,
-     private val clientRepository: com.ziro.fit.data.repository.ClientRepository
+     private val clientRepository: com.ziro.fit.data.repository.ClientRepository,
+     private val tokenManager: TokenManager
  ) : ViewModel() {
     private val _uiState = MutableStateFlow(WorkoutUiState())
     val uiState: StateFlow<WorkoutUiState> = _uiState.asStateFlow()
@@ -179,8 +182,12 @@ enum class VoiceCommandType {
         }
     }
 
-    // iOS mirrors: checkForActiveSession() fallback — scan last 30 days for session_in_progress
     private fun checkForStaleSession() {
+        if (tokenManager.activeMode.value != AppMode.TRAINER) {
+            _uiState.update { it.copy(isLoading = false) }
+            return
+        }
+        
         viewModelScope.launch {
             try {
                 val now = java.time.LocalDate.now()
@@ -188,13 +195,11 @@ enum class VoiceCommandType {
                 
                 calendarRepository.getEventsInRange(startDate, now)
                     .onSuccess { events ->
-                        // Find most recent session_in_progress event
                         val staleEvent = events
                             .filter { it.type == com.ziro.fit.model.EventType.session_in_progress }
                             .maxByOrNull { it.startTime }
                         
                         if (staleEvent != null) {
-                            // Verify session is not too old (12h threshold, mirrors iOS)
                             val sessionAge = java.time.Duration.between(
                                 staleEvent.startTime,
                                 java.time.LocalDateTime.now()

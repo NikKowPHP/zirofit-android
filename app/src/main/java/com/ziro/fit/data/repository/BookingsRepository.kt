@@ -80,4 +80,34 @@ class BookingsRepository @Inject constructor(
             Result.failure(Exception(ApiErrorParser.getErrorMessage(ApiErrorParser.parse(e))))
         }
     }
+
+    suspend fun confirmBooking(
+        bookingId: String,
+        dataSharingApproved: Boolean
+    ): Result<Booking> {
+        val request = ConfirmBookingRequest(dataSharingApproved = dataSharingApproved)
+        return try {
+            val response = api.confirmBooking(bookingId, request)
+            if ((response.success ?: true) && response.data != null) {
+                Result.success(response.data!!.booking)
+            } else {
+                Result.failure(Exception(response.error ?: "Failed to confirm booking"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(ApiErrorParser.parse(e))))
+        }
+    }
+
+    suspend fun declineBooking(bookingId: String): Result<Booking> {
+        return try {
+            val response = api.declineBooking(bookingId)
+            if ((response.success ?: true) && response.data != null) {
+                Result.success(response.data!!.booking)
+            } else {
+                Result.failure(Exception(response.error ?: "Failed to decline booking"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(ApiErrorParser.parse(e))))
+        }
+    }
 }

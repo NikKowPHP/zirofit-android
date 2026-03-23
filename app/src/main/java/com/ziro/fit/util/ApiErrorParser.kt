@@ -5,6 +5,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 import com.ziro.fit.model.ApiError
 import com.ziro.fit.model.ApiErrorResponse
+import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException
 import java.io.IOException
 
@@ -35,6 +36,14 @@ object ApiErrorParser {
                 ApiError(
                     message = "Network error. Please check your connection.",
                     statusCode = null
+                )
+            }
+            is CancellationException -> {
+                Log.w(TAG, "Coroutine was cancelled (not an API error)", throwable)
+                ApiError(
+                    message = "Request cancelled",
+                    statusCode = null,
+                    isCancellation = true
                 )
             }
             else -> {

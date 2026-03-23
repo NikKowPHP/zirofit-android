@@ -285,4 +285,148 @@ class AuthViewModelTest {
         verify { tokenManager.saveToken("token_only", AppMode.TRAINER) }
         verify(exactly = 0) { tokenManager.saveRefreshToken(any(), any()) }
     }
+
+    @Test
+    fun `forgotPassword success clears uiError`() = runTest {
+        coEvery { api.forgotPassword(any()) } returns ApiResponse(
+            success = true,
+            data = ForgotPasswordResponse("Reset email sent")
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.forgotPassword("test@example.com")
+        advanceUntilIdle()
+
+        coVerify { api.forgotPassword(match { it.email == "test@example.com" }) }
+        assertNull(viewModel.uiError)
+        assertFalse(viewModel.uiLoading)
+    }
+
+    @Test
+    fun `forgotPassword failure sets uiError`() = runTest {
+        coEvery { api.forgotPassword(any()) } throws RuntimeException("Network error")
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.forgotPassword("test@example.com")
+        advanceUntilIdle()
+
+        assertNotNull(viewModel.uiError)
+        assertFalse(viewModel.uiLoading)
+    }
+
+    @Test
+    fun `forgotPassword API returns success=false sets uiError`() = runTest {
+        coEvery { api.forgotPassword(any()) } returns ApiResponse(
+            success = false,
+            data = null,
+            message = "Email not found",
+            error = null
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.forgotPassword("unknown@example.com")
+        advanceUntilIdle()
+
+        assertEquals("Email not found", viewModel.uiError)
+        assertFalse(viewModel.uiLoading)
+    }
+
+    @Test
+    fun `forgotPassword sets uiLoading correctly`() = runTest {
+        coEvery { api.forgotPassword(any()) } returns ApiResponse(
+            success = true,
+            data = ForgotPasswordResponse("Reset email sent")
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiLoading)
+
+        viewModel.forgotPassword("test@example.com")
+
+        assertTrue(viewModel.uiLoading)
+
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiLoading)
+    }
+
+    @Test
+    fun `updatePassword success clears uiError`() = runTest {
+        coEvery { api.updatePassword(any()) } returns ApiResponse(
+            success = true,
+            data = UpdatePasswordResponse("Password updated")
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.updatePassword("newpassword123")
+        advanceUntilIdle()
+
+        coVerify { api.updatePassword(match { it.password == "newpassword123" }) }
+        assertNull(viewModel.uiError)
+        assertFalse(viewModel.uiLoading)
+    }
+
+    @Test
+    fun `updatePassword failure sets uiError`() = runTest {
+        coEvery { api.updatePassword(any()) } throws RuntimeException("Network error")
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.updatePassword("newpassword123")
+        advanceUntilIdle()
+
+        assertNotNull(viewModel.uiError)
+        assertFalse(viewModel.uiLoading)
+    }
+
+    @Test
+    fun `updatePassword API returns success=false sets uiError`() = runTest {
+        coEvery { api.updatePassword(any()) } returns ApiResponse(
+            success = false,
+            data = null,
+            message = "Update failed",
+            error = null
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.updatePassword("newpassword123")
+        advanceUntilIdle()
+
+        assertEquals("Update failed", viewModel.uiError)
+        assertFalse(viewModel.uiLoading)
+    }
+
+    @Test
+    fun `updatePassword sets uiLoading correctly`() = runTest {
+        coEvery { api.updatePassword(any()) } returns ApiResponse(
+            success = true,
+            data = UpdatePasswordResponse("Password updated")
+        )
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiLoading)
+
+        viewModel.updatePassword("newpassword123")
+
+        assertTrue(viewModel.uiLoading)
+
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiLoading)
+    }
 }

@@ -21,7 +21,8 @@ fun MoreScreen(
     onNavigateToAssessments: () -> Unit,
     onNavigateToBookings: () -> Unit,
     onNavigateToCheckIns: () -> Unit,
-    onNavigateToEvents: () -> Unit
+    onNavigateToEvents: () -> Unit,
+    onNavigateToMyEvents: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -41,6 +42,15 @@ fun MoreScreen(
                     title = "Explore Events",
                     subtitle = "Discover and join upcoming events",
                     onClick = onNavigateToEvents
+                )
+                HorizontalDivider()
+            }
+            item {
+                MoreMenuItem(
+                    icon = Icons.Default.Build,
+                    title = "My Events",
+                    subtitle = "Manage your created events",
+                    onClick = onNavigateToMyEvents
                 )
                 HorizontalDivider()
             }

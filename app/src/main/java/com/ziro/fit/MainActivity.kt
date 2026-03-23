@@ -47,12 +47,17 @@ import com.ziro.fit.ui.workout.LiveWorkoutMiniPlayer
 import com.ziro.fit.ui.discovery.EventsListScreen
 import com.ziro.fit.ui.discovery.EventDetailScreen
 import com.ziro.fit.ui.discovery.ExploreScreen
+import com.ziro.fit.ui.discovery.TrainerEventsScreen
 import com.ziro.fit.ui.theme.ZirofitTheme
 import com.ziro.fit.ui.theme.*
 import com.ziro.fit.ui.checkins.CheckInListScreen
 import com.ziro.fit.ui.checkins.CheckInDetailScreen
 import com.ziro.fit.ui.auth.RegisterScreen
+import com.ziro.fit.ui.auth.LoginScreen
 import com.ziro.fit.ui.auth.EmailConfirmationScreen
+import com.ziro.fit.ui.auth.ForgotPasswordScreen
+import com.ziro.fit.ui.auth.UpdatePasswordScreen
+import androidx.compose.foundation.layout.Box
 import com.ziro.fit.ui.onboarding.RoleSelectionScreen
 import com.ziro.fit.model.AppMode
 import com.ziro.fit.ui.components.ModeTabBar
@@ -66,6 +71,7 @@ import com.ziro.fit.viewmodel.WorkoutViewModel
 
 import com.ziro.fit.service.GlobalChatManager
 import com.ziro.fit.auth.GoogleAuthManager
+import com.ziro.fit.auth.AppleSignInManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -78,14 +84,19 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var googleAuthManager: GoogleAuthManager
 
+    @Inject
+    lateinit var appleSignInManager: AppleSignInManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         googleAuthManager.processIntent(intent)
+        appleSignInManager.processIntent(intent)
         setContent {
             ZirofitTheme {
                 AppNavigation(
                     globalChatManager = globalChatManager,
-                    googleAuthManager = googleAuthManager
+                    googleAuthManager = googleAuthManager,
+                    appleSignInManager = appleSignInManager
                 )
             }
         }
@@ -94,6 +105,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         googleAuthManager.processIntent(intent)
+        appleSignInManager.processIntent(intent)
         val uri = intent.data
         if (uri != null && uri.scheme == "zirofitapp" && uri.host == "login" && uri.getQueryParameter("verified") == "true") {
             intent.putExtra("email_verified", true)
@@ -105,7 +117,8 @@ class MainActivity : ComponentActivity() {
 fun AppNavigation(
     authViewModel: AuthViewModel = hiltViewModel(),
     globalChatManager: GlobalChatManager,
-    googleAuthManager: GoogleAuthManager
+    googleAuthManager: GoogleAuthManager,
+    appleSignInManager: AppleSignInManager
 ) {
     val state = authViewModel.authState
 
@@ -158,6 +171,7 @@ fun AppNavigation(
             "login" -> AuthNavigation(
                 authViewModel = authViewModel,
                 googleAuthManager = googleAuthManager,
+                appleSignInManager = appleSignInManager,
                 initialRoute = if (showEmailVerifiedMessage) "login?verified=true" else "login",
                 verifiedFromDeepLink = showEmailVerifiedMessage,
                 onVerifiedMessageShown = { showEmailVerifiedMessage = false }
@@ -187,6 +201,7 @@ fun AppNavigation(
 fun AuthNavigation(
     authViewModel: AuthViewModel,
     googleAuthManager: GoogleAuthManager,
+    appleSignInManager: AppleSignInManager,
     initialRoute: String,
     verifiedFromDeepLink: Boolean = false,
     onVerifiedMessageShown: () -> Unit = {}
@@ -219,6 +234,27 @@ fun AuthNavigation(
         }
     }
 
+    LaunchedEffect(appleSignInManager) {
+        appleSignInManager.authOutcome.collect { outcome ->
+            when (outcome) {
+                is com.ziro.fit.auth.AppleAuthOutcome.Success -> {
+                    authViewModel.handleAppleAuthResult(
+                        outcome.result.idToken,
+                        outcome.result.authCode,
+                        outcome.result.email,
+                        "",
+                        "client"
+                    )
+                }
+                is com.ziro.fit.auth.AppleAuthOutcome.Error -> {
+                    authViewModel.clearError()
+                }
+                is com.ziro.fit.auth.AppleAuthOutcome.Cancelled -> {
+                }
+            }
+        }
+    }
+
     LaunchedEffect(authState) {
         if (authState is AuthState.EmailConfirmationRequired) {
             navController.navigate("email_confirmation") {
@@ -240,9 +276,14 @@ fun AuthNavigation(
             LoginScreen(
                 onLogin = authViewModel::login,
                 onGoogleSignIn = { googleAuthManager.launchGoogleSignIn(context) },
+                onAppleSignIn = { appleSignInManager.signIn() },
                 onNavigateToRegister = {
                     authViewModel.clearError()
                     navController.navigate("register")
+                },
+                onNavigateToForgotPassword = {
+                    authViewModel.clearError()
+                    navController.navigate("forgot_password")
                 },
                 onClearError = authViewModel::clearError,
                 isLoading = isLoading,
@@ -256,10 +297,16 @@ fun AuthNavigation(
                     authViewModel.login(email, pass)
                 },
                 onGoogleSignIn = { googleAuthManager.launchGoogleSignIn(context) },
+                onAppleSignIn = { appleSignInManager.signIn() },
                 onNavigateToRegister = {
                     onVerifiedMessageShown()
                     authViewModel.clearError()
                     navController.navigate("register")
+                },
+                onNavigateToForgotPassword = {
+                    onVerifiedMessageShown()
+                    authViewModel.clearError()
+                    navController.navigate("forgot_password")
                 },
                 onClearError = authViewModel::clearError,
                 isLoading = isLoading,
@@ -270,6 +317,7 @@ fun AuthNavigation(
         composable("register") {
              RegisterScreen(
                  onRegister = authViewModel::register,
+                 onGoogleSignIn = { googleAuthManager.launchGoogleSignIn(context) },
                  onNavigateToLogin = {
                      authViewModel.clearError()
                      navController.popBackStack()
@@ -289,6 +337,31 @@ fun AuthNavigation(
                         popUpTo(0) { inclusive = true }
                     }
                 }
+            )
+        }
+        composable("forgot_password") {
+            ForgotPasswordScreen(
+                onSubmit = authViewModel::forgotPassword,
+                onBackToLogin = {
+                    authViewModel.clearError()
+                    navController.popBackStack()
+                },
+                isLoading = isLoading,
+                error = error
+            )
+        }
+        composable("update_password") {
+            UpdatePasswordScreen(
+                onSubmit = authViewModel::updatePassword,
+                onBackToLogin = {
+                    authViewModel.clearError()
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                isLoading = isLoading,
+                error = error,
+                onClearError = authViewModel::clearError
             )
         }
     }
@@ -341,6 +414,7 @@ fun ClientAppScreen(
                                 TabItem.HOME -> "client_dashboard"
                                 TabItem.CLIENTS -> "client_workouts"
                                 TabItem.MORE -> "profile"
+                                TabItem.ANALYTICS -> "client_analytics"
                             }
                             navController.navigate(route) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -377,6 +451,9 @@ fun ClientAppScreen(
                         onNavigateToEvents = { navController.navigate("events_list") },
                         workoutViewModel = workoutViewModel
                     )
+                }
+                composable("client_analytics") {
+                    com.ziro.fit.ui.analytics.AnalyticsScreen()
                 }
                 composable("trainer_finding_onboarding") {
                     com.ziro.fit.ui.onboarding.TrainerFindingOnboardingScreen(
@@ -621,6 +698,24 @@ fun ClientAppScreen(
                         }
                     )
                 }
+                composable(
+                    route = "blog_list",
+                    deepLinks = listOf(navDeepLink { uriPattern = "zirofit://blog" })
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // BlogListScreen placeholder - to be implemented by another agent
+                    }
+                }
+                composable(
+                    route = "blog_post/{slug}",
+                    deepLinks = listOf(navDeepLink { uriPattern = "zirofit://blog/{slug}" }),
+                    arguments = listOf(navArgument("slug") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val slug = backStackEntry.arguments?.getString("slug") ?: ""
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // BlogPostScreen placeholder - to be implemented by another agent
+                    }
+                }
             }
         }
         
@@ -716,10 +811,11 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                             selectedTab.value = tab
                             val route = when (tab) {
                                 TabItem.CALENDAR -> "calendar"
-                                TabItem.PROGRAMS -> "trainer_programs"
+                                TabItem.PROGRAMS -> "trainer_discovery"
                                 TabItem.HOME -> "trainer_home"
                                 TabItem.CLIENTS -> "clients"
                                 TabItem.MORE -> "more"
+                                TabItem.ANALYTICS -> "client_workouts"
                             }
                             navController.navigate(route) {
                                 popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -972,7 +1068,8 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                         onNavigateToAssessments = { navController.navigate("assessments_library") },
                         onNavigateToBookings = { navController.navigate("bookings_list") },
                         onNavigateToCheckIns = { navController.navigate("checkins_list") },
-                        onNavigateToEvents = { navController.navigate("events_list") }
+                        onNavigateToEvents = { navController.navigate("events_list") },
+                        onNavigateToMyEvents = { navController.navigate("trainer_events") }
                     )
                 }
                 composable("events_list") {
@@ -1038,6 +1135,18 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                         bookingId = bookingId
                     )
                 }
+                composable("trainer_events") {
+                    TrainerEventsScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+                composable("trainer_home") {
+                    CalendarScreen(
+                        workoutViewModel = workoutViewModel,
+                        onNavigateToLiveWorkout = { navController.navigate("live_workout") },
+                        onNavigateToCreateSession = { date -> navController.navigate("create_session?date=$date") }
+                    )
+                }
                 composable("checkins_list") {
                     CheckInListScreen(
                         onNavigateBack = { navController.popBackStack() },
@@ -1069,6 +1178,40 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                              }
                         }
                     )
+                }
+                composable("admin_blog") {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // BlogAdminListScreen placeholder
+                    }
+                }
+                composable("admin_blog/create") {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // BlogCreateScreen placeholder
+                    }
+                }
+                composable(
+                    route = "admin_blog/edit/{id}",
+                    arguments = listOf(navArgument("id") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val id = backStackEntry.arguments?.getString("id") ?: ""
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // BlogEditScreen placeholder
+                    }
+                }
+                composable("admin_events") {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // AdminEventModerationScreen placeholder
+                    }
+                }
+                composable("admin_settings") {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // AdminSettingsScreen placeholder
+                    }
+                }
+                composable("billing_portal") {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // BillingPortalScreen placeholder
+                    }
                 }
             }
         }

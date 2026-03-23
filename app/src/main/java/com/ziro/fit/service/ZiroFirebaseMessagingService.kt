@@ -61,6 +61,30 @@ class ZiroFirebaseMessagingService : FirebaseMessagingService() {
                     messageContent = content
                 )
             }
+
+            // Handle event moderation notifications
+            if (type == "event_approved") {
+                val eventId = remoteMessage.data["eventId"] ?: return
+                val eventTitle = remoteMessage.data["eventTitle"] ?: "Event"
+                notificationHelper.showEventNotification(
+                    notificationId = eventId.hashCode(),
+                    title = "Event Approved!",
+                    message = "Your event \"$eventTitle\" has been approved and is now live.",
+                    eventId = eventId
+                )
+            }
+
+            if (type == "event_rejected") {
+                val eventId = remoteMessage.data["eventId"] ?: return
+                val eventTitle = remoteMessage.data["eventTitle"] ?: "Event"
+                val reason = remoteMessage.data["rejectionReason"] ?: ""
+                notificationHelper.showEventNotification(
+                    notificationId = eventId.hashCode(),
+                    title = "Event Not Approved",
+                    message = "Your event \"$eventTitle\" was not approved. $reason",
+                    eventId = eventId
+                )
+            }
         }
 
         // Handle notification payload (if sent by backend as a display notification)
