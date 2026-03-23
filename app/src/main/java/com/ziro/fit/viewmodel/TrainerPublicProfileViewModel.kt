@@ -209,7 +209,7 @@ class TrainerPublicProfileViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCheckingOut = true, checkoutError = null, checkoutUrl = null)
             
-            billingRepository.createCheckoutSession(packageId)
+            billingRepository.createCheckoutSession(packageId = packageId, type = "PACKAGE_SALE")
                 .onSuccess { url ->
                     _uiState.value = _uiState.value.copy(isCheckingOut = false, checkoutUrl = url)
                 }

@@ -46,9 +46,15 @@ class EventDetailViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             
+            val eventId = event.id.takeIf { it.isNotBlank() }
+            if (eventId == null) {
+                _uiState.update { it.copy(isLoading = false, error = "Invalid event: missing ID") }
+                return@launch
+            }
+            
             if (event.price == null || event.price <= 0.0) {
                 // Free event
-                exploreRepository.joinFreeEvent(event.id)
+                exploreRepository.joinFreeEvent(eventId)
                     .onSuccess {
                         _uiState.update { it.copy(isLoading = false, joinSuccess = true) }
                     }
@@ -57,7 +63,7 @@ class EventDetailViewModel @Inject constructor(
                     }
             } else {
                 // Paid event
-                billingRepository.createCheckoutSession(eventId = event.id, type = "event")
+                billingRepository.createCheckoutSession(eventId = eventId, type = "EVENT_TICKET")
                     .onSuccess { url ->
                         _uiState.update { it.copy(isLoading = false, checkoutUrl = url) }
                     }

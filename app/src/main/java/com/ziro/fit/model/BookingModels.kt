@@ -33,4 +33,4 @@ data class ConfirmBookingRequest(
     val dataSharingApproved: Boolean = false
 )
 
-data class DeclineBookingRequest()
+class DeclineBookingRequest

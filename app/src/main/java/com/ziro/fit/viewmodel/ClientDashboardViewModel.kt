@@ -95,8 +95,8 @@ class ClientDashboardViewModel @Inject constructor(
                             val fallbackData = ClientDashboardData(
                                 id = "",
                                 name = "User",
-                                email = null,
-                                trainer = linkedTrainer,
+                                email = "",
+                                trainer = null,
                                 workoutSessions = emptyList(),
                                 measurements = emptyList()
                             )
@@ -140,10 +140,10 @@ class ClientDashboardViewModel @Inject constructor(
             repository.getWorkoutHistory(cursor = cursor)
                 .onSuccess { response ->
                     val newState = uiState as? ClientDashboardUiState.Success ?: return@onSuccess
-                    val newSessions = if (loadMore) newState.history + response.sessions.sessions else response.sessions.sessions
+                    val newSessions = if (loadMore) newState.history + (response.sessions ?: emptyList()) else response.sessions ?: emptyList()
                     uiState = newState.copy(
                         history = newSessions,
-                        historyCursor = response.sessions.nextCursor,
+                        historyCursor = response.nextCursor,
                         isHistoryLoading = false
                     )
                 }

@@ -10,35 +10,37 @@ class BookingsScreen(private val device: UiDevice) {
         private const val TIMEOUT_MS = 5_000L
     }
 
-    /**
-     * Checks if the bookings screen is visible.
-     */
     fun isVisible(): Boolean {
         return device.wait(Until.hasObject(By.text("Bookings")), TIMEOUT_MS) ||
                 device.wait(Until.hasObject(By.text("My Bookings")), TIMEOUT_MS) ||
                 device.wait(Until.hasObject(By.text("Manage Bookings")), TIMEOUT_MS)
     }
 
-    /**
-     * Checks if booking cards are visible.
-     */
     fun hasBookingCards(): Boolean {
         return device.hasObject(By.text("Confirmed")) ||
                 device.hasObject(By.text("Pending")) ||
                 device.hasObject(By.text("Declined"))
     }
 
-    /**
-     * Checks if the create booking button is visible.
-     */
+    fun isPendingRequestsSectionVisible(): Boolean {
+        return device.hasObject(By.text("Pending Requests")) ||
+                device.hasObject(By.textContains("Pending Requests"))
+    }
+
+    fun isConfirmedSectionVisible(): Boolean {
+        return device.hasObject(By.text("Confirmed"))
+    }
+
+    fun isDeclinedSectionVisible(): Boolean {
+        return device.hasObject(By.text("Declined")) ||
+                device.hasObject(By.text("Declined/Cancelled"))
+    }
+
     fun isCreateBookingButtonVisible(): Boolean {
         return device.hasObject(By.text("Create Booking")) ||
                 device.hasObject(By.text("New Booking"))
     }
 
-    /**
-     * Clicks the create booking button.
-     */
     fun clickCreateBooking() {
         val createButton = device.findObject(By.text("Create Booking"))
             ?: device.findObject(By.text("New Booking"))
@@ -46,18 +48,26 @@ class BookingsScreen(private val device: UiDevice) {
         device.waitForIdle(2000)
     }
 
-    /**
-     * Clicks on a booking card to view details.
-     */
     fun clickBooking(bookingText: String) {
         val bookingCard = device.findObject(By.textContains(bookingText))
         bookingCard?.click()
         device.waitForIdle(2000)
     }
 
-    /**
-     * Confirms a pending booking.
-     */
+    fun clickApproveButton() {
+        val approveButton = device.findObject(By.text("Approve"))
+            ?: device.findObject(By.textContains("Approve"))
+        approveButton?.click()
+        device.waitForIdle(2000)
+    }
+
+    fun clickDeclineButton() {
+        val declineButton = device.findObject(By.text("Decline"))
+            ?: device.findObject(By.textContains("Decline"))
+        declineButton?.click()
+        device.waitForIdle(2000)
+    }
+
     fun confirmBooking() {
         val confirmButton = device.findObject(By.text("Confirm"))
             ?: device.findObject(By.text("Accept"))
@@ -65,9 +75,6 @@ class BookingsScreen(private val device: UiDevice) {
         device.waitForIdle(2000)
     }
 
-    /**
-     * Declines a pending booking.
-     */
     fun declineBooking() {
         val declineButton = device.findObject(By.text("Decline"))
             ?: device.findObject(By.text("Reject"))
@@ -75,17 +82,47 @@ class BookingsScreen(private val device: UiDevice) {
         device.waitForIdle(2000)
     }
 
-    /**
-     * Navigates back.
-     */
+    fun hasDataSharingBadge(): Boolean {
+        return device.hasObject(By.text("Data sharing enabled")) ||
+                device.hasObject(By.textContains("Data sharing"))
+    }
+
+    fun hasApprovalDialog(): Boolean {
+        return device.hasObject(By.text("Approve Booking")) ||
+                device.hasObject(By.text("Enable client data sharing?"))
+    }
+
+    fun clickApproveWithDataSharing() {
+        val button = device.findObject(By.text("Approve with Data Sharing"))
+            ?: device.findObject(By.textContains("Approve with Data"))
+        button?.click()
+        device.waitForIdle(2000)
+    }
+
+    fun clickApproveOnly() {
+        val button = device.findObject(By.text("Approve Only"))
+            ?: device.findObject(By.textContains("Approve Only"))
+        button?.click()
+        device.waitForIdle(2000)
+    }
+
+    fun clickCancelDialog() {
+        val button = device.findObject(By.text("Cancel"))
+            ?: device.findObject(By.textContains("Cancel"))
+        button?.click()
+        device.waitForIdle(1000)
+    }
+
+    fun dismissDialog() {
+        device.pressBack()
+        device.waitForIdle(1000)
+    }
+
     fun navigateBack() {
         device.pressBack()
         device.waitForIdle(1000)
     }
 
-    /**
-     * Scrolls down the bookings list.
-     */
     fun scrollDown() {
         device.swipe(
             device.displayWidth / 2,
@@ -95,5 +132,27 @@ class BookingsScreen(private val device: UiDevice) {
             50
         )
         device.waitForIdle(1000)
+    }
+
+    fun scrollUp() {
+        device.swipe(
+            device.displayWidth / 2,
+            device.displayHeight / 4,
+            device.displayWidth / 2,
+            device.displayHeight * 3 / 4,
+            50
+        )
+        device.waitForIdle(1000)
+    }
+
+    fun hasPendingBookings(): Boolean {
+        val pendingSection = device.findObject(By.text("Pending Requests"))
+            ?: device.findObject(By.textContains("Pending Requests"))
+        return pendingSection != null
+    }
+
+    fun hasConfirmedBookings(): Boolean {
+        val confirmedSection = device.findObject(By.text("Confirmed"))
+        return confirmedSection != null
     }
 }

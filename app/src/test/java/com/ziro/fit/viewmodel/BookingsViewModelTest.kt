@@ -279,4 +279,236 @@ class BookingsViewModelTest {
         )
         assertTrue(viewModel.uiState.value.isLoading || viewModel.uiState.value.bookings.size == 1)
     }
+
+    // ===== Confirm Booking Tests (Approve with Data Sharing) =====
+
+    @Test
+    fun `confirmBooking with data sharing approved moves booking from pending to confirmed`() = runTest {
+        val pendingBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.PENDING
+        )
+        val confirmedBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.CONFIRMED,
+            dataSharingApproved = true,
+            dataSharingApprovedAt = "2026-03-22T09:00:00Z"
+        )
+        coEvery { repository.getBookings() } returns Result.success(listOf(pendingBooking))
+        coEvery { repository.confirmBooking("1", dataSharingApproved = true) } returns Result.success(confirmedBooking)
+        val onSuccess = mockk<() -> Unit>(relaxed = true)
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.confirmBooking(bookingId = "1", dataSharingApproved = true, onSuccess = onSuccess)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, state.confirmedBookings.size)
+        assertEquals(0, state.pendingBookings.size)
+        assertEquals(true, state.confirmedBookings.first().dataSharingApproved)
+        assertEquals("Booking confirmed", state.successMessage)
+        verify { onSuccess() }
+    }
+
+    @Test
+    fun `confirmBooking with data sharing not approved moves booking without data sharing flag`() = runTest {
+        val pendingBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.PENDING
+        )
+        val confirmedBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.CONFIRMED,
+            dataSharingApproved = false
+        )
+        coEvery { repository.getBookings() } returns Result.success(listOf(pendingBooking))
+        coEvery { repository.confirmBooking("1", dataSharingApproved = false) } returns Result.success(confirmedBooking)
+        val onSuccess = mockk<() -> Unit>(relaxed = true)
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.confirmBooking(bookingId = "1", dataSharingApproved = false, onSuccess = onSuccess)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, state.confirmedBookings.size)
+        assertEquals(0, state.pendingBookings.size)
+        assertEquals(false, state.confirmedBookings.first().dataSharingApproved)
+        verify { onSuccess() }
+    }
+
+    @Test
+    fun `confirmBooking failure does not change booking status and shows error`() = runTest {
+        val pendingBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.PENDING
+        )
+        coEvery { repository.getBookings() } returns Result.success(listOf(pendingBooking))
+        coEvery { repository.confirmBooking("1", any()) } returns Result.failure(Exception("Failed to confirm"))
+        val onSuccess = mockk<() -> Unit>(relaxed = true)
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.confirmBooking(bookingId = "1", dataSharingApproved = true, onSuccess = onSuccess)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, state.pendingBookings.size)
+        assertEquals(0, state.confirmedBookings.size)
+        assertEquals("Failed to confirm", state.error)
+        verify(exactly = 0) { onSuccess() }
+    }
+
+    // ===== Decline Booking Tests =====
+
+    @Test
+    fun `declineBooking moves booking from pending to cancelled`() = runTest {
+        val pendingBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.PENDING
+        )
+        val cancelledBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.CANCELLED
+        )
+        coEvery { repository.getBookings() } returns Result.success(listOf(pendingBooking))
+        coEvery { repository.declineBooking("1") } returns Result.success(cancelledBooking)
+        val onSuccess = mockk<() -> Unit>(relaxed = true)
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.declineBooking(bookingId = "1", onSuccess = onSuccess)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(0, state.pendingBookings.size)
+        assertEquals(1, state.cancelledBookings.size)
+        assertEquals("Booking declined", state.successMessage)
+        verify { onSuccess() }
+    }
+
+    @Test
+    fun `declineBooking failure does not change booking status and shows error`() = runTest {
+        val pendingBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.PENDING
+        )
+        coEvery { repository.getBookings() } returns Result.success(listOf(pendingBooking))
+        coEvery { repository.declineBooking("1") } returns Result.failure(Exception("Failed to decline"))
+        val onSuccess = mockk<() -> Unit>(relaxed = true)
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        viewModel.declineBooking(bookingId = "1", onSuccess = onSuccess)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, state.pendingBookings.size)
+        assertEquals(0, state.cancelledBookings.size)
+        assertEquals("Failed to decline", state.error)
+        verify(exactly = 0) { onSuccess() }
+    }
+
+    // ===== Booking Filtering Tests =====
+
+    @Test
+    fun `pendingBookings returns only PENDING status bookings`() = runTest {
+        val bookings = listOf(
+            Booking(id = "1", trainerId = "t1", startTime = "2026-03-22T10:00:00Z", endTime = "2026-03-22T11:00:00Z", status = BookingStatus.PENDING),
+            Booking(id = "2", trainerId = "t1", startTime = "2026-03-22T12:00:00Z", endTime = "2026-03-22T13:00:00Z", status = BookingStatus.PENDING),
+            Booking(id = "3", trainerId = "t1", startTime = "2026-03-22T14:00:00Z", endTime = "2026-03-22T15:00:00Z", status = BookingStatus.CONFIRMED)
+        )
+        coEvery { repository.getBookings() } returns Result.success(bookings)
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(2, state.pendingBookings.size)
+        assertTrue(state.pendingBookings.all { it.status == BookingStatus.PENDING })
+    }
+
+    @Test
+    fun `confirmedBookings returns only CONFIRMED status bookings`() = runTest {
+        val bookings = listOf(
+            Booking(id = "1", trainerId = "t1", startTime = "2026-03-22T10:00:00Z", endTime = "2026-03-22T11:00:00Z", status = BookingStatus.CONFIRMED),
+            Booking(id = "2", trainerId = "t1", startTime = "2026-03-22T12:00:00Z", endTime = "2026-03-22T13:00:00Z", status = BookingStatus.PENDING),
+            Booking(id = "3", trainerId = "t1", startTime = "2026-03-22T14:00:00Z", endTime = "2026-03-22T15:00:00Z", status = BookingStatus.CONFIRMED, dataSharingApproved = true)
+        )
+        coEvery { repository.getBookings() } returns Result.success(bookings)
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(2, state.confirmedBookings.size)
+        assertTrue(state.confirmedBookings.all { it.status == BookingStatus.CONFIRMED })
+    }
+
+    @Test
+    fun `cancelledBookings returns only CANCELLED status bookings`() = runTest {
+        val bookings = listOf(
+            Booking(id = "1", trainerId = "t1", startTime = "2026-03-22T10:00:00Z", endTime = "2026-03-22T11:00:00Z", status = BookingStatus.CANCELLED),
+            Booking(id = "2", trainerId = "t1", startTime = "2026-03-22T12:00:00Z", endTime = "2026-03-22T13:00:00Z", status = BookingStatus.PENDING),
+            Booking(id = "3", trainerId = "t1", startTime = "2026-03-22T14:00:00Z", endTime = "2026-03-22T15:00:00Z", status = BookingStatus.CONFIRMED)
+        )
+        coEvery { repository.getBookings() } returns Result.success(bookings)
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(1, state.cancelledBookings.size)
+        assertTrue(state.cancelledBookings.all { it.status == BookingStatus.CANCELLED })
+    }
+
+    @Test
+    fun `dataSharingApproved booking shows correct data in confirmed list`() = runTest {
+        val bookings = listOf(
+            Booking(id = "1", trainerId = "t1", startTime = "2026-03-22T10:00:00Z", endTime = "2026-03-22T11:00:00Z", status = BookingStatus.CONFIRMED, dataSharingApproved = true),
+            Booking(id = "2", trainerId = "t1", startTime = "2026-03-22T12:00:00Z", endTime = "2026-03-22T13:00:00Z", status = BookingStatus.CONFIRMED, dataSharingApproved = false),
+            Booking(id = "3", trainerId = "t1", startTime = "2026-03-22T14:00:00Z", endTime = "2026-03-22T15:00:00Z", status = BookingStatus.CONFIRMED, dataSharingApproved = null)
+        )
+        coEvery { repository.getBookings() } returns Result.success(bookings)
+
+        viewModel = createViewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        val confirmedWithSharing = state.confirmedBookings.filter { it.dataSharingApproved == true }
+        val confirmedWithoutSharing = state.confirmedBookings.filter { it.dataSharingApproved == false || it.dataSharingApproved == null }
+        
+        assertEquals(1, confirmedWithSharing.size)
+        assertEquals(2, confirmedWithoutSharing.size)
+    }
 }

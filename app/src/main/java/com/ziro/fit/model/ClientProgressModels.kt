@@ -1,11 +1,7 @@
 package com.ziro.fit.model
 
 data class WorkoutHistoryResponse(
-    val sessions: PaginatedSessionData
-)
-
-data class PaginatedSessionData(
-    val sessions: List<HistorySession>,
+    val sessions: List<HistorySession>?,
     val nextCursor: String?,
     val hasMore: Boolean
 )

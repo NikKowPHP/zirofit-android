@@ -26,7 +26,7 @@ import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.ui.platform.LocalContext
 import com.ziro.fit.model.ProfilePackage
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.ziro.fit.model.PublicTrainerProfileResponse
 import com.ziro.fit.viewmodel.TrainerPublicProfileViewModel

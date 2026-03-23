@@ -20,7 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.ziro.fit.model.ExploreEvent
 import com.ziro.fit.ui.theme.*
@@ -225,7 +225,7 @@ fun EventDetailContent(
                         val text = when {
                             event.isBooked == true -> "Already Enrolled"
                             event.isFull -> "Event Full"
-                            else -> if (event.price != null && event.price > 0) "Buy Ticket (${event.priceDisplay})" else "Join for Free"
+                            else -> if (event.price != null && event.price > 0) "Buy Ticket (${event.price} ${event.currency})" else "Join for Free"
                         }
                         Text(text, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }

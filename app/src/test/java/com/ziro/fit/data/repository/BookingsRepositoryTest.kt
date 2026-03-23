@@ -195,4 +195,134 @@ class BookingsRepositoryTest {
         assertEquals("Failed to delete booking", result.exceptionOrNull()?.message)
         coVerify { api.deleteBooking("1") }
     }
+
+    // ===== Confirm Booking Tests =====
+
+    @Test
+    fun `confirmBooking with data sharing success returns booking with dataSharingApproved true`() = runBlocking {
+        val confirmedBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.CONFIRMED,
+            dataSharingApproved = true,
+            dataSharingApprovedAt = "2026-03-22T09:00:00Z"
+        )
+        val response = ApiResponse(success = true, data = BookingResponse(booking = confirmedBooking))
+        coEvery { api.confirmBooking("1", any()) } returns response
+
+        val result = repository.confirmBooking("1", dataSharingApproved = true)
+
+        assertTrue(result.isSuccess)
+        assertEquals(BookingStatus.CONFIRMED, result.getOrNull()?.status)
+        assertEquals(true, result.getOrNull()?.dataSharingApproved)
+        coVerify { api.confirmBooking("1", match { it.dataSharingApproved == true }) }
+    }
+
+    @Test
+    fun `confirmBooking without data sharing success returns booking with dataSharingApproved false`() = runBlocking {
+        val confirmedBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.CONFIRMED,
+            dataSharingApproved = false
+        )
+        val response = ApiResponse(success = true, data = BookingResponse(booking = confirmedBooking))
+        coEvery { api.confirmBooking("1", any()) } returns response
+
+        val result = repository.confirmBooking("1", dataSharingApproved = false)
+
+        assertTrue(result.isSuccess)
+        assertEquals(BookingStatus.CONFIRMED, result.getOrNull()?.status)
+        assertEquals(false, result.getOrNull()?.dataSharingApproved)
+        coVerify { api.confirmBooking("1", match { it.dataSharingApproved == false }) }
+    }
+
+    @Test
+    fun `confirmBooking failure returns Result failure`() = runBlocking {
+        coEvery { api.confirmBooking("1", any()) } throws RuntimeException("Network Error")
+
+        val result = repository.confirmBooking("1", dataSharingApproved = true)
+
+        assertTrue(result.isFailure)
+        coVerify { api.confirmBooking("1", any()) }
+    }
+
+    @Test
+    fun `confirmBooking null data returns Result failure`() = runBlocking {
+        coEvery { api.confirmBooking("1", any()) } returns ApiResponse(success = true, data = null)
+
+        val result = repository.confirmBooking("1", dataSharingApproved = true)
+
+        assertTrue(result.isFailure)
+        assertEquals("Failed to confirm booking", result.exceptionOrNull()?.message)
+        coVerify { api.confirmBooking("1", any()) }
+    }
+
+    @Test
+    fun `confirmBooking success false returns Result failure`() = runBlocking {
+        coEvery { api.confirmBooking("1", any()) } returns ApiResponse(success = false, data = null, error = "Booking not found")
+
+        val result = repository.confirmBooking("1", dataSharingApproved = true)
+
+        assertTrue(result.isFailure)
+        assertEquals("Booking not found", result.exceptionOrNull()?.message)
+        coVerify { api.confirmBooking("1", any()) }
+    }
+
+    // ===== Decline Booking Tests =====
+
+    @Test
+    fun `declineBooking success returns booking with CANCELLED status`() = runBlocking {
+        val declinedBooking = Booking(
+            id = "1",
+            trainerId = "t1",
+            startTime = "2026-03-22T10:00:00Z",
+            endTime = "2026-03-22T11:00:00Z",
+            status = BookingStatus.CANCELLED
+        )
+        val response = ApiResponse(success = true, data = BookingResponse(booking = declinedBooking))
+        coEvery { api.declineBooking("1") } returns response
+
+        val result = repository.declineBooking("1")
+
+        assertTrue(result.isSuccess)
+        assertEquals(BookingStatus.CANCELLED, result.getOrNull()?.status)
+        coVerify { api.declineBooking("1") }
+    }
+
+    @Test
+    fun `declineBooking failure returns Result failure`() = runBlocking {
+        coEvery { api.declineBooking("1") } throws RuntimeException("Network Error")
+
+        val result = repository.declineBooking("1")
+
+        assertTrue(result.isFailure)
+        coVerify { api.declineBooking("1") }
+    }
+
+    @Test
+    fun `declineBooking null data returns Result failure`() = runBlocking {
+        coEvery { api.declineBooking("1") } returns ApiResponse(success = true, data = null)
+
+        val result = repository.declineBooking("1")
+
+        assertTrue(result.isFailure)
+        assertEquals("Failed to decline booking", result.exceptionOrNull()?.message)
+        coVerify { api.declineBooking("1") }
+    }
+
+    @Test
+    fun `declineBooking success false returns Result failure`() = runBlocking {
+        coEvery { api.declineBooking("1") } returns ApiResponse(success = false, data = null, error = "Booking already processed")
+
+        val result = repository.declineBooking("1")
+
+        assertTrue(result.isFailure)
+        assertEquals("Booking already processed", result.exceptionOrNull()?.message)
+        coVerify { api.declineBooking("1") }
+    }
 }
