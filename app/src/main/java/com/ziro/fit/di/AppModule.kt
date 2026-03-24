@@ -3,6 +3,7 @@ package com.ziro.fit.di
 import android.util.Log
 import com.ziro.fit.data.local.TokenManager
 import com.ziro.fit.data.remote.ZiroApi
+import com.ziro.fit.util.Logger
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -74,6 +75,27 @@ object AppModule {
             response
         }
     }
+    
+
+private val rawLoggerInterceptor = Interceptor { chain ->
+    val request = chain.request()
+    
+    // Log request
+    Logger.d("ZiroAPI", "┌── ${request.method} ${request.url}")
+    request.headers.forEach { (name, value) ->
+        Logger.d("ZiroAPI", "│ $name: $value")
+    }
+    
+    val response = chain.proceed(request)
+    
+    // Log response body (peek without consuming)
+    val body = response.peekBody(1024 * 1024) // 1MB max
+    Logger.d("ZiroAPI", "└── ${response.code} ${response.message}")
+    Logger.d("ZiroAPI", "│ Body: ${body.string()}")
+    
+    response
+}
+
 
     @Provides
     @Singleton
@@ -90,6 +112,7 @@ object AppModule {
         val client = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
+            .addInterceptor(rawLoggerInterceptor) 
             .connectTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
