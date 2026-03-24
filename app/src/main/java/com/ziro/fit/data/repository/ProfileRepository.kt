@@ -16,7 +16,7 @@ class ProfileRepository @Inject constructor(
         return try {
             val response = api.getCoreInfo()
             if ((response.success ?: true) && response.data != null) {
-                Result.success(response.data!!.coreInfo)
+                Result.success(response.data!!.data.coreInfo)
             } else {
                 Result.failure(Exception(response.message ?: "Failed to fetch core info"))
             }

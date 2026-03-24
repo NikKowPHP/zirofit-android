@@ -33,9 +33,10 @@ fun RoleSelectionScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val avatarUri = viewModel.avatarUri
-    var name by remember { mutableStateOf("") }
-    var location by remember { mutableStateOf("") }
-    var bio by remember { mutableStateOf("") }
+     // Pre-populate from UserSessionManager
+    var name by remember { mutableStateOf(viewModel.initialName) }
+    var location by remember { mutableStateOf(viewModel.initialLocation ?: "") }
+    var bio by remember { mutableStateOf(viewModel.initialBio ?: "") }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),

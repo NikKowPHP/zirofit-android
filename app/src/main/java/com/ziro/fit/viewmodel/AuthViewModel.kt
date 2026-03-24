@@ -29,6 +29,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.ziro.fit.data.local.UserSessionManager
+import com.ziro.fit.model.ProfileCoreInfo
 
 sealed class AuthState {
     object Loading : AuthState()
@@ -52,7 +54,8 @@ constructor(
         private val profileRepository: ProfileRepository,
         private val dashboardRepository: ClientDashboardRepository,
         private val calendarRepository: CalendarRepository,
-        private val exerciseRepository: ExerciseRepository
+        private val exerciseRepository: ExerciseRepository,
+        private val userSessionManager: UserSessionManager
 ) : ViewModel() {
 
     var authState by mutableStateOf<AuthState>(AuthState.Loading)
@@ -146,9 +149,27 @@ constructor(
             }
         }
     }
+    private suspend fun fetchAndSaveCoreInfo() {
+        try {
+            val response = api.getCoreInfo()
+            Logger.d("AuthViewModel", "Core info response: $response")
+            response.data?.data?.coreInfo?.let { coreInfo ->
+                userSessionManager.saveCoreInfo(coreInfo)
+            }
+        } catch (e: Exception) {
+            // Log error but don't block onboarding flow
+            Logger.e("AuthViewModel", "Failed to fetch core info", e)
+
+        }
+    }
+
+
     private suspend fun setAuthedStateForMode(user: User, mode: AppMode) {
         val role = user.role ?: "pending"
         Logger.d("AuthViewModel", "User $user")
+        if (!user.hasCompletedOnboarding) {
+            fetchAndSaveCoreInfo()
+        }
         authState =
                 AuthState.Authenticated(
                         role,
@@ -157,7 +178,10 @@ constructor(
                 )
         markModeAuthenticated(mode, user.id)
         syncPushToken()
+         if (user.hasCompletedOnboarding) {
         triggerPrefetch(mode)
+    }
+      
     }
 
     private suspend fun checkRefreshTokenAndRefreshIfNeeded(mode: AppMode): Boolean {

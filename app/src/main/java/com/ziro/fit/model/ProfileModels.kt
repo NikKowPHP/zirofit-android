@@ -18,6 +18,7 @@ data class ProfileCoreInfo(
     val specialties: List<String>,
     val trainingTypes: List<String>,
     val businessCurrency: String?,
+    val aboutMe: String?,
     val locations: List<String>
 )
 

@@ -21,6 +21,7 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import java.io.File
+import com.ziro.fit.data.local.UserSessionManager
 
 data class OnboardingUiState(
     val isLoading: Boolean = false,
@@ -32,8 +33,13 @@ data class OnboardingUiState(
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(
     private val api: ZiroApi,
+    private val userSessionManager: UserSessionManager,
     @ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
+
+    val initialName: String get() = userSessionManager.savedName ?: ""
+    val initialLocation: String? get() = userSessionManager.savedLocation
+    val initialBio: String? get() = userSessionManager.savedBio
 
     private val _uiState = MutableStateFlow(OnboardingUiState())
     val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
@@ -105,7 +111,9 @@ class OnboardingViewModel @Inject constructor(
                 )
 
                 if (response.success == true || response.data != null) {
-                    _uiState.update { it.copy(isLoading = false, success = true) }
+                   // Clear session after successful onboarding
+                userSessionManager.clearSession()
+                _uiState.update { it.copy(isLoading = false, success = true) }
                 } else {
                     _uiState.update { it.copy(isLoading = false, error = response.message ?: "Onboarding failed") }
                 }

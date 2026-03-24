@@ -46,7 +46,7 @@ fun CoreInfoScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Full Name: ${info.fullName ?: "N/A"}")
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Bio: ${info.profile?.aboutMe ?: "N/A"}")
+                        Text("Bio: ${info.aboutMe ?: ""}")
                     } ?: run {
                         Text("No data available")
                     }
