@@ -13,12 +13,18 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.ziro.fit.model.RefreshTokenRequest
+import com.ziro.fit.util.Logger
+import android.util.Log
+
+private const val TAG = "TokenManager"
 
 @Singleton
 class TokenManager @Inject constructor(
     @ApplicationContext context: Context,
     private val api: dagger.Lazy<com.ziro.fit.data.remote.ZiroApi>
 ) {
+    
     private val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
@@ -102,23 +108,42 @@ class TokenManager @Inject constructor(
         }
     }
 
-    suspend fun refreshToken(mode: AppMode = _activeMode.value): Boolean {
-        val refreshToken = getRefreshToken(mode) ?: return false
-        return try {
-            val response = api.get().refreshAccessToken(com.ziro.fit.model.RefreshTokenRequest(refreshToken))
-            val data = response.data
+ suspend fun refreshToken(mode: AppMode = _activeMode.value): Boolean {
+    // 1. Get the stored refresh token
+    val currentRefreshToken = getRefreshToken(mode) 
+    Log.d(TAG, "Current refresh token: $currentRefreshToken")
 
-            if (response.success != false && data != null) {
-                saveToken(data.accessToken, mode)
-                data.refreshToken?.let { saveRefreshToken(it, mode) }
-                true
-            } else {
-                false
-            }
-        } catch (e: Exception) {
+    Logger.d(TAG, "Attempting token refresh for mode: $mode with refresh token: $currentRefreshToken")
+    if (currentRefreshToken.isNullOrEmpty()) {
+        Logger.d(TAG, "No refresh token available for mode: $mode")
+        return false
+    }
+    return try {
+        // 2. Call the API with the refresh token to get new access token
+        val response = api.get().refreshAccessToken(
+            RefreshTokenRequest(currentRefreshToken)
+        )
+        
+        // 3. Check if response is successful
+        if (response.success == true && response.data != null) {
+            val newTokens = response.data
+            
+            // 4. Save the NEW access token
+            saveToken(newTokens.accessToken, mode)
+            
+            // 5. Save the NEW refresh token (important!)
+            saveRefreshToken(newTokens.refreshToken, mode)
+            
+            true
+        } else {
+            // Refresh failed - token is invalid/expired
             false
         }
+    } catch (e: Exception) {
+        false
     }
+}
+
 
     suspend fun triggerLogout(mode: AppMode? = null) {
         val targetMode = mode ?: _activeMode.value

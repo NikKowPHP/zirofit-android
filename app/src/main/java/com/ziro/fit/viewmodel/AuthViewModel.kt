@@ -20,6 +20,7 @@ import com.ziro.fit.model.SignOutRequest
 import com.ziro.fit.model.ForgotPasswordRequest
 import com.ziro.fit.model.UpdatePasswordRequest
 import com.ziro.fit.util.ApiErrorParser
+import com.ziro.fit.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -121,15 +122,35 @@ class AuthViewModel @Inject constructor(
                     }
                 }
             } else {
-                val otherMode = if (currentMode == AppMode.TRAINER) AppMode.PERSONAL else AppMode.TRAINER
-                if (tokenManager.hasToken(otherMode)) {
-                    tokenManager.setActiveMode(otherMode)
+                // No access token found - try to refresh using refresh token
+                val refreshSuccess = checkRefreshTokenAndRefreshIfNeeded(currentMode)
+                if (refreshSuccess) {
+                    // Token refreshed successfully, re-check auth status
                     checkAuthStatus()
                 } else {
-                    authState = AuthState.Unauthenticated
+                    // Check if other mode has a token
+                    val otherMode = if (currentMode == AppMode.TRAINER) AppMode.PERSONAL else AppMode.TRAINER
+                    if (tokenManager.hasToken(otherMode)) {
+                        tokenManager.setActiveMode(otherMode)
+                        checkAuthStatus()
+                    } else {
+                        authState = AuthState.Unauthenticated
+                    }
                 }
             }
         }
+    }
+
+    private suspend fun checkRefreshTokenAndRefreshIfNeeded(mode: AppMode): Boolean {
+        val refreshToken = tokenManager.getRefreshToken(mode)
+        Logger.d("TEST", "Attempting token refresh for mode: $mode with refresh token: $refreshToken")
+        if (!refreshToken.isNullOrEmpty()) {
+            val refreshSuccess = tokenManager.refreshToken(mode)
+            if (refreshSuccess) {
+                return true
+            }
+        }
+        return false
     }
 
     fun login(email: String, pass: String) {
@@ -139,14 +160,23 @@ class AuthViewModel @Inject constructor(
             try {
                 val response = api.login(LoginRequest(email, pass))
                 val loginData = response.data
+                Logger.d("TEST", "Login response: $response")
                 if (loginData != null) {
                     val currentMode = tokenManager.activeMode.value
                     tokenManager.saveToken(loginData.accessToken, currentMode)
-                    loginData.refreshToken?.let { tokenManager.saveRefreshToken(it, currentMode) }
-
+                    val loginDataRefreshToken = loginData.refreshToken
+                    Logger.d("TEST", "Login refresh token: $loginDataRefreshToken")
+                    if(loginDataRefreshToken.isNullOrEmpty()) {
+                        Logger.d("TEST", "No refresh token provided in login response")
+                    } else {
+                        tokenManager.saveRefreshToken(loginDataRefreshToken, currentMode)
+                        Logger.d("TEST", "Saved refresh token: $loginDataRefreshToken")
+                    }
+                    
+                   
                     val detectedMode = detectModeFromRole(loginData.role)
                     if (detectedMode != currentMode) {
-                        val oldToken = tokenManager.getToken(currentMode)
+                        
                         tokenManager.clearToken(currentMode)
                         tokenManager.setActiveMode(detectedMode)
                         tokenManager.saveToken(loginData.accessToken, detectedMode)
@@ -479,7 +509,13 @@ class AuthViewModel @Inject constructor(
                 if (loginData != null) {
                     val currentMode = tokenManager.activeMode.value
                     tokenManager.saveToken(loginData.accessToken, currentMode)
-                    loginData.refreshToken?.let { tokenManager.saveRefreshToken(it, currentMode) }
+                    
+                    val loginDataRefreshToken = loginData.refreshToken
+                    if (loginDataRefreshToken.isNullOrEmpty()) {
+                        // No refresh token provided - user will need to login again when access token expires
+                    } else {
+                        tokenManager.saveRefreshToken(loginDataRefreshToken, currentMode)
+                    }
 
                     val detectedMode = detectModeFromRole(loginData.role)
                     if (detectedMode != currentMode) {
