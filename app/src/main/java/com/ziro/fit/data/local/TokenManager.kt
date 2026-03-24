@@ -76,6 +76,12 @@ class TokenManager @Inject constructor(
             .remove(slotKey(targetMode, "refresh_token"))
             .apply()
     }
+    fun clearAccessToken(mode: AppMode? = null) {
+        val targetMode = mode ?: _activeMode.value
+        prefs.edit()
+            .remove(slotKey(targetMode, "access_token"))
+            .apply()
+    }
 
     fun clearAllTokens() {
         AppMode.entries.forEach { mode ->
@@ -111,11 +117,11 @@ class TokenManager @Inject constructor(
  suspend fun refreshToken(mode: AppMode = _activeMode.value): Boolean {
     // 1. Get the stored refresh token
     val currentRefreshToken = getRefreshToken(mode) 
-    Log.d(TAG, "Current refresh token: $currentRefreshToken")
+    Log.d("AuthViewModel", "Current refresh token: $currentRefreshToken")
 
-    Logger.d(TAG, "Attempting token refresh for mode: $mode with refresh token: $currentRefreshToken")
+    Logger.d("AuthViewModel", "Attempting token refresh for mode: $mode with refresh token: $currentRefreshToken")
     if (currentRefreshToken.isNullOrEmpty()) {
-        Logger.d(TAG, "No refresh token available for mode: $mode")
+        Logger.d("AuthViewModel", "No refresh token available for mode: $mode")
         return false
     }
     return try {
@@ -123,14 +129,17 @@ class TokenManager @Inject constructor(
         val response = api.get().refreshAccessToken(
             RefreshTokenRequest(currentRefreshToken)
         )
+        Logger.d("AuthViewModel", "Refresh token response: $response")
         
         // 3. Check if response is successful
-        if (response.success == true && response.data != null) {
+        if ( response.data != null) {
             val newTokens = response.data
             
             // 4. Save the NEW access token
+            Logger.d("AuthViewModel", "New access token: ${newTokens.accessToken}")
             saveToken(newTokens.accessToken, mode)
             
+            Logger.d("AuthViewModel", "New refresh token: ${newTokens.refreshToken}")
             // 5. Save the NEW refresh token (important!)
             saveRefreshToken(newTokens.refreshToken, mode)
             

@@ -98,10 +98,12 @@ constructor(
     private fun tryAlternativeAuth() {
         viewModelScope.launch {
             val currentMode = tokenManager.activeMode.value
-
+            Logger.d("AuthViewModel", "Trying alternative auth for mode: $currentMode")
             // Try to refresh using refresh token
             val refreshSuccess = checkRefreshTokenAndRefreshIfNeeded(currentMode)
             if (refreshSuccess) {
+                            Logger.d("AuthViewModel", "Token refreshed, calling checkAuthStatus()")
+
                 checkAuthStatus()
             } else {
                 // Check if other mode has a token
@@ -120,18 +122,16 @@ constructor(
     private fun checkAuthStatus() {
         viewModelScope.launch {
             authState = AuthState.Loading
-
             val currentMode = tokenManager.activeMode.value
             val token = tokenManager.getToken(currentMode)
+            Logger.d("AuthViewModel", "checkAuthStatus: token = $token")
+
             if (token == null) {
-                Logger.d("AuthViewModel", "No token found for mode: $currentMode")
+                Logger.d("AuthViewModel", "No token, calling tryAlternativeAuth()")
                 tryAlternativeAuth()
                 return@launch
             }
-            Logger.d(
-                    "AuthViewModel",
-                    "Checking auth status for mode: $currentMode with token: $token"
-            )
+            Logger.d("AuthViewModel", "Token exists, calling api.getMe()")
 
             try {
                 val userResponse = api.getMe()
@@ -142,11 +142,7 @@ constructor(
                     handleUnauthenticated()
                 }
             } catch (e: Exception) {
-                if (tokenManager.hasAnyToken()) {
-                    handleUnauthenticated()
-                } else {
-                    authState = AuthState.Unauthenticated
-                }
+                tryAlternativeAuth()
             }
         }
     }
@@ -167,9 +163,10 @@ constructor(
     private suspend fun checkRefreshTokenAndRefreshIfNeeded(mode: AppMode): Boolean {
         val refreshToken = tokenManager.getRefreshToken(mode)
         Logger.d(
-                "TEST",
+                "AuthViewModel",
                 "Attempting token refresh for mode: $mode with refresh token: $refreshToken"
         )
+
         if (!refreshToken.isNullOrEmpty()) {
             val refreshSuccess = tokenManager.refreshToken(mode)
             if (refreshSuccess) {
@@ -504,6 +501,4 @@ constructor(
     fun resetToUnauthenticated() {
         authState = AuthState.Unauthenticated
     }
-
-    
 }
