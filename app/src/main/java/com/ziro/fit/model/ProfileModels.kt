@@ -3,11 +3,9 @@ package com.ziro.fit.model
 import com.google.gson.annotations.SerializedName
 
 data class ProfileCoreInfoResponse(
-    val data: ProfileCoreInfoData
-)
-data class ProfileCoreInfoData(
     val coreInfo: ProfileCoreInfo
 )
+
 
 data class ProfileCoreInfo(
     @SerializedName("name") val fullName: String?,

@@ -153,7 +153,7 @@ constructor(
         try {
             val response = api.getCoreInfo()
             Logger.d("AuthViewModel", "Core info response: $response")
-            response.data?.data?.coreInfo?.let { coreInfo ->
+            response.data?.coreInfo?.let { coreInfo ->
                 userSessionManager.saveCoreInfo(coreInfo)
             }
         } catch (e: Exception) {
