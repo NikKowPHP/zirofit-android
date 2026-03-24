@@ -14,28 +14,28 @@ import com.ziro.fit.data.repository.ClientDashboardRepository
 import com.ziro.fit.data.repository.ExerciseRepository
 import com.ziro.fit.data.repository.ProfileRepository
 import com.ziro.fit.model.AppMode
+import com.ziro.fit.model.ForgotPasswordRequest
 import com.ziro.fit.model.LoginRequest
 import com.ziro.fit.model.RegisterRequest
 import com.ziro.fit.model.SignOutRequest
-import com.ziro.fit.model.ForgotPasswordRequest
 import com.ziro.fit.model.UpdatePasswordRequest
+import com.ziro.fit.model.User
 import com.ziro.fit.util.ApiErrorParser
 import com.ziro.fit.util.Logger
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.LocalDate
+import javax.inject.Inject
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.time.LocalDate
-import javax.inject.Inject
-
 
 sealed class AuthState {
     object Loading : AuthState()
     data class Authenticated(
-        val role: String,
-        val userId: String,
-        val isOnboardingComplete: Boolean = true
+            val role: String,
+            val userId: String,
+            val isOnboardingComplete: Boolean = true
     ) : AuthState()
     object Unauthenticated : AuthState()
     data class Error(val message: String) : AuthState()
@@ -43,14 +43,16 @@ sealed class AuthState {
 }
 
 @HiltViewModel
-class AuthViewModel @Inject constructor(
-    private val api: ZiroApi,
-    private val tokenManager: TokenManager,
-    private val googleAuthManager: GoogleAuthManager,
-    private val profileRepository: ProfileRepository,
-    private val dashboardRepository: ClientDashboardRepository,
-    private val calendarRepository: CalendarRepository,
-    private val exerciseRepository: ExerciseRepository
+class AuthViewModel
+@Inject
+constructor(
+        private val api: ZiroApi,
+        private val tokenManager: TokenManager,
+        private val googleAuthManager: GoogleAuthManager,
+        private val profileRepository: ProfileRepository,
+        private val dashboardRepository: ClientDashboardRepository,
+        private val calendarRepository: CalendarRepository,
+        private val exerciseRepository: ExerciseRepository
 ) : ViewModel() {
 
     var authState by mutableStateOf<AuthState>(AuthState.Loading)
@@ -77,9 +79,7 @@ class AuthViewModel @Inject constructor(
 
     init {
         activeMode = tokenManager.activeMode.value
-        tokenManager.activeMode.onEach { mode ->
-            activeMode = mode
-        }.launchIn(viewModelScope)
+        tokenManager.activeMode.onEach { mode -> activeMode = mode }.launchIn(viewModelScope)
 
         setupLogoutCollection()
         checkAuthStatus()
@@ -95,57 +95,81 @@ class AuthViewModel @Inject constructor(
         }
     }
 
+    private fun tryAlternativeAuth() {
+        viewModelScope.launch {
+            val currentMode = tokenManager.activeMode.value
+
+            // Try to refresh using refresh token
+            val refreshSuccess = checkRefreshTokenAndRefreshIfNeeded(currentMode)
+            if (refreshSuccess) {
+                checkAuthStatus()
+            } else {
+                // Check if other mode has a token
+                val otherMode =
+                        if (currentMode == AppMode.TRAINER) AppMode.PERSONAL else AppMode.TRAINER
+                if (tokenManager.hasToken(otherMode)) {
+                    tokenManager.setActiveMode(otherMode)
+                    checkAuthStatus()
+                } else {
+                    authState = AuthState.Unauthenticated
+                }
+            }
+        }
+    }
+
     private fun checkAuthStatus() {
         viewModelScope.launch {
             authState = AuthState.Loading
 
             val currentMode = tokenManager.activeMode.value
             val token = tokenManager.getToken(currentMode)
+            if (token == null) {
+                Logger.d("AuthViewModel", "No token found for mode: $currentMode")
+                tryAlternativeAuth()
+                return@launch
+            }
+            Logger.d(
+                    "AuthViewModel",
+                    "Checking auth status for mode: $currentMode with token: $token"
+            )
 
-            if (token != null) {
-                try {
-                    val userResponse = api.getMe()
-                    val user = userResponse.data
-                    if (user != null) {
-                        val role = user.role ?: "pending"
-                        Logger.d("AuthViewModel", "User $user")
-                        authState = AuthState.Authenticated(role, user.id, isOnboardingComplete = role != "pending")
-                        markModeAuthenticated(currentMode, user.id)
-                        syncPushToken()
-                        triggerPrefetch(currentMode)
-                    } else {
-                        handleUnauthenticated()
-                    }
-                } catch (e: Exception) {
-                    if (tokenManager.hasAnyToken()) {
-                        handleUnauthenticated()
-                    } else {
-                        authState = AuthState.Unauthenticated
-                    }
-                }
-            } else {
-                // No access token found - try to refresh using refresh token
-                val refreshSuccess = checkRefreshTokenAndRefreshIfNeeded(currentMode)
-                if (refreshSuccess) {
-                    // Token refreshed successfully, re-check auth status
-                    checkAuthStatus()
+            try {
+                val userResponse = api.getMe()
+                val user = userResponse.data
+                if (user != null) {
+                    setAuthedStateForMode(user, currentMode)
                 } else {
-                    // Check if other mode has a token
-                    val otherMode = if (currentMode == AppMode.TRAINER) AppMode.PERSONAL else AppMode.TRAINER
-                    if (tokenManager.hasToken(otherMode)) {
-                        tokenManager.setActiveMode(otherMode)
-                        checkAuthStatus()
-                    } else {
-                        authState = AuthState.Unauthenticated
-                    }
+                    handleUnauthenticated()
+                }
+            } catch (e: Exception) {
+                if (tokenManager.hasAnyToken()) {
+                    handleUnauthenticated()
+                } else {
+                    authState = AuthState.Unauthenticated
                 }
             }
         }
     }
+    private suspend fun setAuthedStateForMode(user: User, mode: AppMode) {
+        val role = user.role ?: "pending"
+        Logger.d("AuthViewModel", "User $user")
+        authState =
+                AuthState.Authenticated(
+                        role,
+                        user.id,
+                        isOnboardingComplete = user.hasCompletedOnboarding
+                )
+        markModeAuthenticated(mode, user.id)
+        syncPushToken()
+        triggerPrefetch(mode)
+    }
 
     private suspend fun checkRefreshTokenAndRefreshIfNeeded(mode: AppMode): Boolean {
         val refreshToken = tokenManager.getRefreshToken(mode)
-        Logger.d("TEST", "Attempting token refresh for mode: $mode with refresh token: $refreshToken")
+        Logger.d(
+                "TEST",
+                "Attempting token refresh for mode: $mode with refresh token: $refreshToken"
+        )
         if (!refreshToken.isNullOrEmpty()) {
             val refreshSuccess = tokenManager.refreshToken(mode)
             if (refreshSuccess) {
@@ -153,6 +177,22 @@ class AuthViewModel @Inject constructor(
             }
         }
         return false
+    }
+
+    private fun saveTokensAndSwitchMode(
+            accessToken: String,
+            refreshToken: String?,
+            detectedMode: AppMode
+    ) {
+        val currentMode = tokenManager.activeMode.value
+
+        if (detectedMode != currentMode) {
+            tokenManager.clearToken(currentMode)
+            tokenManager.setActiveMode(detectedMode)
+        }
+
+        tokenManager.saveToken(accessToken, detectedMode)
+        refreshToken?.let { tokenManager.saveRefreshToken(it, detectedMode) }
     }
 
     fun login(email: String, pass: String) {
@@ -163,37 +203,16 @@ class AuthViewModel @Inject constructor(
                 val response = api.login(LoginRequest(email, pass))
                 val loginData = response.data
                 Logger.d("TEST", "Login response: $response")
-                if (loginData != null) {
-                    val currentMode = tokenManager.activeMode.value
-                    tokenManager.saveToken(loginData.accessToken, currentMode)
-                    val loginDataRefreshToken = loginData.refreshToken
-                    Logger.d("TEST", "Login refresh token: $loginDataRefreshToken")
-                    if(loginDataRefreshToken.isNullOrEmpty()) {
-                        Logger.d("TEST", "No refresh token provided in login response")
-                    } else {
-                        tokenManager.saveRefreshToken(loginDataRefreshToken, currentMode)
-                        Logger.d("TEST", "Saved refresh token: $loginDataRefreshToken")
-                    }
-                    
-                   
-                    val detectedMode = detectModeFromRole(loginData.role)
-                    if (detectedMode != currentMode) {
-                        
-                        tokenManager.clearToken(currentMode)
-                        tokenManager.setActiveMode(detectedMode)
-                        tokenManager.saveToken(loginData.accessToken, detectedMode)
-                        loginData.refreshToken?.let { tokenManager.saveRefreshToken(it, detectedMode) }
-                    }
-
-                    val role = loginData.role
-                    val userId = loginData.user.id
-                    authState = AuthState.Authenticated(role, userId, isOnboardingComplete = role != "pending")
-                    markModeAuthenticated(detectedMode, userId)
-                    syncPushToken()
-                    triggerPrefetch(detectedMode)
-                } else {
+                if (loginData == null) {
                     uiError = response.message ?: "Login failed: No data received"
+                    throw Exception("Login failed: No data received")
                 }
+
+                val detectedMode = detectModeFromRole(loginData.role)
+
+                saveTokensAndSwitchMode(loginData.accessToken, loginData.refreshToken, detectedMode)
+
+                setAuthedStateForMode(loginData.user, detectedMode)
             } catch (e: Exception) {
                 val apiError = ApiErrorParser.parse(e)
                 uiError = ApiErrorParser.getErrorMessage(apiError)
@@ -202,57 +221,43 @@ class AuthViewModel @Inject constructor(
             }
         }
     }
-
-    fun handleGoogleAuthResult(accessToken: String, refreshToken: String?, userId: String, role: String) {
+    private fun processSocialAuth(
+            accessToken: String,
+            refreshToken: String?,
+            userId: String,
+            role: String
+    ) {
         viewModelScope.launch {
             uiLoading = true
             uiError = null
             try {
-                val currentMode = tokenManager.activeMode.value
-                tokenManager.saveToken(accessToken, currentMode)
-                refreshToken?.let { tokenManager.saveRefreshToken(it, currentMode) }
-
                 val detectedMode = detectModeFromRole(role)
-                if (detectedMode != currentMode) {
-                    tokenManager.clearToken(currentMode)
-                    tokenManager.setActiveMode(detectedMode)
-                    tokenManager.saveToken(accessToken, detectedMode)
-                    refreshToken?.let { tokenManager.saveRefreshToken(it, detectedMode) }
-                }
-
-                authState = AuthState.Authenticated(role, userId, isOnboardingComplete = role != "pending")
-                markModeAuthenticated(detectedMode, userId)
-                syncPushToken()
-                triggerPrefetch(detectedMode)
+                saveTokensAndSwitchMode(accessToken, refreshToken, detectedMode)
+                checkAuthStatus()
             } finally {
                 uiLoading = false
             }
         }
     }
 
-    fun handleAppleAuthResult(idToken: String, authCode: String, email: String?, userId: String, role: String) {
-        viewModelScope.launch {
-            uiLoading = true
-            uiError = null
-            try {
-                val currentMode = tokenManager.activeMode.value
-                tokenManager.saveToken(idToken, currentMode)
+    fun handleGoogleAuthResult(
+            accessToken: String,
+            refreshToken: String?,
+            userId: String,
+            role: String
+    ) {
+        processSocialAuth(accessToken, refreshToken, userId, role)
+    }
 
-                val detectedMode = detectModeFromRole(role)
-                if (detectedMode != currentMode) {
-                    tokenManager.clearToken(currentMode)
-                    tokenManager.setActiveMode(detectedMode)
-                    tokenManager.saveToken(idToken, detectedMode)
-                }
-
-                authState = AuthState.Authenticated(role, userId, isOnboardingComplete = role != "pending")
-                markModeAuthenticated(detectedMode, userId)
-                syncPushToken()
-                triggerPrefetch(detectedMode)
-            } finally {
-                uiLoading = false
-            }
-        }
+    fun handleAppleAuthResult(
+            idToken: String,
+            authCode: String,
+            email: String?,
+            userId: String,
+            role: String
+    ) {
+        // Apple uses idToken as accessToken
+        processSocialAuth(idToken, null, userId, role)
     }
 
     fun register(name: String, email: String, pass: String) {
@@ -261,7 +266,10 @@ class AuthViewModel @Inject constructor(
             uiError = null
             try {
                 val deepLinkRedirect = "zirofitapp://login?verified=true"
-                val response = api.register(RegisterRequest(name, email, pass, redirect = deepLinkRedirect))
+                val response =
+                        api.register(
+                                RegisterRequest(name, email, pass, redirect = deepLinkRedirect)
+                        )
                 if (response.success == true || response.data != null) {
                     val data = response.data
                     if (data?.confirmationRequired == true) {
@@ -292,21 +300,17 @@ class AuthViewModel @Inject constructor(
 
             val alreadyAuth = tokenManager.hasToken(mode)
             if (alreadyAuth) {
-                markModeAuthenticated(mode, getUserIdForMode(mode) ?: "")
-                authState = AuthState.Authenticated(
-                    role = getRoleForMode(mode),
-                    userId = getUserIdForMode(mode) ?: "",
-                    isOnboardingComplete = true
-                )
-                triggerPrefetch(mode)
-            } else {
-                markModeUnauthenticated(mode)
-                val currentState = authState
-                if (currentState is AuthState.Authenticated && currentState.userId == getUserIdForMode(previousMode)) {
-                    authState = AuthState.Unauthenticated
-                }
                 checkAuthStatus()
+                return@launch
             }
+            markModeUnauthenticated(mode)
+            val currentState = authState
+            if (currentState is AuthState.Authenticated &&
+                            currentState.userId == getUserIdForMode(previousMode)
+            ) {
+                authState = AuthState.Unauthenticated
+            }
+            checkAuthStatus()
         }
     }
 
@@ -352,9 +356,13 @@ class AuthViewModel @Inject constructor(
 
     private fun detectModeFromRole(role: String): AppMode {
         val r = role.lowercase()
-        return if (r.contains("trainer") || r.contains("coach") ||
-                   r.contains("instructor") || r.contains("admin") ||
-                   r.contains("staff") || r.contains("owner")) {
+        return if (r.contains("trainer") ||
+                        r.contains("coach") ||
+                        r.contains("instructor") ||
+                        r.contains("admin") ||
+                        r.contains("staff") ||
+                        r.contains("owner")
+        ) {
             AppMode.TRAINER
         } else {
             AppMode.PERSONAL
@@ -382,7 +390,8 @@ class AuthViewModel @Inject constructor(
     fun completeLocalOnboarding(role: String) {
         val currentState = authState
         if (currentState is AuthState.Authenticated) {
-            authState = AuthState.Authenticated(role, currentState.userId, isOnboardingComplete = true)
+            authState =
+                    AuthState.Authenticated(role, currentState.userId, isOnboardingComplete = true)
         }
     }
 
@@ -405,7 +414,7 @@ class AuthViewModel @Inject constructor(
             if (token != null) {
                 try {
                     api.signOut(SignOutRequest(token))
-                } catch (_: Exception) { }
+                } catch (_: Exception) {}
             }
 
             tokenManager.clearToken(targetMode)
@@ -417,11 +426,12 @@ class AuthViewModel @Inject constructor(
                 activeMode = otherMode
                 val otherUserId = getUserIdForMode(otherMode)
                 val otherAuth = isTrainerAuthenticated || isPersonalAuthenticated
-                authState = AuthState.Authenticated(
-                    role = getRoleForMode(otherMode),
-                    userId = otherUserId ?: "",
-                    isOnboardingComplete = true
-                )
+                authState =
+                        AuthState.Authenticated(
+                                role = getRoleForMode(otherMode),
+                                userId = otherUserId ?: "",
+                                isOnboardingComplete = true
+                        )
             } else {
                 authState = AuthState.Unauthenticated
             }
@@ -434,7 +444,7 @@ class AuthViewModel @Inject constructor(
             if (currentToken != null) {
                 try {
                     api.signOut(SignOutRequest(currentToken))
-                } catch (_: Exception) { }
+                } catch (_: Exception) {}
             }
             tokenManager.triggerLogoutAll()
         }
@@ -495,53 +505,5 @@ class AuthViewModel @Inject constructor(
         authState = AuthState.Unauthenticated
     }
 
-    fun handleAppleAuthResult(idToken: String, authorizationCode: String, fullName: String?) {
-        viewModelScope.launch {
-            uiLoading = true
-            uiError = null
-            try {
-                val response = api.appleAuth(
-                    com.ziro.fit.model.AppleAuthRequest(
-                        idToken = idToken,
-                        authorizationCode = authorizationCode,
-                        fullName = fullName
-                    )
-                )
-                val loginData = response.data
-                if (loginData != null) {
-                    val currentMode = tokenManager.activeMode.value
-                    tokenManager.saveToken(loginData.accessToken, currentMode)
-                    
-                    val loginDataRefreshToken = loginData.refreshToken
-                    if (loginDataRefreshToken.isNullOrEmpty()) {
-                        // No refresh token provided - user will need to login again when access token expires
-                    } else {
-                        tokenManager.saveRefreshToken(loginDataRefreshToken, currentMode)
-                    }
-
-                    val detectedMode = detectModeFromRole(loginData.role)
-                    if (detectedMode != currentMode) {
-                        tokenManager.clearToken(currentMode)
-                        tokenManager.setActiveMode(detectedMode)
-                        tokenManager.saveToken(loginData.accessToken, detectedMode)
-                        loginData.refreshToken?.let { tokenManager.saveRefreshToken(it, detectedMode) }
-                    }
-
-                    val role = loginData.role
-                    val userId = loginData.user.id
-                    authState = AuthState.Authenticated(role, userId, isOnboardingComplete = role != "pending")
-                    markModeAuthenticated(detectedMode, userId)
-                    syncPushToken()
-                    triggerPrefetch(detectedMode)
-                } else {
-                    uiError = response.message ?: "Apple authentication failed"
-                    uiLoading = false
-                }
-            } catch (e: Exception) {
-                val apiError = ApiErrorParser.parse(e)
-                uiError = ApiErrorParser.getErrorMessage(apiError)
-                uiLoading = false
-            }
-        }
-    }
+    
 }

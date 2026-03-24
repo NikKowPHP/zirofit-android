@@ -67,6 +67,7 @@ import com.ziro.fit.viewmodel.AuthViewModel
 import com.ziro.fit.viewmodel.UserViewModel
 import com.ziro.fit.viewmodel.WorkoutViewModel
 
+
 import com.ziro.fit.service.GlobalChatManager
 import com.ziro.fit.auth.GoogleAuthManager
 import com.ziro.fit.auth.AppleSignInManager
