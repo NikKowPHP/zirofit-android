@@ -6,5 +6,9 @@ data class User(
     val name: String?,
     val role: String?,
     val username: String?,
+    val hasCompletedOnboarding: Boolean,
+    val subscriptionStatus: String?,
+    val profilePhotoPath: String?,
+    val isFreeAccessModeEnabled: Boolean,
     val tier: String?
 )

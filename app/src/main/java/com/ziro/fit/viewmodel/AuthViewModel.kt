@@ -29,6 +29,7 @@ import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import javax.inject.Inject
 
+
 sealed class AuthState {
     object Loading : AuthState()
     data class Authenticated(
@@ -107,6 +108,7 @@ class AuthViewModel @Inject constructor(
                     val user = userResponse.data
                     if (user != null) {
                         val role = user.role ?: "pending"
+                        Logger.d("AuthViewModel", "User $user")
                         authState = AuthState.Authenticated(role, user.id, isOnboardingComplete = role != "pending")
                         markModeAuthenticated(currentMode, user.id)
                         syncPushToken()
