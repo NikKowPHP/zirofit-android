@@ -5,6 +5,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import com.ziro.fit.model.ProfileCoreInfo
+import com.ziro.fit.util.Logger
 
 @Singleton
 class UserSessionManager @Inject constructor(
@@ -17,10 +18,17 @@ class UserSessionManager @Inject constructor(
         get() = prefs.getString(KEY_NAME, null)
         set(value) = prefs.edit().putString(KEY_NAME, value).apply()
     
-    var savedLocation: String?
-        get() = prefs.getString(KEY_LOCATION, null)
-        set(value) = prefs.edit().putString(KEY_LOCATION, value).apply()
-    
+  var savedLocation: String?
+    get() {
+        val value = prefs.getString(KEY_LOCATION, null)
+        Logger.d("state", "getSavedLocation: $value")
+        return value
+    }
+    set(value) {
+        Logger.d("state", "setSavedLocation: $value")
+        prefs.edit().putString(KEY_LOCATION, value).apply()
+    }
+
     var savedBio: String?
         get() = prefs.getString(KEY_BIO, null)
         set(value) = prefs.edit().putString(KEY_BIO, value).apply()
@@ -29,6 +37,10 @@ class UserSessionManager @Inject constructor(
         get() = prefs.getString(KEY_ROLE, null)
         set(value) = prefs.edit().putString(KEY_ROLE, value).apply()
     
+        var savedAvatarUri: String?
+    get() = prefs.getString(KEY_AVATAR_URI, null)
+    set(value) = prefs.edit().putString(KEY_AVATAR_URI, value).apply()
+
     fun saveCoreInfo(coreInfo: ProfileCoreInfo) {
         prefs.edit().apply {
             putString(KEY_NAME, coreInfo.fullName)
@@ -47,5 +59,6 @@ class UserSessionManager @Inject constructor(
         private const val KEY_LOCATION = "onboarding_location"
         private const val KEY_BIO = "onboarding_bio"
         private const val KEY_ROLE = "onboarding_role"
+        private const val KEY_AVATAR_URI = "onboarding_avatar_uri"
     }
 }

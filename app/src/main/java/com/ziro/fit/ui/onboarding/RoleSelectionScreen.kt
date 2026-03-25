@@ -11,8 +11,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SportsGymnastics
+import com.ziro.fit.ui.components.LocationPickerDialog
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.ziro.fit.util.Logger
 import com.ziro.fit.viewmodel.OnboardingViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,18 +37,21 @@ fun RoleSelectionScreen(
     val uiState by viewModel.uiState.collectAsState()
     val avatarUri = viewModel.avatarUri
      // Pre-populate from UserSessionManager
-    var name by remember { mutableStateOf(viewModel.initialName) }
-    var location by remember { mutableStateOf(viewModel.initialLocation ?: "") }
-    var bio by remember { mutableStateOf(viewModel.initialBio ?: "") }
+    // Replace lines 38-40 with:
+val name = uiState.name
+val location = uiState.location ?: ""
+val bio = uiState.bio ?: ""
+var showLocationPicker by remember { mutableStateOf(false) }
 
+    Logger.d("state", "location in initial state ${viewModel.initialLocation}" )
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri -> viewModel.setAvatar(uri) }
     )
 
-    LaunchedEffect(uiState.success) {
-        if (uiState.success) {
-            onOnboardingComplete(uiState.selectedRole)
+    LaunchedEffect(uiState.isComplete) {
+        if (uiState.isComplete) {
+            onOnboardingComplete(uiState.role)
         }
     }
 
@@ -69,17 +75,17 @@ fun RoleSelectionScreen(
                     
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         RoleCard(
-                            title = "Client",
+                            title = "Personal",
                             icon = Icons.Default.Person,
-                            selected = uiState.selectedRole == "client",
-                            onClick = { viewModel.selectRole("client") },
+                            selected = uiState.role == "client",
+                            onClick = { viewModel.updateRole("client") },
                             modifier = Modifier.weight(1f)
                         )
                         RoleCard(
                             title = "Trainer",
                             icon = Icons.Default.SportsGymnastics,
-                            selected = uiState.selectedRole == "trainer",
-                            onClick = { viewModel.selectRole("trainer") },
+                            selected = uiState.role == "trainer",
+                            onClick = { viewModel.updateRole("trainer") },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -123,24 +129,53 @@ fun RoleSelectionScreen(
 
                     OutlinedTextField(
                         value = name,
-                        onValueChange = { name = it },
+                        onValueChange = { newName -> 
+        
+        viewModel.updateName(newName)  
+    },
                         label = { Text("Display Name") },
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    if (uiState.selectedRole == "trainer") {
-                        OutlinedTextField(
-                            value = location,
-                            onValueChange = { location = it },
-                            label = { Text("Location") },
-                            placeholder = { Text("City, Country") },
-                            modifier = Modifier.fillMaxWidth()
+if (uiState.role == "trainer") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            OutlinedTextField(
+                                value = location,
+                                onValueChange = { newLocation ->
+                                    viewModel.updateLocation(newLocation)
+                                },
+                                label = { Text("Location") },
+                                placeholder = { Text("City, Country") },
+                                modifier = Modifier.weight(1f)
+                            )
+                            FilledTonalIconButton(
+                                onClick = { showLocationPicker = true },
+                                modifier = Modifier.padding(top = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Map,
+                                    contentDescription = "Pick from map"
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Or tap the map icon to select on the map",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
                         )
                     }
 
                     OutlinedTextField(
                         value = bio,
-                        onValueChange = { bio = it },
+                        onValueChange = { newBio -> 
+        
+        viewModel.updateBio(newBio)  // ← Save immediately to local storage
+    },
                         label = { Text("Short Bio") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
@@ -156,13 +191,24 @@ fun RoleSelectionScreen(
                     Button(
                         onClick = { viewModel.completeOnboarding(name, location.takeIf { it.isNotBlank() }, bio.takeIf { it.isNotBlank() }) },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = name.isNotBlank() && (uiState.selectedRole != "trainer" || location.isNotBlank())
+                        enabled = name.isNotBlank() && (uiState.role != "trainer" || location.isNotBlank())
                     ) {
                         Text("Complete Setup")
                     }
                 }
             }
         }
+    }
+
+    if (showLocationPicker) {
+        LocationPickerDialog(
+            onLocationSelected = { latitude, longitude, address ->
+                val locationString = "$latitude,$longitude"
+                viewModel.updateLocation(locationString)
+                showLocationPicker = false
+            },
+            onDismiss = { showLocationPicker = false }
+        )
     }
 }
 

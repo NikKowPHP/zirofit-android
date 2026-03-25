@@ -22,6 +22,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import javax.inject.Inject
 import java.io.File
 import com.ziro.fit.data.local.UserSessionManager
+import com.ziro.fit.model.OnboardingFormState
+import com.ziro.fit.model.OnboardingFormStateManager
+import com.ziro.fit.util.Logger
 
 data class OnboardingUiState(
     val isLoading: Boolean = false,
@@ -34,15 +37,17 @@ data class OnboardingUiState(
 class OnboardingViewModel @Inject constructor(
     private val api: ZiroApi,
     private val userSessionManager: UserSessionManager,
+    
     @ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
-
+  private val formStateManager = OnboardingFormStateManager(userSessionManager)
     val initialName: String get() = userSessionManager.savedName ?: ""
     val initialLocation: String? get() = userSessionManager.savedLocation
     val initialBio: String? get() = userSessionManager.savedBio
 
-    private val _uiState = MutableStateFlow(OnboardingUiState())
-    val uiState: StateFlow<OnboardingUiState> = _uiState.asStateFlow()
+   private val _uiState = MutableStateFlow(formStateManager.rehydrate())
+    val uiState: StateFlow<OnboardingFormState> = _uiState.asStateFlow()
+
 
     var avatarUri by mutableStateOf<Uri?>(null)
         private set
@@ -51,6 +56,27 @@ class OnboardingViewModel @Inject constructor(
         avatarUri = uri
     }
 
+    fun updateName(name: String) {
+        _uiState.update { formStateManager.updateName(it, name) }
+    }
+
+    fun updateLocation(location: String?) {
+        _uiState.update { formStateManager.updateLocation(it, location) }
+
+    }
+
+    fun updateBio(bio: String?) {
+        _uiState.update { formStateManager.updateBio(it, bio) }
+
+    }
+
+    fun updateRole(role: String) {
+        _uiState.update { formStateManager.updateRole(it, role) }
+    }
+
+   
+
+    
     private fun uriToFile(uri: Uri): File? {
         return try {
             val contentResolver = context.contentResolver
@@ -78,7 +104,7 @@ class OnboardingViewModel @Inject constructor(
     }
 
     fun selectRole(role: String) {
-        _uiState.update { it.copy(selectedRole = role) }
+        _uiState.update { it.copy(role = role) }
     }
 
     fun completeOnboarding(name: String, location: String?, bio: String?) {
@@ -87,7 +113,7 @@ class OnboardingViewModel @Inject constructor(
             try {
                 val mediaTypeText = "text/plain".toMediaTypeOrNull()
 
-                val roleBody = _uiState.value.selectedRole.toRequestBody(mediaTypeText)
+                val roleBody = _uiState.value.role.toRequestBody(mediaTypeText)
                 val nameBody = name.toRequestBody(mediaTypeText)
                 val locationBody = location?.toRequestBody(mediaTypeText)
                 val bioBody = bio?.toRequestBody(mediaTypeText)
@@ -102,6 +128,8 @@ class OnboardingViewModel @Inject constructor(
                     }
                 }
 
+                Logger.d("onboarding_api", "Sending to server - role: '${_uiState.value.role}', name: '$name', location: '$location', bio: '${bio?.take(50)}...', hasAvatar: ${avatarPart != null}")
+
                 val response = api.completeOnboarding(
                     role = roleBody,
                     name = nameBody,
@@ -110,15 +138,24 @@ class OnboardingViewModel @Inject constructor(
                     avatar = avatarPart
                 )
 
+                Logger.d("onboarding_api", "Response received - success: ${response.success}, hasData: ${response.data != null}, message: '${response.message}', error: '${response.error}'")
+
+                response.data?.let { user ->
+                    Logger.d("onboarding_api", "User data from server - id: '${user.id}', name: '${user.name}', role: '${user.role}', email: '${user.email}'")
+                }
+
                 if (response.success == true || response.data != null) {
-                   // Clear session after successful onboarding
-                userSessionManager.clearSession()
-                _uiState.update { it.copy(isLoading = false, success = true) }
+                    Logger.d("onboarding_storage", "Onboarding successful - clearing local session")
+                    userSessionManager.clearSession()
+                    formStateManager.clearSession()
+                    _uiState.update { it.copy(isLoading = false) }
                 } else {
+                    Logger.e("onboarding_api", "Onboarding failed: ${response.message ?: response.error}")
                     _uiState.update { it.copy(isLoading = false, error = response.message ?: "Onboarding failed") }
                 }
 
             } catch (e: Exception) {
+                Logger.e("onboarding_api", "Onboarding exception: ${e.message}", e)
                 val apiError = ApiErrorParser.parse(e)
                 _uiState.update { it.copy(isLoading = false, error = ApiErrorParser.getErrorMessage(apiError)) }
             }
