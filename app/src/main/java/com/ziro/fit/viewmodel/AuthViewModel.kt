@@ -73,6 +73,9 @@ constructor(
         private set
     var isPersonalAuthenticated by mutableStateOf(false)
         private set
+    
+    var justCompletedOnboarding by mutableStateOf(false)
+        private set
 
     private var trainerUserId: String? = null
     private var personalUserId: String? = null
@@ -140,7 +143,14 @@ constructor(
                 val userResponse = api.getMe()
                 val user = userResponse.data
                 if (user != null) {
-                    setAuthedStateForMode(user, currentMode)
+                    val detectedMode = detectModeFromRole(user.role ?: "client")
+                    
+                    if (detectedMode != currentMode) {
+                        Logger.d("AuthViewModel", "Mode mismatch: saved=$currentMode, detected=$detectedMode. Switching without clearing tokens...")
+                        tokenManager.setActiveMode(detectedMode)
+                    }
+                    
+                    setAuthedStateForMode(user, detectedMode)
                 } else {
                     handleUnauthenticated()
                 }
@@ -208,7 +218,6 @@ constructor(
         val currentMode = tokenManager.activeMode.value
 
         if (detectedMode != currentMode) {
-            tokenManager.clearToken(currentMode)
             tokenManager.setActiveMode(detectedMode)
         }
 
@@ -409,10 +418,23 @@ constructor(
     }
 
     fun completeLocalOnboarding(role: String) {
-        val currentState = authState
-        if (currentState is AuthState.Authenticated) {
-            authState =
-                    AuthState.Authenticated(role, currentState.userId, isOnboardingComplete = true)
+        viewModelScope.launch {
+            val currentState = authState
+            if (currentState is AuthState.Authenticated) {
+                val detectedMode = detectModeFromRole(role)
+                
+                if (detectedMode != activeMode) {
+                    tokenManager.setActiveMode(detectedMode)
+                }
+                
+                authState = AuthState.Authenticated(role, currentState.userId, isOnboardingComplete = true)
+                
+                if (role == "client") {
+                    justCompletedOnboarding = true
+                }
+                
+                triggerPrefetch(detectedMode)
+            }
         }
     }
 

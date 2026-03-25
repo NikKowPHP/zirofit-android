@@ -145,10 +145,8 @@ class OnboardingViewModel @Inject constructor(
                 }
 
                 if (response.success == true || response.data != null) {
-                    Logger.d("onboarding_storage", "Onboarding successful - clearing local session")
-                    userSessionManager.clearSession()
-                    formStateManager.clearSession()
-                    _uiState.update { it.copy(isLoading = false) }
+                    Logger.d("onboarding_storage", "Onboarding successful - setting isComplete flag")
+                    _uiState.update { it.copy(isLoading = false, isComplete = true) }
                 } else {
                     Logger.e("onboarding_api", "Onboarding failed: ${response.message ?: response.error}")
                     _uiState.update { it.copy(isLoading = false, error = response.message ?: "Onboarding failed") }

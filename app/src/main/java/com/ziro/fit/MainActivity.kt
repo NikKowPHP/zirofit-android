@@ -134,6 +134,7 @@ fun AppNavigation(
     
     // Manage root navigation state based on auth
     var currentScreen by remember { mutableStateOf<String>("loading") }
+    var navigateToFindTrainer by remember { mutableStateOf(false) }
 
     LaunchedEffect(state) {
         currentScreen = when (state) {
@@ -146,6 +147,12 @@ fun AppNavigation(
             }
             is AuthState.Error -> "login"
             is AuthState.EmailConfirmationRequired -> "login"
+        }
+    }
+
+    LaunchedEffect(navigateToFindTrainer, state) {
+        if (navigateToFindTrainer) {
+            currentScreen = "client_app"
         }
     }
 
@@ -179,6 +186,9 @@ fun AppNavigation(
             )
             "onboarding" -> RoleSelectionScreen(
                 onOnboardingComplete = { role ->
+                    if (role == "client") {
+                        navigateToFindTrainer = true
+                    }
                     authViewModel.completeLocalOnboarding(role)
                 }
             )
@@ -381,6 +391,16 @@ fun ClientAppScreen(
     // Refresh active session on load
     LaunchedEffect(Unit) {
         workoutViewModel.refreshActiveSession()
+    }
+
+    // Navigate to trainer finding wizard if onboarding was just completed
+    LaunchedEffect(authViewModel.justCompletedOnboarding) {
+        if (authViewModel.justCompletedOnboarding) {
+            authViewModel.justCompletedOnboarding = false
+            navController.navigate("trainer_finding_onboarding") {
+                popUpTo("client_dashboard")
+            }
+        }
     }
 
     // Get User ID from Auth State
@@ -1070,7 +1090,8 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                         onNavigateToBookings = { navController.navigate("bookings_list") },
                         onNavigateToCheckIns = { navController.navigate("checkins_list") },
                         onNavigateToEvents = { navController.navigate("events_list") },
-                        onNavigateToMyEvents = { navController.navigate("trainer_events") }
+                        onNavigateToMyEvents = { navController.navigate("trainer_events") },
+                        onLogout = onLogout
                     )
                 }
                 composable("events_list") {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Event
@@ -22,7 +23,8 @@ fun MoreScreen(
     onNavigateToBookings: () -> Unit,
     onNavigateToCheckIns: () -> Unit,
     onNavigateToEvents: () -> Unit,
-    onNavigateToMyEvents: () -> Unit = {}
+    onNavigateToMyEvents: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -72,7 +74,17 @@ fun MoreScreen(
                 )
                 HorizontalDivider()
             }
-            // Add more items here in the future
+            item {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+            item {
+                MoreMenuItem(
+                    icon = Icons.AutoMirrored.Filled.Logout,
+                    title = "Logout",
+                    subtitle = "Sign out of your account",
+                    onClick = onLogout
+                )
+            }
         }
     }
 }

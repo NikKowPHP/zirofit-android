@@ -42,15 +42,17 @@ class UserSessionManager @Inject constructor(
     set(value) = prefs.edit().putString(KEY_AVATAR_URI, value).apply()
 
     fun saveCoreInfo(coreInfo: ProfileCoreInfo) {
+        Logger.d("state", "saveCoreInfo called - coreInfo: $coreInfo")
         prefs.edit().apply {
             putString(KEY_NAME, coreInfo.fullName)
             putString(KEY_LOCATION, coreInfo.locations.firstOrNull())
-            // Don't pre-populate bio as it's usually new content
             apply()
         }
+        Logger.d("state", "saveCoreInfo - saved name='${coreInfo.fullName}', location='${coreInfo.locations.firstOrNull()}'")
     }
     
     fun clearSession() {
+        Logger.d("state", "clearSession called - clearing ALL prefs")
         prefs.edit().clear().apply()
     }
     
