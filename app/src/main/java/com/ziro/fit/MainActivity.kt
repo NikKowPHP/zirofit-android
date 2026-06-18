@@ -42,6 +42,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.ziro.fit.ui.calendar.CalendarScreen
+import com.ziro.fit.ui.dashboard.TrainerDashboardScreen
 import com.ziro.fit.ui.workout.LiveWorkoutScreen
 import com.ziro.fit.ui.workout.LiveWorkoutMiniPlayer
 import com.ziro.fit.ui.discovery.EventsListScreen
@@ -469,21 +470,34 @@ fun ClientAppScreen(
                 modifier = Modifier.padding(innerPadding)
             ) {
                 composable("client_dashboard") {
-                    com.ziro.fit.ui.dashboard.ClientDashboardScreen(
-                        onLogout = authViewModel::logout,
+                    com.ziro.fit.ui.home.PersonalHomeScreen(
                         onNavigateToDiscovery = { navController.navigate("trainer_finding_onboarding") },
                         onNavigateToCheckIns = { navController.navigate("client_checkins") },
                         onNavigateToLiveWorkout = {
                             navController.navigate("live_workout") {
-                                launchSingleTop = true 
+                                launchSingleTop = true
                             }
                         },
-                        onNavigateToChat = { clientId, trainerId ->
-                             navController.navigate("chat/$clientId/$trainerId")
+                        onNavigateToTemplates = { navController.navigate("client_workouts") },
+                        onNavigateToNotifications = { navController.navigate("client_notifications") },
+                        onNavigateToProfile = { navController.navigate("profile") },
+                        onNavigateToSessionDetail = { sessionId ->
+                            navController.navigate("client_session_detail/$sessionId")
                         },
-                        onNavigateToAICoach = { navController.navigate("ai_coach") },
-                        onNavigateToEvents = { navController.navigate("events_list") },
-                        workoutViewModel = workoutViewModel
+                        onNavigateToCoachProfile = { trainerId ->
+                            navController.navigate("trainer_profile/$trainerId")
+                        },
+                        onChatWithTrainer = { clientId, trainerId ->
+                            navController.navigate("chat/$clientId/$trainerId")
+                        },
+                        onQuickStart = {
+                            workoutViewModel.startWorkout(
+                                clientId = null,
+                                templateId = null,
+                                plannedSessionId = null,
+                                onSuccess = { navController.navigate("live_workout") }
+                            )
+                        }
                     )
                 }
                 composable("client_analytics") {
@@ -602,6 +616,7 @@ fun ClientAppScreen(
                 }
                 composable("client_workouts") {
                     com.ziro.fit.ui.workouts.WorkoutsScreen(
+                        onNavigateBack = { navController.popBackStack() },
                         onStartWorkout = { templateId ->
                             workoutViewModel.startWorkout(
                                 clientId = null,
@@ -719,6 +734,31 @@ fun ClientAppScreen(
                 ) { backStackEntry ->
                     val slug = backStackEntry.arguments?.getString("slug") ?: ""
                     Box(modifier = Modifier.fillMaxSize()) {
+                    }
+                }
+
+                // Notifications screen (placeholder - route to existing notifications if available)
+                composable("client_notifications") {
+                    // Use the existing profile notifications screen as a base
+                    com.ziro.fit.ui.profile.ClientProfileScreen(
+                        currentMode = authViewModel.activeMode,
+                        onModeSwitch = { authViewModel.setMode(it) },
+                        onLogout = { authViewModel.logout() }
+                    )
+                }
+
+                // Session detail screen (placeholder)
+                composable(
+                    route = "client_session_detail/{sessionId}",
+                    arguments = listOf(navArgument("sessionId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val sessionId = backStackEntry.arguments?.getString("sessionId") ?: ""
+                    // For now, navigate back - this can be enhanced with a full session detail view
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text(
+                            text = "Session: $sessionId",
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.Center)
+                        )
                     }
                 }
             }
@@ -1149,10 +1189,16 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                     )
                 }
                 composable("trainer_home") {
-                    CalendarScreen(
-                        workoutViewModel = workoutViewModel,
-                        onNavigateToLiveWorkout = { navController.navigate("live_workout") },
-                        onNavigateToCreateSession = { date -> navController.navigate("create_session?date=$date") }
+                    TrainerDashboardScreen(
+                        userName = null,
+                        onNavigateToClients = { navController.navigate("clients") },
+                        onNavigateToCalendar = { navController.navigate("calendar") },
+                        onNavigateToPrograms = { navController.navigate("trainer_programs") },
+                        onNavigateToAddClient = { navController.navigate("clients") },
+                        onNavigateToStorefront = { navController.navigate("profile/branding") },
+                        onNavigateToBookings = { navController.navigate("bookings_list") },
+                        onNavigateToRevenue = { navController.navigate("profile/revenue") },
+                        onNavigateToCheckIns = { navController.navigate("checkins_list") }
                     )
                 }
                 composable("trainer_programs") {

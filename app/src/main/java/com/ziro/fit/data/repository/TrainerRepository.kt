@@ -117,4 +117,33 @@ class TrainerRepository @Inject constructor(
             Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
         }
     }
+
+    suspend fun acceptTrainerLinkRequest(notificationId: String): Result<String> {
+        return try {
+            val response = api.acceptTrainerLinkRequest(notificationId)
+            if (response.success != false) {
+                _linkEvents.emit(Unit)
+                Result.success(response.data?.message ?: "Successfully connected with trainer.")
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to accept request"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
+
+    suspend fun declineTrainerLinkRequest(notificationId: String): Result<String> {
+        return try {
+            val response = api.declineTrainerLinkRequest(notificationId)
+            if (response.success != false) {
+                Result.success(response.data?.message ?: "Request declined.")
+            } else {
+                Result.failure(Exception(response.message ?: "Failed to decline request"))
+            }
+        } catch (e: Exception) {
+            val apiError = ApiErrorParser.parse(e)
+            Result.failure(Exception(ApiErrorParser.getErrorMessage(apiError)))
+        }
+    }
 }

@@ -383,6 +383,16 @@ interface ZiroApi {
     @GET("api/client/trainer")
     suspend fun getLinkedTrainer(): ApiResponse<LinkedTrainerResponse>
 
+    @POST("api/client/link-requests/{notificationId}/accept")
+    suspend fun acceptTrainerLinkRequest(
+        @retrofit2.http.Path("notificationId") notificationId: String
+    ): ApiResponse<LinkActionResponse>
+
+    @POST("api/client/link-requests/{notificationId}/decline")
+    suspend fun declineTrainerLinkRequest(
+        @retrofit2.http.Path("notificationId") notificationId: String
+    ): ApiResponse<LinkActionResponse>
+
     @GET("api/workout-sessions/history")
     suspend fun getWorkoutHistory(
         @Query("limit") limit: Int = 20,

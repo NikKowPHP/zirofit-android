@@ -37,6 +37,16 @@ class DailyTargetManager @Inject constructor(
         prefs[streakKey] ?: 0
     }
 
+    // Synchronous access for ViewModels
+    var targets: List<DailyTarget> = emptyList()
+        private set
+
+    suspend fun refresh() {
+        fetchDailyTargets().onSuccess { fetched ->
+            targets = fetched
+        }
+    }
+
     suspend fun fetchDailyTargets(): Result<List<DailyTarget>> {
         return try {
             val response = api.getDailyTargets()

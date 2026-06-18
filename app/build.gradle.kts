@@ -70,6 +70,11 @@ android {
             excludes += "META-INF/AL2.0"
             excludes += "META-INF/LGPL2.1"
         }
+        // Enable 16 KB page alignment for native libraries (Android 15+ requirement)
+        // AGP 8.5.1+ auto-aligns uncompressed shared libs to 16 KB during packaging
+        jniLibs {
+            useLegacyPackaging = false
+        }
     }
 }
 
