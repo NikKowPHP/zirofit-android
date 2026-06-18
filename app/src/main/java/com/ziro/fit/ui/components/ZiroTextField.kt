@@ -2,7 +2,7 @@ package com.ziro.fit.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -26,7 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ziro.fit.ui.theme.ZiroAccent
 import com.ziro.fit.ui.theme.ZiroInputBackground
+import com.ziro.fit.ui.theme.ZiroInputBackgroundDark
 import com.ziro.fit.ui.theme.ZiroInputBorder
+import com.ziro.fit.ui.theme.ZiroInputBorderDark
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -45,32 +47,46 @@ fun ZiroTextField(
     onPasswordToggle: (() -> Unit)? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
-    val borderColor = if (isFocused) ZiroAccent else ZiroInputBorder
+    val darkTheme = isSystemInDarkTheme()
+
+    val bgThemeColor = if (darkTheme) ZiroInputBackgroundDark else ZiroInputBackground
+    val borderThemeColor = if (darkTheme) ZiroInputBorderDark else ZiroInputBorder
+    val borderColor = if (isFocused) ZiroAccent else borderThemeColor
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(56.dp)
-            .background(ZiroInputBackground, shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-            .border(width = 1.5.dp, color = borderColor, shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+            .background(bgThemeColor, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+            .border(width = 1.5.dp, color = borderColor, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
             .onFocusChanged { isFocused = it.isFocused }
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            icon()
-            Spacer(modifier = Modifier.width(8.dp))
+            Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                icon()
+            }
+            Spacer(modifier = Modifier.width(12.dp))
             Box(modifier = Modifier.weight(1f)) {
                 BasicTextField(
                     value = value,
                     onValueChange = onValueChange,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions.Default.copy(keyboardType = keyboardType),
-                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp),
+                    textStyle = TextStyle(
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontSize = 16.sp,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Default
+                    ),
                     visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
                     decorationBox = { inner ->
                         if (value.isEmpty()) {
-                            Text(text = placeholder, color = Color.Gray, fontSize = 16.sp)
+                            Text(
+                                text = placeholder,
+                                color = if (darkTheme) Color.Gray else Color.Gray.copy(alpha = 0.8f),
+                                fontSize = 16.sp
+                            )
                         }
                         inner()
                     },
@@ -78,14 +94,18 @@ fun ZiroTextField(
                 )
             }
             if (isPassword && onPasswordToggle != null) {
-                IconButton(onClick = { onPasswordToggle() }) {
+                IconButton(
+                    onClick = { onPasswordToggle() },
+                    modifier = Modifier.size(24.dp)
+                ) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                        contentDescription = null,
-                        tint = Color.Gray
+                        contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                        tint = if (darkTheme) Color.Gray else Color.Gray.copy(alpha = 0.7f)
                     )
                 }
             }
         }
     }
 }
+      

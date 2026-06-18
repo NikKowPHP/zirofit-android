@@ -90,7 +90,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         googleAuthManager.processIntent(intent)
         appleSignInManager.processIntent(intent)
-      
 
         setContent {
             ZirofitTheme {
@@ -249,10 +248,11 @@ fun AuthNavigation(
         appleSignInManager.authOutcome.collect { outcome ->
             when (outcome) {
                 is com.ziro.fit.auth.AppleAuthOutcome.Success -> {
+                    val res = outcome.result
                     authViewModel.handleAppleAuthResult(
-                        outcome.result.idToken,
-                        outcome.result.authCode,
-                        outcome.result.email,
+                        res.idToken,
+                        res.authCode,
+                        res.email,
                         "",
                         "client"
                     )
@@ -381,10 +381,9 @@ fun AuthNavigation(
 @Composable
 fun ClientAppScreen(
     authViewModel: AuthViewModel,
-    globalChatManager: GlobalChatManager // Passed down
+    globalChatManager: GlobalChatManager
 ) {
     val navController = rememberNavController()
-    // Shared workout viewmodel for client too
     val workoutViewModel: WorkoutViewModel = hiltViewModel()
     val workoutState by workoutViewModel.uiState.collectAsState()
 
@@ -417,6 +416,23 @@ fun ClientAppScreen(
 
     LaunchedEffect(authViewModel.activeMode) {
         selectedTab.value = TabItem.HOME
+    }
+
+    // Sync tab selection dynamically with active navigation route
+    LaunchedEffect(currentRoute) {
+        currentRoute?.let { route ->
+            val tab = when {
+                route.startsWith("client_dashboard") -> TabItem.HOME
+                route.startsWith("explore") || route.startsWith("event_detail") || route.startsWith("trainer_profile") || route.startsWith("trainer_finding_onboarding") || route.startsWith("trainer_discovery") -> TabItem.PROGRAMS
+                route.startsWith("client_workouts") || route.startsWith("workout/create_template") || route.startsWith("workout/edit_template") -> TabItem.CLIENTS
+                route.startsWith("client_analytics") -> TabItem.ANALYTICS
+                route.startsWith("profile") -> TabItem.MORE
+                else -> null
+            }
+            if (tab != null) {
+                selectedTab.value = tab
+            }
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -512,39 +528,7 @@ fun ClientAppScreen(
                 composable("ai_coach") {
                     com.ziro.fit.ui.aicoach.AICoachScreen(
                         navController = navController,
-                        onNavigateToProgram = { programId ->
-                            // TODO: confirm if "client_programs" handles detail or just list.
-                            // Assuming we want to show the program details or list. 
-                            // The user request said: "Handle navigation to client_programs upon success."
-                            // But usually we want to see the new program. 
-                            // Current client_programs route in MainAppScreen is "client_details/{id}/programs" which is for TRAINER?
-                            // Wait, "client_workouts" is likely the client's view.
-                            // Use Case: "Handle navigation to client_programs upon success."
-                            // I see "client_workouts" route used in BottomBar.
-                            // I should verify if there is a "client_programs" route for Client.
-                            // Looking at ClientAppScreen, I see "client_workouts" in the NavHost.
-                            // There is NO "client_programs" route in ClientAppScreen.
-                            // However, there IS "client_details/{clientId}/programs" in MainAppScreen (Trainer).
-                            // For Client, maybe "client_workouts" is where programs are shown?
-                            // Or maybe I should create "client_programs"?
-                            // The user asked "Handle navigation to client_programs upon success." 
-                            // If "client_programs" doesn't exist, I should probably route to "client_workouts" or similar.
-                            // Or create it?
-                            // Let's look at `ClientProgramsViewModel`, it exists.
-                            // Let's assume the user meant a new route or existing "client_workouts" if it shows programs.
-                            // But `ClientProgramsViewModel` loads programs.
-                            // If I look at `MainActivity` again, `client_workouts` uses `WorkoutsScreen`.
-                            // Maybe `WorkoutsScreen` lists programs?
-                            // Let's just navigate to `client_workouts` for now as a fallback if `client_programs` isn't defined.
-                            // Actually, I'll add "client_programs" route if I see corresponding screen. 
-                            // I didn't see `ClientProgramsScreen` usage in `ClientAppScreen`.
-                            // I'll stick to creating a route "client_programs" if I can find the screen, 
-                            // but I used `com.ziro.fit.ui.program.ClientProgramsScreen` for Trainer side. 
-                            // Can I reuse it? `ClientProgramsScreen` takes `clientId`.
-                            // If I navigate to it, I need `clientId`.
-                            // In "ai_coach", I don't readily have clientId unless I fetch it.
-                            // But `AICoachViewModel` has it (or fetches it).
-                            // Let's just navigate to "client_workouts" which seems to be the main place for client workouts/programs.
+                        onNavigateToProgram = { 
                             navController.navigate("client_workouts") {
                                 popUpTo("client_dashboard")
                             }
@@ -679,9 +663,6 @@ fun ClientAppScreen(
                     com.ziro.fit.ui.checkins.CheckInSubmissionScreen(
                         onNavigateBack = { 
                             navController.popBackStack()
-                            // Maybe pop back to list to refresh? Default behavior should handle it?
-                            // Actually CheckInSubmissionScreen calls onNavigateBack on success. 
-                            // Ideally it goes back to list which refreshes on launch effect.
                         }
                     )
                 }
@@ -729,7 +710,6 @@ fun ClientAppScreen(
                     deepLinks = listOf(navDeepLink { uriPattern = "zirofit://blog" })
                 ) {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // BlogListScreen placeholder - to be implemented by another agent
                     }
                 }
                 composable(
@@ -739,19 +719,18 @@ fun ClientAppScreen(
                 ) { backStackEntry ->
                     val slug = backStackEntry.arguments?.getString("slug") ?: ""
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // BlogPostScreen placeholder - to be implemented by another agent
                     }
                 }
             }
         }
         
-         // Floating Mini Player (Client)
+         // Floating Mini Player (Client) - Positioned with premium 96.dp spacing to clear curved tab bar
         val isMiniPlayerVisible = workoutState.activeSession != null && currentRoute != "live_workout"
         if (isMiniPlayerVisible) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 80.dp) // Initial position above nav bar
+                    .padding(bottom = 96.dp) // Premium elevated floating position
                     .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
@@ -826,6 +805,23 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
         selectedTab.value = TabItem.HOME
     }
 
+    // Sync tab selection dynamically with active navigation route
+    LaunchedEffect(currentRoute) {
+        currentRoute?.let { route ->
+            val tab = when {
+                route.startsWith("calendar") -> TabItem.CALENDAR
+                route.startsWith("trainer_home") -> TabItem.HOME
+                route.startsWith("clients") || route.startsWith("client_details") -> TabItem.CLIENTS
+                route.startsWith("more") || route.startsWith("profile") -> TabItem.MORE
+                route.startsWith("trainer_programs") || route.startsWith("events_list") -> TabItem.PROGRAMS
+                else -> null
+            }
+            if (tab != null) {
+                selectedTab.value = tab
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             bottomBar = {
@@ -837,7 +833,7 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                             selectedTab.value = tab
                             val route = when (tab) {
                                 TabItem.CALENDAR -> "calendar"
-                                TabItem.PROGRAMS -> "trainer_home"
+                                TabItem.PROGRAMS -> "trainer_programs"
                                 TabItem.HOME -> "trainer_home"
                                 TabItem.CLIENTS -> "clients"
                                 TabItem.MORE -> "more"
@@ -896,20 +892,7 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                     com.ziro.fit.ui.program.ClientProgramsScreen(
                         clientId = clientId,
                         onNavigateBack = { navController.popBackStack() },
-                        onNavigateToProgramDetail = { programId -> 
-                            // TODO: Navigate to program detail. For now just pop back or stay?
-                            // The PRD says "Navigate the user to the Program Detail View using the programId"
-                            // I don't see a Program Detail View in the codebase yet properly exposed or I missed it.
-                            // I'll assume there is one or I might have to leave it as TODO if it wasn't in scope.
-                            // Looking at existing code, I saw "client_workouts" but that seems to be the list.
-                            // I'll try "program_detail/$programId" if it exists, otherwise maybe just show a toast?
-                            // For now, I'll leave a placeholder or just navigate back to client details?
-                            // Actually, I should probably creating a placeholder detail screen if it doesn't exist?
-                            // Use case says: "Navigate the user to the Program Detail View using the programId returned in the response"
-                            // I'll assume "program_detail/{programId}" is fine for now, or just log it.
-                            // Wait, I saw "WorkoutsScreen" in "client_workouts".
-                            // Let's just pop back for now as I can't be sure about Program Detail Screen.
-                            // Or better, I can verify if I have a ProgramDetailScreen.
+                        onNavigateToProgramDetail = { 
                             navController.popBackStack() 
                         }
                     )
@@ -955,7 +938,6 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                     )
                 }
                 composable("profile") {
-                    val profileViewModel: com.ziro.fit.viewmodel.ProfileViewModel = hiltViewModel()
                     com.ziro.fit.ui.profile.ProfileScreen(
                         onLogout = onLogout,
                         onNavigateToSubScreen = { route -> navController.navigate(route) }
@@ -1061,7 +1043,7 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                 }
                 composable("live_workout") {
                     LiveWorkoutScreen(
-                        viewModel = workoutViewModel, // Pass the shared instance
+                        viewModel = workoutViewModel,
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }
@@ -1173,6 +1155,13 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                         onNavigateToCreateSession = { date -> navController.navigate("create_session?date=$date") }
                     )
                 }
+                composable("trainer_programs") {
+                    com.ziro.fit.ui.program.TrainerProgramsScreen(
+                        onNavigateToProgramDetail = { programId ->
+                            // TODO: Navigate to program detail when created for trainer
+                        }
+                    )
+                }
                 composable("checkins_list") {
                     CheckInListScreen(
                         onNavigateBack = { navController.popBackStack() },
@@ -1207,12 +1196,10 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                 }
                 composable("admin_blog") {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // BlogAdminListScreen placeholder
                     }
                 }
                 composable("admin_blog/create") {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // BlogCreateScreen placeholder
                     }
                 }
                 composable(
@@ -1221,34 +1208,30 @@ fun MainAppScreen(authViewModel: AuthViewModel, onLogout: () -> Unit) {
                 ) { backStackEntry ->
                     val id = backStackEntry.arguments?.getString("id") ?: ""
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // BlogEditScreen placeholder
                     }
                 }
                 composable("admin_events") {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // AdminEventModerationScreen placeholder
                     }
                 }
                 composable("admin_settings") {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // AdminSettingsScreen placeholder
                     }
                 }
                 composable("billing_portal") {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // BillingPortalScreen placeholder
                     }
                 }
             }
         }
-
-        // Floating Mini Player (Always alive if session exists and not on the workout screen)
+        
+         // Floating Mini Player (Client) - Positioned with premium 96.dp spacing to clear curved tab bar
         val isMiniPlayerVisible = workoutState.activeSession != null && currentRoute != "live_workout"
         if (isMiniPlayerVisible) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 80.dp) // Initial position above nav bar
+                    .padding(bottom = 96.dp) // Premium elevated floating position
                     .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
@@ -1526,6 +1509,4 @@ fun LoginScreen(
         }
     }
 }
-
-
       

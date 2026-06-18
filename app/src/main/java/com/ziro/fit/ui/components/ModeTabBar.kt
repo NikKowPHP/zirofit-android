@@ -1,14 +1,10 @@
 package com.ziro.fit.ui.components
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BarChart
@@ -20,12 +16,11 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -68,62 +63,48 @@ fun ModeTabBar(
     modifier: Modifier = Modifier
 ) {
     val tabs = TabItem.tabsFor(currentMode)
-    val selectedIndex = tabs.indexOf(selectedTab).coerceAtLeast(0)
 
-    Surface(
+    NavigationBar(
         modifier = modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars),
-        shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-        shadowElevation = 12.dp
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = NavigationBarDefaults.Elevation
     ) {
-        Box(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
-        ) {
-            NavigationBar(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(80.dp),
-                containerColor = Color.Transparent,
-                tonalElevation = 0.dp
-            ) {
-                tabs.forEach { tab ->
-                    val icon = tab.icon(currentMode)
-                    val label = tab.label(currentMode)
-                    val isSelected = tab == selectedTab
+        tabs.forEach { tab ->
+            val icon = tab.icon(currentMode)
+            val label = tab.label(currentMode)
+            val isSelected = tab == selectedTab
 
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = {
-                            HapticManagerCompat.impact(HapticStyle.LIGHT)
-                            onTabSelected(tab)
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = label,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = label,
-                                fontSize = 10.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = ZiroAccent,
-                            selectedTextColor = ZiroAccent,
-                            unselectedIconColor = Color.Gray,
-                            unselectedTextColor = Color.Gray,
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer
-                        ),
-                        alwaysShowLabel = true
+            NavigationBarItem(
+                selected = isSelected,
+                onClick = {
+                    HapticManagerCompat.impact(HapticStyle.LIGHT)
+                    onTabSelected(tab)
+                },
+                icon = {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = label,
+                        modifier = Modifier.size(24.dp)
                     )
-                }
-            }
+                },
+                label = {
+                    Text(
+                        text = label,
+                        fontSize = 10.sp,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = ZiroAccent,
+                    selectedTextColor = ZiroAccent,
+                    unselectedIconColor = Color.Gray,
+                    unselectedTextColor = Color.Gray,
+                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer
+                ),
+                alwaysShowLabel = true
+            )
         }
     }
 }

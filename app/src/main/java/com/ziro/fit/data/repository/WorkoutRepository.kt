@@ -98,6 +98,16 @@ class WorkoutRepository @Inject constructor(
         }
     }
 
+    suspend fun fetchTrainerPrograms(): Result<GetClientProgramsResponse> {
+        return try {
+            val response = api.getTrainerPrograms()
+            response.data?.let { Result.success(it) }
+                ?: Result.failure(Exception(response.error ?: "Failed to load programs"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getProgram(programId: String): com.ziro.fit.model.ProgramDto? {
         return try {
             val assignments = api.getClientPrograms()

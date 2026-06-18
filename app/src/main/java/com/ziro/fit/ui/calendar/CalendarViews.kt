@@ -25,11 +25,12 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import com.ziro.fit.model.CalendarEvent
 import com.ziro.fit.model.ClientSummaryItem
+import com.ziro.fit.model.EventType
+import com.ziro.fit.ui.theme.ZiroAccent
+import com.ziro.fit.ui.theme.StrongTextSecondary
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.time.format.TextStyle
-import java.util.Locale
 
 // --- Week View ---
 
@@ -43,7 +44,7 @@ fun WeekViewPager(
 ) {
     val initialPage = Int.MAX_VALUE / 2
     
-     HorizontalPager(
+    HorizontalPager(
         state = pagerState,
         modifier = Modifier.fillMaxWidth()
     ) { page ->
@@ -71,7 +72,9 @@ fun WeekCalendarView(
     val days = (0..6).map { weekStartDate.plusDays(it.toLong()) }
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         days.forEach { date ->
@@ -92,31 +95,33 @@ fun WeekCalendarView(
                 }
                 .distinctBy { it.clientId }
 
-
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(16.dp)) // Premium elongated rounded capsule
                     .clickable { onDateSelected(date) }
-                    .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                    .padding(vertical = 8.dp, horizontal = 4.dp)
-                    .width(42.dp)
+                    .background(if (isSelected) ZiroAccent else Color.Transparent)
+                    .padding(vertical = 12.dp, horizontal = 6.dp)
+                    .width(46.dp)
             ) {
                 Text(
                     text = date.format(DateTimeFormatter.ofPattern("EEE")),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isSelected) Color.White else Color.Gray
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (isSelected) Color.White else StrongTextSecondary,
+                    fontSize = 11.sp
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = date.dayOfMonth.toString(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isSelected) Color.White else if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+                    color = if (isSelected) Color.White else if (isToday) ZiroAccent else MaterialTheme.colorScheme.onBackground,
+                    fontSize = 16.sp
                 )
                 
                 if (dayClients.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     ClientCircles(clients = dayClients)
                 } else {
                     Spacer(modifier = Modifier.height(16.dp)) 
@@ -131,8 +136,8 @@ fun ClientCircles(clients: List<ClientSummaryItem>) {
     val maxCircles = 3
     val displayCount = if (clients.size > maxCircles) 2 else clients.size
     val showEllipsis = clients.size > maxCircles
-    val circleSize = 16.dp
-    val overlap = 6.dp
+    val circleSize = 14.dp
+    val overlap = 5.dp
 
     Box(contentAlignment = Alignment.Center) {
         val totalWidth = (circleSize * (displayCount + if (showEllipsis) 1 else 0)) - (overlap * (displayCount + (if (showEllipsis) 1 else 0) - 1))
@@ -163,7 +168,7 @@ fun ClientCircles(clients: List<ClientSummaryItem>) {
                         Text(
                             text = firstChar,
                             style = MaterialTheme.typography.labelSmall,
-                            fontSize = 8.sp,
+                            fontSize = 7.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
@@ -185,7 +190,7 @@ fun ClientCircles(clients: List<ClientSummaryItem>) {
                     Text(
                         text = "+${clients.size - displayCount}",
                         style = MaterialTheme.typography.labelSmall,
-                        fontSize = 7.sp,
+                        fontSize = 6.sp,
                         color = MaterialTheme.colorScheme.onSecondary
                     )
                 }
@@ -206,7 +211,7 @@ fun MonthViewPager(
 ) {
     val initialPage = Int.MAX_VALUE / 2
     
-     HorizontalPager(
+    HorizontalPager(
         state = pagerState,
         modifier = Modifier.fillMaxWidth()
     ) { page ->
@@ -244,7 +249,7 @@ fun MonthCalendarView(
                 Text(
                     text = day,
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.Gray,
+                    color = StrongTextSecondary,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
@@ -270,7 +275,7 @@ fun MonthCalendarView(
                         
                         // Check for events/clients
                         val dayClients = clientSummaries.filter { 
-                             try {
+                            try {
                                 java.time.Instant.parse(it.date)
                                     .atZone(java.time.ZoneId.systemDefault())
                                     .toLocalDate()
@@ -286,14 +291,14 @@ fun MonthCalendarView(
                                 .weight(1f)
                                 .aspectRatio(1f)
                                 .clip(CircleShape)
-                                .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                .background(if (isSelected) ZiroAccent else Color.Transparent)
                                 .clickable { onDateSelected(date) }
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = dayOfMonth.toString(),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (isSelected) Color.White else if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+                                    color = if (isSelected) Color.White else if (isToday) ZiroAccent else MaterialTheme.colorScheme.onBackground
                                 )
                                 if (dayClients.isNotEmpty()) {
                                     Box(
@@ -321,11 +326,13 @@ fun DayCalendarView(
     events: List<CalendarEvent>,
     onEventClick: (CalendarEvent) -> Unit
 ) {
-     if (events.isEmpty()) {
+    if (events.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
-                text = "No sessions for ${date.format(DateTimeFormatter.ofPattern("MMM d"))}",
-                color = Color.Gray,
+                text = "No sessions today",
+                color = StrongTextSecondary,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center
             )
         }
@@ -350,17 +357,10 @@ fun AgendaCalendarView(
     events: List<CalendarEvent>,
     onEventClick: (CalendarEvent) -> Unit
 ) {
-    // For now, Agenda looks similar to DayView/EventsList but conceptually 
-    // it could show a list of upcoming days. Currently constrained to selected date events by ViewModel structure.
-    // Ideally Agenda would show a flat list of ALL upcoming events from today onwards.
-    // Given the ViewModel mainly fetches by selectedDate or range, we might need adjustments to show multiple days.
-    // For MVP reuse Day/Event List style but maybe with headers if we had multi-day data.
-    
-    // Just reusing DayCalendarView layout for simplicity as per requirements for 'view switching' 
-    // on the 'calendar page'.
     DayCalendarView(
         date = selectedDate,
         events = events,
         onEventClick = onEventClick
     )
 }
+      

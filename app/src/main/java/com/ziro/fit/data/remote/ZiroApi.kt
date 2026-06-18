@@ -9,6 +9,7 @@ import com.ziro.fit.model.GetClientDetailsResponse
 import com.ziro.fit.model.GetMeasurementsResponse
 import com.ziro.fit.model.GetAssessmentsResponse
 import com.ziro.fit.model.GetPhotosResponse
+import com.ziro.fit.model.GetClientProgramsResponse
 import com.ziro.fit.model.GetClientSessionsResponse
 import com.ziro.fit.model.LogSetRequest
 import com.ziro.fit.model.LoginRequest
@@ -410,6 +411,9 @@ interface ZiroApi {
 
     @GET("api/trainer/workout-templates")
     suspend fun getWorkoutTemplates(): ApiResponse<WorkoutTemplatesResponse>
+
+    @GET("api/trainer/programs")
+    suspend fun getTrainerPrograms(): ApiResponse<GetClientProgramsResponse>
 
     @GET("api/client/program/active")
     suspend fun getActiveProgramProgress(): ApiResponse<ActiveProgramApiResponse>

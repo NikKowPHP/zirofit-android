@@ -28,11 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.ziro.fit.model.CalendarEvent
 import com.ziro.fit.model.EventType
+import com.ziro.fit.ui.theme.ZiroAccent
+import com.ziro.fit.ui.theme.StrongTextSecondary
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -47,6 +50,7 @@ fun CalendarScreen(
     onNavigateToCreateSession: (String) -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
+    val workoutState by workoutViewModel.uiState.collectAsState()
     
     // Sheet state
     val sheetState = rememberModalBottomSheetState()
@@ -65,28 +69,45 @@ fun CalendarScreen(
         viewModel.onWeekChanged(offset)
     }
 
+    // Solve FAB and mini player overlap: move FAB up if workout mini player is active
+    val isMiniPlayerActive = workoutState.activeSession != null
+    val fabBottomPadding = if (isMiniPlayerActive) 100.dp else 16.dp
+
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { 
                     onNavigateToCreateSession(state.selectedDate.toString())
-                }
+                },
+                shape = RoundedCornerShape(16.dp), // Premium rounded square
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = ZiroAccent,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 2.dp
+                ),
+                modifier = Modifier
+                    .padding(bottom = fabBottomPadding, end = 8.dp) // Dynamic bottom padding
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Create Session"
+                    contentDescription = "Create Session",
+                    modifier = Modifier.size(24.dp),
+                    tint = ZiroAccent
                 )
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
-            PullToRefreshBox(
+        PullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = { viewModel.refresh(isPullToRefresh = true) },
             modifier = Modifier.fillMaxSize().padding(innerPadding)
         ) {
             Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                 // Header & View Selector
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(), 
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -96,8 +117,9 @@ fun CalendarScreen(
                             text = if (state.viewMode == CalendarViewMode.MONTH) 
                                 state.currentMonthStart.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
                             else 
-                                state.currentWeekStart.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                            style = MaterialTheme.typography.headlineSmall,
+                                state.selectedDate.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         
@@ -105,29 +127,40 @@ fun CalendarScreen(
                         Box {
                             var expanded by remember { mutableStateOf(false) }
                             
-                            TextButton(onClick = { expanded = true }) {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(100.dp))
+                                    .clickable { expanded = true }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
                                     text = state.viewMode.name.first() + state.viewMode.name.substring(1).lowercase(),
                                     style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontWeight = FontWeight.Bold,
+                                    color = ZiroAccent
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
                                     imageVector = Icons.Default.ArrowDropDown,
-                                    contentDescription = "Select View"
+                                    contentDescription = "Select View",
+                                    tint = ZiroAccent,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
 
                             DropdownMenu(
                                 expanded = expanded,
-                                onDismissRequest = { expanded = false }
+                                onDismissRequest = { expanded = false },
+                                modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                             ) {
                                 CalendarViewMode.values().forEach { mode ->
                                     DropdownMenuItem(
                                         text = { 
                                             Text(
                                                 text = mode.name.first() + mode.name.substring(1).lowercase(),
-                                                fontWeight = if (state.viewMode == mode) FontWeight.Bold else FontWeight.Normal
+                                                fontWeight = if (state.viewMode == mode) FontWeight.Bold else FontWeight.Normal,
+                                                color = if (state.viewMode == mode) ZiroAccent else MaterialTheme.colorScheme.onSurface
                                             ) 
                                         },
                                         onClick = {
@@ -139,11 +172,11 @@ fun CalendarScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.CheckCircle,
                                                     contentDescription = "Selected",
-                                                    tint = MaterialTheme.colorScheme.primary
+                                                    tint = ZiroAccent
                                                 )
                                             } else {
                                                 Icon(
-                                                    imageVector = Icons.Default.RadioButtonUnchecked, // Placeholder or empty
+                                                    imageVector = Icons.Default.RadioButtonUnchecked,
                                                     contentDescription = null,
                                                     tint = Color.Transparent
                                                 )
@@ -167,15 +200,16 @@ fun CalendarScreen(
                                 onDateSelected = viewModel::onDateSelected
                             )
                             Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
+                                thickness = 1.dp
+                            )
                             Box(modifier = Modifier.weight(1f)) {
                                 EventsListWithLoading(state, viewModel)
                             }
                         }
                     }
                     CalendarViewMode.MONTH -> {
-                        // We need a separate pager state for month view or reset/handle it.
-                        // For MVP, just creating a new state here might be tricky if it resets on recomposition.
-                        // Let's use a remembered state keyed to viewMode.
                         val monthPagerState = rememberPagerState(
                              initialPage = Int.MAX_VALUE / 2,
                              pageCount = { Int.MAX_VALUE }
@@ -193,6 +227,10 @@ fun CalendarScreen(
                                 onDateSelected = viewModel::onDateSelected
                             )
                             Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
+                                thickness = 1.dp
+                            )
                             Box(modifier = Modifier.weight(1f)) {
                                 EventsListWithLoading(state, viewModel)
                             }
@@ -213,32 +251,33 @@ fun CalendarScreen(
                         )
                     }
                 }
+            }
         }
-    }
 
-    // Bottom Sheet Implementation
-    if (state.selectedEvent != null) {
-        ModalBottomSheet(
-            onDismissRequest = { viewModel.onEventDismissed() },
-            sheetState = sheetState
-        ) {
-            EventDetailsSheetContent(
-                event = state.selectedEvent!!,
-                onStartSession = { event -> 
-                    workoutViewModel.startWorkout(
-                        clientId = null,
-                        templateId = null,
-                        plannedSessionId = event.id,
-                        onSuccess = { onNavigateToLiveWorkout() }
-                    )
-                    viewModel.onEventDismissed() 
-                },
-                onUpdateSession = { 
-                    viewModel.onUpdateSession(it)
-                }
-            )
+        // Bottom Sheet Implementation
+        if (state.selectedEvent != null) {
+            ModalBottomSheet(
+                onDismissRequest = { viewModel.onEventDismissed() },
+                sheetState = sheetState,
+                containerColor = MaterialTheme.colorScheme.surface
+            ) {
+                EventDetailsSheetContent(
+                    event = state.selectedEvent!!,
+                    onStartSession = { event -> 
+                        workoutViewModel.startWorkout(
+                            clientId = null,
+                            templateId = null,
+                            plannedSessionId = event.id,
+                            onSuccess = { onNavigateToLiveWorkout() }
+                        )
+                        viewModel.onEventDismissed() 
+                    },
+                    onUpdateSession = { 
+                        viewModel.onUpdateSession(it)
+                    }
+                )
+            }
         }
-    }
     }
 }
 
@@ -246,12 +285,13 @@ fun CalendarScreen(
 fun EventsListWithLoading(state: CalendarUiState, viewModel: CalendarViewModel) {
     if (state.isLoading && state.events.isEmpty()) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(color = ZiroAccent)
         }
     } else if (state.error != null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = "Error loading events", color = MaterialTheme.colorScheme.error)
+                Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { viewModel.retry() }) {
                     Text("Retry")
                 }
@@ -271,11 +311,13 @@ fun EventsList(
     onEventClick: (CalendarEvent) -> Unit
 ) {
     if (events.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
                 text = "No sessions today",
-                color = Color.Gray,
-                modifier = Modifier.padding(top = 32.dp)
+                color = StrongTextSecondary,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
             )
         }
         return
